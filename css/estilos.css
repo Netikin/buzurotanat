@@ -1,0 +1,1690 @@
+/* ==========================================================================
+   BuzuRota Natal — Padrão Visual RUMO Grande Recife (/rumo/itinerarios/?codigo-linha=001)
+   ========================================================================== */
+
+:root {
+  --rumo-navy: #162652;
+  --rumo-navy-dark: #172554;
+  --rumo-blue: #07559b;
+  --rumo-ink: #1e293b;
+  --rumo-muted: #475569;
+  --rumo-border-strong: #727171;
+  --rumo-line: #d7dde8;
+  --rumo-pale: #e8f0fb;
+  --rumo-sky: #f8fbff;
+
+  --gov-azul-escuro: #162652;
+  --gov-azul-primario: #162652;
+  --gov-verde: #0e9f6e;
+  --gov-verde-claro: #edf5f1;
+  --cor-texto: #1e293b;
+  --cor-texto-secundario: #475569;
+  --cor-borda: #d7dde8;
+  --cor-superficie: #ffffff;
+  --cor-superficie-alt: #f8fbff;
+
+  --cor-lote-1: #0d63c9;
+  --cor-lote-2: #e0621f;
+  --cor-dia-util: #9c27b0;
+  --cor-dia-domingo: #1e3a8a;
+}
+
+body.alto-contraste {
+  --rumo-navy: #ffff00;
+  --rumo-navy-dark: #000000;
+  --rumo-ink: #ffffff;
+  --rumo-muted: #e5e7eb;
+  --rumo-border-strong: #ffff00;
+  --rumo-line: #ffffff;
+  --rumo-pale: #1f1f1f;
+  --rumo-sky: #000000;
+  --cor-texto: #ffffff;
+  --cor-superficie: #000000;
+  background: #000000;
+  color: #ffffff;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  color: #162652;
+  background: #ffffff;
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea, .leaflet-container {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid #7fb4e6 !important;
+  outline-offset: 2px !important;
+}
+
+.skip-links {
+  position: absolute;
+  top: -120px;
+  left: 12px;
+  z-index: 9999;
+  display: flex;
+  gap: 8px;
+}
+
+.skip-links a {
+  background: #162652;
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.skip-links a:focus {
+  top: 10px;
+  position: fixed;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ==========================================================================
+   1. Site Header (.site-header + .header-banner do RUMO)
+   ========================================================================== */
+.site-header {
+  width: 100%;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header-banner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  color: #162652;
+}
+
+.header-brand-rumo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.75rem;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  color: #162652;
+}
+
+.header-brand-rumo strong {
+  font-weight: 800;
+}
+
+.header-brand-rumo i {
+  font-size: 1.85rem;
+  color: #162652;
+}
+
+.header-brand-divider {
+  width: 1px;
+  height: 40px;
+  background: #d7dde8;
+}
+
+.header-brand-org strong {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #162652;
+}
+
+.header-brand-org span {
+  display: block;
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+.header-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-top-util {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d7dde8;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #162652;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-top-util:hover {
+  background: #e8f0fb;
+}
+
+/* ==========================================================================
+   2. Menu de Navegação Principal (#menu .btn-menu do RUMO)
+   ========================================================================== */
+#menu {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 14px 16px 6px;
+}
+
+.nav-pills-rumo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 9.5rem;
+  height: 3rem;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: 1px solid #d7dde8;
+  background: #ffffff;
+  color: #162652;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.btn-menu .icon-menu {
+  font-size: 1.35rem;
+}
+
+.btn-menu:hover {
+  background: #e8f0fb;
+}
+
+.btn-menu.active,
+.btn-menu[aria-selected="true"] {
+  background: #162652;
+  color: #ffffff;
+  border-color: #162652;
+}
+
+body.alto-contraste .btn-menu.active {
+  background: #ffff00;
+  color: #000000;
+}
+
+/* ==========================================================================
+   3. Container Main e Cabeçalho de Consulta (.consulta-page + .consulta-header)
+   ========================================================================== */
+.container-main {
+  max-width: 1200px;
+  width: 100%;
+  margin: 10px auto 36px;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.consulta-page {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.consulta-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  background: #ffffff;
+  border: 1px solid #d7dde8;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  padding: 1.35rem 1.6rem;
+}
+
+.consulta-header[hidden] {
+  display: none !important;
+}
+
+.consulta-header--rota {
+  flex-wrap: wrap;
+}
+
+.consulta-header__intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.consulta-header__icon {
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #e8f0fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  color: #162652;
+}
+
+.consulta-header__title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #162652;
+  line-height: 1.2;
+}
+
+.consulta-header__description {
+  margin: 0.35rem 0 0;
+  font-size: 0.92rem;
+  color: #475569;
+  line-height: 1.4;
+  max-width: 40rem;
+}
+
+.consulta-header__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.consulta-header__search {
+  flex: 0 1 410px;
+  min-width: 280px;
+  width: 100%;
+}
+
+.consulta-search-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #162652;
+  margin-bottom: 4px;
+}
+
+.form-select-rumo,
+.form-control-rumo {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #727171;
+  border-radius: 7px;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-size: 0.92rem;
+}
+
+.form-select-rumo--sm {
+  width: auto;
+  height: 34px;
+  font-size: 0.82rem;
+  padding: 0 10px;
+  border-color: #d7dde8;
+}
+
+.rumo-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.input-com-botao {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-rumo-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 7px;
+  background: #162652;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.btn-rumo-primary:hover {
+  background: #233a75;
+}
+
+.btn-rumo-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #d7dde8;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #162652;
+  font-weight: 700;
+  font-size: 0.84rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-rumo-icon,
+.btn-rumo-swap {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #d7dde8;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #162652;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-rumo-icon:hover,
+.btn-rumo-swap:hover {
+  background: #e8f0fb;
+}
+
+.como-chegar-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) 42px minmax(170px, 1fr) 155px auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.como-chegar-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ==========================================================================
+   4. Faixa de Destaque da Linha Selecionada (.faixa-itinerario do RUMO)
+   ========================================================================== */
+.faixa-itinerario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 10px auto 4px;
+  padding: 6px 12px;
+}
+
+.faixa-itinerario[hidden] {
+  display: none !important;
+}
+
+.icon-bus {
+  display: flex;
+  align-items: center;
+  color: #172554;
+}
+
+.numero-linha {
+  background-color: #172554;
+  min-width: 110px;
+  padding: 4px 14px;
+  border-radius: 2px;
+  color: #ffffff;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.texto-linha {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   5. Container de Itinerários em 2 Colunas (.container-itinerarios do RUMO)
+   ========================================================================== */
+.container-itinerarios {
+  display: flex;
+  gap: 34px;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-top: 22px;
+  border-top: 1px solid #727171;
+}
+
+/* COLUNA 1: Dados, Circulação, Funcionamento e Tabela de Itinerário */
+.coluna-1 {
+  flex: 0 0 660px;
+  width: 660px;
+  display: flex;
+  flex-direction: column;
+  row-gap: 18px;
+}
+
+.linha-dia-atendimento {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+}
+
+.coluna-dia-atendimento {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.linha1-dia-atendimento,
+.linha1-informacao-tempo-funcionamento {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+  margin-bottom: 6px;
+}
+
+.icone-titulos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  font-size: 16px;
+  color: #475569;
+}
+
+.titulo-dia-atendimento,
+.titulo-informacao-tempo-funcionamento {
+  margin-left: 8px;
+  margin-bottom: 0;
+  font-size: 15px;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.grupo-botoes-dia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.btn-dia {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid #727171;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-dia:hover {
+  background: #f8fbff;
+}
+
+.btn-dia[aria-pressed="true"] {
+  background: #162652;
+  color: #ffffff;
+  border-color: #162652;
+}
+
+/* Sub-colunas de 318px lado a lado dentro da Coluna 1 (Exatamente como no RUMO!) */
+.barra-acoes-detalhe-rumo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.btn-rumo-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d7dde8;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #162652;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-rumo-voltar:hover {
+  background: #e8f0fb;
+  border-color: #162652;
+}
+
+.colunas-conteudo-linha {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  width: 100%;
+  align-items: start;
+}
+
+.coluna-conteudo-linha,
+.sub-coluna-1,
+.sub-coluna-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.linha1-informacao-gerais,
+.linha1-tempo-funcionamento {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  margin-bottom: 6px;
+}
+
+.titulo-informacao-gerais,
+.titulo-tempo-funcionamento {
+  margin-left: 8px;
+  font-size: 15px;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Caixas de DADOS DA LINHA, QUILOMETRAGEM e FUNCIONAMENTO iguais ao RUMO */
+.container-interno-informacao-tempo-funcionamento {
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  border: 1px solid #727171;
+  width: 100%;
+  min-height: 66px;
+  text-align: center;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.container-interno-informacao-tempo-funcionamento-superior,
+.linha2-informacao-gerais,
+.linha2-tempo-funcionamento {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background-color: #F5F5F5;
+  border-bottom: 1px solid #e2e8f0;
+  width: 100%;
+  padding: 7px 4px;
+}
+
+.titulo-informacao,
+.dias-funcionamento,
+.coluna1-linha2-informacao-gerais,
+.coluna2-linha2-informacao-gerais,
+.coluna3-linha2-informacao-gerais,
+.coluna1-linha2-tempo-funcionamento,
+.coluna2-linha2-tempo-funcionamento,
+.coluna3-linha2-tempo-funcionamento {
+  text-align: center;
+  width: 33.33%;
+  font-size: 12px;
+  color: #475569;
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+.titulo-colunas-informacao-gerais,
+.titulo-colunas-tempo-funcionamento {
+  font-size: 12px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.container-interno-informacao-tempo-funcionamento-inferior,
+.linha3-informacao-gerais,
+.linha3-tempo-funcionamento {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  min-height: 42px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  padding: 6px 4px;
+}
+
+.td-body,
+.coluna1-linha3-informacao-gerais,
+.coluna2-linha3-informacao-gerais,
+.coluna3-linha3-informacao-gerais,
+.coluna1-linha3-tempo-funcionamento,
+.coluna2-linha3-tempo-funcionamento,
+.coluna3-linha3-tempo-funcionamento {
+  width: 33.33%;
+  padding: 0 4px;
+  border-right: 1px solid #f1f5f9;
+}
+
+.coluna3-linha3-informacao-gerais,
+.coluna3-linha3-tempo-funcionamento {
+  border-right: none;
+}
+
+.subtitulo-colunas-informacao-gerais,
+.subtitulo-colunas-tempo-funcionamento {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.25;
+}
+
+.subtitulo-colunas-tempo-funcionamento.sim {
+  color: #15803d;
+}
+
+.subtitulo-colunas-tempo-funcionamento.nao {
+  color: #b91c1c;
+}
+
+.btn-expandir {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 32px;
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #162652;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-expandir:hover {
+  background: #e8f0fb;
+}
+
+.dados-extras {
+  display: none;
+  padding: 10px 12px 12px;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+  text-align: left;
+}
+
+.dados-extras.aberto {
+  display: block;
+}
+
+.itinerario-select {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #727171;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* Cabeçalhos de Sub-seção com linha inferior #727171 (.linha1-itinerario-partidas do RUMO) */
+.linha1-itinerario-partidas {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 0;
+  border-bottom: 1px solid #727171;
+}
+
+.titulo-itinerario-partidas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Tabela Zebrada de Itinerário / Ruas (.tabela-itinerario do RUMO) */
+.tabela-itinerario-wrap,
+.tabela-wrapper {
+  max-height: 460px;
+  overflow-y: auto;
+  border-bottom: 1px solid #ccc;
+}
+
+.tabela-itinerario {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.tabela-itinerario th {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  color: #1e293b;
+  font-weight: 700;
+  padding: 8px 6px;
+  border-bottom: 2px solid #727171;
+}
+
+.tabela-itinerario td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.tabela-itinerario tbody tr:nth-child(odd) {
+  background-color: #f8fafc;
+}
+
+.tabela-itinerario tbody tr:hover {
+  background-color: #e8f0fb;
+  cursor: pointer;
+}
+
+/* COLUNA 2 (Direita: Mapa + Consórcio/Empresa do RUMO) */
+.coluna-mapa-consorcio-empresa {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.container-mapa {
+  position: relative;
+  width: 100%;
+  height: 620px;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid #d7dde8;
+}
+
+#mapa {
+  width: 100%;
+  height: 100%;
+  border-radius: 5px;
+  z-index: 1;
+}
+
+.linha-aviso {
+  display: flex;
+  margin-top: 8px;
+}
+
+.texto-aviso {
+  margin: 0;
+  width: 100%;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.linha-consorcio-empresa {
+  display: flex;
+  flex-direction: column;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.coluna-titulo-consorcio-empresa {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  color: #475569;
+  font-weight: 700;
+  font-size: 14px;
+  gap: 8px;
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #727171;
+}
+
+.coluna-consorcio-empresa {
+  font-size: 14px;
+  color: #1e293b;
+}
+
+/* ==========================================================================
+   6. Listas de Linhas e Trajetos Sugeridos (Quando nenhuma linha isolada está aberta)
+   ========================================================================== */
+.lista-cartoes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 560px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.cartao-item {
+  background: #ffffff;
+  border: 1px solid #d7dde8;
+  border-radius: 8px;
+  padding: 12px 14px;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.cartao-item:hover,
+.cartao-item.destacado {
+  border-color: #162652;
+  background: #f8fbff;
+}
+
+.cartao-trajeto-ativo {
+  border: 2px solid #162652;
+  background: #f8fbff;
+}
+
+.btn-trajeto-ativo {
+  background: #0e9f6e !important;
+  color: #ffffff !important;
+}
+
+.cabecalho-cartao {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.badge-numero-linha {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  padding: 3px 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffffff;
+  background: #172554;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.badge-tipo {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  background: #eef2f7;
+  color: #334155;
+  border: 1px solid #d7e0ec;
+  border-radius: 6px;
+}
+
+.badge-distancia {
+  background: #edf5f1;
+  color: #0a6b4b;
+  border: 1px solid #d2e2da;
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.metadados-item {
+  font-size: 0.82rem;
+  color: #475569;
+  margin: 6px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.acoes-cartao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-primario {
+  background: #162652;
+  color: #ffffff;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-weight: 700;
+  font-size: 0.84rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.btn-primario:hover {
+  background: #233a75;
+}
+
+.btn-secundario {
+  background: #ffffff;
+  color: #162652;
+  border: 1px solid #d7dde8;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.btn-secundario:hover {
+  background: #e8f0fb;
+}
+
+/* Passos de Viagem (Como chegar) */
+.linha-badges-viagem {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.seta-viagem {
+  color: #475569;
+  font-weight: 700;
+}
+
+.viagem-passos {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.passo-viagem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.letra-passo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: #172554;
+  flex-shrink: 0;
+}
+
+.letra-origem {
+  background: #16c600;
+}
+
+.letra-destino {
+  background: #172554;
+}
+
+.letra-transferencia {
+  background: #e0621f;
+}
+
+.passo-conteudo strong {
+  display: block;
+  color: #1e293b;
+}
+
+.passo-conteudo span {
+  display: block;
+  color: #475569;
+  font-size: 0.76rem;
+}
+
+/* Autocomplete Dropdown */
+.lista-autocomplete {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid #d7dde8;
+  border-radius: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 150;
+  box-shadow: 0 12px 24px rgba(8, 45, 115, 0.12);
+}
+
+.item-autocomplete {
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.item-autocomplete:hover,
+.item-autocomplete.ativo-teclado {
+  background: #e8f0fb;
+}
+
+.item-autocomplete strong {
+  display: block;
+  color: #162652;
+}
+
+.item-autocomplete span {
+  display: block;
+  color: #475569;
+  font-size: 0.78rem;
+}
+
+/* Alertas */
+.alerta-edital {
+  background: #f8fbff;
+  border: 1px solid #d7dde8;
+  border-radius: 8px;
+  color: #334155;
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  margin-bottom: 10px;
+}
+
+.alerta-erro {
+  background: #fdecec;
+  border: 1px solid #f3b4b4;
+  border-radius: 8px;
+  color: #8a1c1c;
+  padding: 10px 12px;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.alerta-sucesso {
+  background: #edf5f1;
+  border: 1px solid #d2e2da;
+  border-radius: 8px;
+  color: #0a5c41;
+  padding: 10px 12px;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   7. Legenda (.stop-legend do RUMO), Marcadores e Editor de Paradas
+   ========================================================================== */
+.stop-legend {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 400;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.16);
+  padding: 6px 10px;
+  color: #0f172a;
+  font-size: 12px;
+  backdrop-filter: blur(8px);
+}
+
+.btn-toggle-legenda-mobile {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  color: #162652;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.legenda-mapa[data-aberta-mobile="false"] .legenda-conteudo {
+  display: none !important;
+}
+
+.legenda-mapa[data-aberta-mobile="true"] .legenda-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.stop-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.stop-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.16);
+}
+
+.amostra-traco-proposto {
+  width: 22px;
+  height: 0;
+  border-top: 3.5px dashed var(--cor-dia-util);
+  display: inline-block;
+}
+
+.amostra-traco-domingo {
+  width: 22px;
+  height: 0;
+  border-top: 3.5px dashed var(--cor-dia-domingo);
+  display: inline-block;
+}
+
+.barra-editor-mapa {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 650;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #162652;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.barra-editor-mapa[hidden] {
+  display: none !important;
+}
+
+.barra-editor-mapa__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+#btn-editor-criar-clique[aria-pressed="true"] {
+  background: #0e9f6e;
+  color: #ffffff;
+}
+
+.marcador-mapa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  font-size: 11px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.3);
+}
+
+.marcador-terminal {
+  background: #172554;
+  border-radius: 5px;
+}
+
+.marcador-integracao {
+  background: #e0621f;
+  border-radius: 50%;
+}
+
+.marcador-parada {
+  background: #0e9f6e;
+  border-radius: 50%;
+}
+
+.marcador-usuario {
+  background: #dc2626;
+  border-radius: 50%;
+}
+
+.marcador-origem {
+  background: #16c600;
+  border-radius: 50%;
+}
+
+.marcador-destino {
+  background: #172554;
+  border-radius: 50%;
+}
+
+.marcador-transferencia {
+  background: #e0621f;
+  border-radius: 50%;
+}
+
+/* Modal Admin */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(22, 38, 82, 0.65);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-backdrop[hidden] {
+  display: none !important;
+}
+
+.modal-caixa {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #d7dde8;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
+  max-width: 740px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.modal-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.grade-filtros {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.campo-grupo {
+  margin-bottom: 10px;
+}
+
+.campo-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #162652;
+  margin-bottom: 4px;
+}
+
+.campo-input,
+.campo-select {
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid #727171;
+  border-radius: 7px;
+}
+
+.editor-json-admin {
+  width: 100%;
+  min-height: 200px;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  padding: 10px;
+  border: 1px solid #d7dde8;
+  border-radius: 7px;
+  background: #f8fbff;
+}
+
+/* Compatibilidade sobre.html */
+.barra-gov, .rodape-gov {
+  background: #162652;
+  color: #ffffff;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.rodape-gov a, .barra-gov a {
+  color: #ffffff;
+}
+
+.cabecalho {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #d7dde8;
+}
+
+.marca-portal {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: #162652;
+}
+
+.marca-icone {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #e8f0fb;
+  color: #162652;
+  display: grid;
+  place-items: center;
+}
+
+.link-nav {
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: #162652;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.link-nav[aria-current="page"] {
+  background: #162652;
+  color: #ffffff;
+}
+
+.grade-especificacoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.item-especificacao {
+  border: 1px solid #d7dde8;
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: #f8fbff;
+}
+
+.item-especificacao span {
+  display: block;
+  font-size: 11px;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.item-especificacao strong {
+  font-size: 13px;
+  color: #162652;
+}
+
+/* ==========================================================================
+   8. Responsividade Mobile (< 980px) Igual ao RUMO
+   ========================================================================== */
+@media (max-width: 980px) {
+  .header-banner {
+    padding: 10px 14px;
+  }
+
+  .header-brand-divider,
+  .header-brand-org {
+    display: none;
+  }
+
+  .header-brand-rumo {
+    font-size: 1.35rem;
+  }
+
+  .btn-menu {
+    min-width: auto;
+    height: 2.5rem;
+    padding: 0 12px;
+    font-size: 0.8rem;
+  }
+
+  .btn-menu .icon-menu {
+    font-size: 1.1rem;
+  }
+
+  .consulta-header {
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .consulta-header__search {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .como-chegar-grid {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .btn-rumo-swap {
+    justify-self: end;
+    height: 34px;
+  }
+
+  .faixa-itinerario {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .numero-linha {
+    font-size: 22px;
+    min-width: 80px;
+  }
+
+  .texto-linha {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .container-itinerarios {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .coluna-1 {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .colunas-conteudo-linha {
+    grid-template-columns: 1fr;
+  }
+
+  .container-mapa {
+    height: 400px;
+  }
+}
+
+/* ==========================================================================
+   Editor Visual Interativo (Vértices de Rota & Cards Admin)
+   ========================================================================== */
+.admin-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.admin-card-acao {
+  border: 1px solid #d7dde8;
+  border-radius: 8px;
+  padding: 14px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-card-acao__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #162652;
+  font-size: 0.96rem;
+}
+
+.admin-card-acao__desc {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.admin-avancado {
+  border: 1px solid #d7dde8;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: #ffffff;
+}
+
+.admin-avancado summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.86rem;
+  color: #162652;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vertice-editor-rota {
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border: 2.5px solid #162652;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+}
+
+.vertice-editor-rota.extremo {
+  width: 16px;
+  height: 16px;
+  background: #e0621f;
+  border: 2.5px solid #ffffff;
+}
+
+.vertice-intermediario-rota {
+  width: 12px;
+  height: 12px;
+  background: rgba(22, 38, 82, 0.78);
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 10px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0.82;
+}
+
+.vertice-intermediario-rota:hover {
+  opacity: 1;
+  transform: scale(1.2);
+  background: #e0621f;
+}
+
+@media (max-width: 760px) {
+  .admin-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}

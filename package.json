@@ -1,0 +1,12 @@
+{
+  "name": "buzurota-natal",
+  "version": "1.0.0",
+  "description": "Portal BuzuRota Natal - Consulta Pública Licitação nº 021/2023 (STTU)",
+  "main": "servidor.js",
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

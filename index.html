@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#162652">
+  <meta name="description" content="STTU Natal - RUMO Consulta Pública da Licitação nº 021/2023. Consulte itinerários, paradas, funcionamento e mapa das 87 linhas propostas.">
+  <title>Natal — Consulta de Itinerários e Rotas (Licitação nº 021/2023)</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,600,0,0&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap Icons (mesma biblioteca de ícones usada no RUMO Grande Recife) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Leaflet CSS + Leaflet.markercluster CSS via CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
+
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <nav class="skip-links" aria-label="Atalhos de navegação rápida">
+    <a href="#sel-linha-rapida" accesskey="1">Ir para seleção de linha [Alt+1]</a>
+    <a href="#painel-controle" accesskey="2">Ir para dados e itinerário [Alt+2]</a>
+    <a href="#mapa" accesskey="3">Ir para o mapa [Alt+3]</a>
+  </nav>
+
+  <!-- 1. Banner Superior Estilo RUMO (.site-header + .header-banner) -->
+  <header class="site-header">
+    <div class="header-banner">
+      <div class="header-banner__identity">
+        <a href="#/" class="header-brand-link">
+          <div class="header-brand-rumo">
+            <i class="bi bi-bus-front-fill"></i>
+            <span>BUZU<strong>ROTA</strong></span>
+          </div>
+          <span class="header-brand-divider" aria-hidden="true"></span>
+          <div class="header-brand-org">
+            <strong>PREFEITURA DO NATAL • STTU</strong>
+            <span>Consulta Pública — Licitação nº 021/2023</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="header-banner__actions">
+        <button type="button" id="btn-alto-contraste" class="btn-top-util" aria-pressed="false" title="Alternar Alto Contraste">
+          <i class="bi bi-circle-half"></i>
+          <span>Contraste</span>
+        </button>
+        <button type="button" id="btn-acesso-restrito" class="btn-top-util btn-top-util--admin" title="Acesso Restrito (JSON e Editor de Mapa)">
+          <i class="bi bi-shield-lock"></i>
+          <span>Admin</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Menu de Pílulas Centralizado Igual ao RUMO (#menu .nav-pills .btn-menu) -->
+  <nav id="menu" aria-label="Navegação principal">
+    <ul class="nav-pills-rumo">
+      <li class="nav-item">
+        <button type="button" id="aba-busca-linha" class="btn-menu active" role="tab" aria-selected="true" aria-controls="painel-busca-linha">
+          <i class="bi bi-bus-front icon-menu" aria-hidden="true"></i>
+          <span>ITINERÁRIOS</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <button type="button" id="aba-busca-endereco" class="btn-menu" role="tab" aria-selected="false" aria-controls="painel-busca-endereco">
+          <i class="bi bi-map icon-menu" aria-hidden="true"></i>
+          <span>COMO CHEGAR</span>
+        </button>
+      </li>
+      <li class="nav-item">
+        <a href="sobre.html" class="btn-menu">
+          <i class="bi bi-file-earmark-text icon-menu" aria-hidden="true"></i>
+          <span>SOBRE O EDITAL</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- 3. Container Principal Centralizado (max-width: 1200px, igual ao .container-main do RUMO) -->
+  <main class="container-main" id="layout-principal" data-sheet="meio">
+
+    <!-- 3.1. Cabeçalho de Consulta (.consulta-page > .consulta-header do RUMO) -->
+    <section id="secao-busca-linha" class="consulta-page">
+
+      <!-- MODO A: Cabeçalho de Consulta de Itinerários (Padrão /rumo/itinerarios/) -->
+      <div id="painel-busca-linha" class="consulta-header" role="tabpanel" aria-labelledby="aba-busca-linha">
+        <div class="consulta-header__intro">
+          <div class="consulta-header__icon" aria-hidden="true">
+            <i class="bi bi-bus-front"></i>
+          </div>
+          <div>
+            <h1 class="consulta-header__title" id="titulo-busca-linha">Itinerários</h1>
+            <p class="consulta-header__description" id="descricao-busca-linha">
+              Selecione uma linha abaixo ou pesquise pelo código/bairro para ver seu itinerário, paradas, funcionamento e mapa.
+            </p>
+            <!-- Filtros rápidos compactos de Lote, Categoria e Dia -->
+            <div class="consulta-header__filters">
+              <select id="filtro-lote" class="form-select-rumo form-select-rumo--sm" aria-label="Filtrar por Lote">
+                <option value="todos">Todos os Lotes (87 linhas)</option>
+                <option value="1">Lote 1 — Norte</option>
+                <option value="2">Lote 2 — Sul / Leste / Oeste</option>
+              </select>
+              <select id="filtro-tipo" class="form-select-rumo form-select-rumo--sm" aria-label="Filtrar por Categoria">
+                <option value="todos">Todas as Categorias</option>
+                <option value="alimentadora">Linhas de Bairro (B)</option>
+                <option value="expressa">Estruturais / Diretas (E / D)</option>
+                <option value="convencional">Regionais (R)</option>
+                <option value="noturna">Corujões / Noturnas (C)</option>
+              </select>
+              <label class="rumo-inline-check" for="filtro-acessivel">
+                <input type="checkbox" id="filtro-acessivel">
+                <span>Acessível</span>
+              </label>
+              <label id="container-filtro-rede-atual" class="rumo-inline-check" for="filtro-rede-atual" hidden>
+                <input type="checkbox" id="filtro-rede-atual">
+                <span>Rede atual</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="consulta-header__search">
+          <label for="sel-linha-rapida" class="consulta-search-label">Selecione uma linha:</label>
+          <select id="sel-linha-rapida" class="form-select-rumo" style="margin-bottom:8px;">
+            <option value="">Ver todas as linhas no mapa (ou escolha uma linha)</option>
+          </select>
+
+          <div class="input-com-botao" style="position:relative;">
+            <input
+              type="search"
+              id="filtro-busca-linha"
+              class="form-control-rumo"
+              placeholder="Ou digite código/nome (ex.: B1, E1, R4, Mirassol)..."
+              autocomplete="off"
+              aria-autocomplete="list"
+              aria-controls="lista-autocomplete-linha"
+            >
+            <button type="button" id="btn-buscar-linha" class="btn-rumo-primary">
+              <i class="bi bi-search"></i>
+            </button>
+            <ul id="lista-autocomplete-linha" class="lista-autocomplete" role="listbox" aria-label="Sugestões de linhas" hidden></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODO B: Cabeçalho de Planejamento "Como Chegar" (De -> Para) -->
+      <div id="painel-busca-endereco" class="consulta-header consulta-header--rota" role="tabpanel" aria-labelledby="aba-busca-endereco" hidden>
+        <div class="consulta-header__intro" style="flex: 0 0 260px;">
+          <div class="consulta-header__icon" aria-hidden="true">
+            <i class="bi bi-map"></i>
+          </div>
+          <div>
+            <h2 class="consulta-header__title">Como chegar</h2>
+            <p class="consulta-header__description">
+              Informe origem e destino para calcular o trajeto (limite 1,2 km a pé, até 3 baldeações).
+            </p>
+          </div>
+        </div>
+
+        <div class="como-chegar-grid">
+          <div class="campo-grupo" style="position:relative;margin:0;">
+            <label for="input-origem-viagem" class="consulta-search-label">
+              Origem <i class="bi bi-geo-alt-fill" style="color:#16C600;"></i>
+            </label>
+            <div class="input-com-botao">
+              <input
+                type="search"
+                id="input-origem-viagem"
+                class="form-control-rumo"
+                placeholder="Digite o endereço ou bairro de origem..."
+                autocomplete="off"
+                aria-autocomplete="list"
+                aria-controls="lista-autocomplete-origem"
+              >
+              <button type="button" id="btn-usar-localizacao" class="btn-rumo-icon" title="Usar minha localização (GPS)">
+                <i class="bi bi-crosshair"></i>
+              </button>
+            </div>
+            <ul id="lista-autocomplete-origem" class="lista-autocomplete" role="listbox" aria-label="Sugestões de origem" hidden></ul>
+          </div>
+
+          <button type="button" id="btn-inverter-viagem" class="btn-rumo-swap" title="Trocar origem e destino">
+            <i class="bi bi-arrow-left-right"></i>
+          </button>
+
+          <div class="campo-grupo" style="position:relative;margin:0;">
+            <label for="input-destino-viagem" class="consulta-search-label">
+              Destino <i class="bi bi-geo-alt-fill" style="color:#162652;"></i>
+            </label>
+            <input
+              type="search"
+              id="input-destino-viagem"
+              class="form-control-rumo"
+              placeholder="Digite o endereço ou bairro de destino..."
+              autocomplete="off"
+              aria-autocomplete="list"
+              aria-controls="lista-autocomplete-destino"
+            >
+            <ul id="lista-autocomplete-destino" class="lista-autocomplete" role="listbox" aria-label="Sugestões de destino" hidden></ul>
+          </div>
+
+          <div class="campo-grupo" style="margin:0;">
+            <label for="select-max-baldeacoes" class="consulta-search-label">
+              <i class="bi bi-arrow-repeat"></i> Baldeações
+            </label>
+            <select id="select-max-baldeacoes" class="form-select-rumo">
+              <option value="3" selected>Até 3 baldeações</option>
+              <option value="2">Até 2 baldeações</option>
+              <option value="1">Até 1 baldeação</option>
+              <option value="0">Apenas linha direta</option>
+            </select>
+          </div>
+
+          <div class="como-chegar-actions">
+            <button type="button" id="btn-buscar-viagem" class="btn-rumo-primary" style="height:42px;padding:0 16px;">
+              <i class="bi bi-search"></i>
+              <span>Buscar Trajetos</span>
+            </button>
+            <button type="button" id="btn-limpar-viagem" class="btn-rumo-secondary" style="height:42px;" title="Limpar busca">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+        <div id="feedback-viagem" hidden aria-live="polite" style="width:100%;margin-top:8px;"></div>
+      </div>
+    </section>
+
+    <!-- 3.2. Faixa de Destaque da Linha Selecionada (Igual à .faixa-itinerario do RUMO: [🚌] [ 001 ] NOME DA LINHA) -->
+    <div id="faixa-itinerario-topo" class="faixa-itinerario" hidden>
+      <div class="icon-bus" aria-hidden="true">
+        <i class="bi bi-bus-front" style="font-size:36px;"></i>
+      </div>
+      <div id="faixa-numero-linha" class="numero-linha">B1</div>
+      <h2 id="faixa-texto-linha" class="texto-linha">BRASIL NOVO / AV. MOEMA TINOCO</h2>
+    </div>
+
+    <!-- 3.3. Corpo Principal de 2 Colunas Igual ao RUMO (.container-itinerarios: Coluna 1 Dados/Tabela + Coluna 2 Mapa) -->
+    <div class="container-itinerarios">
+
+      <!-- COLUNA 1 (Esquerda: Circulação, Dados da Linha, Funcionamento Seg-Sex/Sáb/Dom e Tabela de Itinerário/Paradas) -->
+      <div class="coluna-1 painel-controle" id="painel-controle">
+
+        <!-- Seletor de Circulação (Dia da Semana) e Atendimento Igual ao Topo da Coluna 1 do RUMO -->
+        <div class="linha-dia-atendimento">
+          <div class="coluna-dia-atendimento">
+            <div class="linha1-dia-atendimento">
+              <span class="icone-titulos"><i class="bi bi-calendar3"></i></span>
+              <span class="titulo-dia-atendimento">CIRCULAÇÃO</span>
+            </div>
+            <div class="linha2-dia-atendimento">
+              <div class="grupo-botoes-dia" role="group" aria-label="Dia de circulação">
+                <button type="button" class="btn-dia" data-dia="dias_uteis_sabados" aria-pressed="true">
+                  Dias úteis e sábados
+                </button>
+                <button type="button" class="btn-dia" data-dia="domingos_feriados" aria-pressed="false">
+                  Domingos e feriados
+                </button>
+                <button type="button" class="btn-dia" data-dia="todos" aria-pressed="false">
+                  Todos
+                </button>
+              </div>
+              <span id="status-dia-ativo" class="sr-only" aria-live="polite">Dias úteis e sábados</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conteúdo Dinâmico da Coluna 1 (Visão Geral / Trajetos Sugeridos / Detalhe no padrão RUMO) -->
+        <div id="visao-exploracao">
+          <section id="secao-resultado-viagem" class="bloco-secao" aria-labelledby="titulo-resultado-viagem" hidden>
+            <div class="linha1-itinerario-partidas">
+              <div class="titulo-itinerario-partidas">
+                <i class="bi bi-sign-turn-right"></i>
+                <span id="titulo-resultado-viagem">TRAJETOS SUGERIDOS</span>
+              </div>
+              <span id="contador-viagem" class="badge-tipo">0 opções</span>
+            </div>
+            <div id="resumo-viagem" class="alerta-edital" role="note" hidden style="margin-top:8px;"></div>
+            <ul id="lista-resultado-viagem" class="lista-cartoes" style="margin-top:10px;"></ul>
+          </section>
+
+          <section id="secao-lista-linhas" class="bloco-secao" aria-labelledby="titulo-lista-linhas">
+            <div class="linha1-itinerario-partidas">
+              <div class="titulo-itinerario-partidas">
+                <i class="bi bi-list-ul"></i>
+                <span id="titulo-lista-linhas">LINHAS PROPOSTAS</span>
+              </div>
+              <span id="contador-linhas" class="badge-tipo" aria-live="polite">Carregando...</span>
+            </div>
+            <ul id="lista-linhas-propostas" class="lista-cartoes" style="margin-top:10px;"></ul>
+          </section>
+        </div>
+
+        <!-- Quando uma linha é selecionada, exibe exatamente as caixas DADOS DA LINHA, FUNCIONAMENTO, QUILOMETRAGEM e TABELA DE ITINERÁRIO do RUMO! -->
+        <div id="visao-detalhe" hidden aria-live="polite"></div>
+      </div>
+
+      <!-- COLUNA 2 (Direita: Mapa + Dados do Lote/Consórcio Igual ao .coluna-mapa-consorcio-empresa do RUMO) -->
+      <div class="coluna-mapa-consorcio-empresa">
+        <div class="container-mapa">
+          <!-- Barra Flutuante do Editor Administrativo de Paradas no Mapa -->
+          <div id="barra-editor-mapa" class="barra-editor-mapa" hidden>
+            <div class="barra-editor-mapa__status">
+              <i class="bi bi-geo-alt-fill"></i>
+              <strong>Editor de Paradas (Raio 40m)</strong>
+              <span>Arraste marcadores para ajustar o lado da avenida</span>
+            </div>
+            <div class="barra-editor-mapa__acoes">
+              <button type="button" id="btn-editor-criar-clique" class="btn-rumo-secondary" aria-pressed="false">
+                + Criar parada no clique
+              </button>
+              <label class="rumo-inline-check">
+                <input type="checkbox" id="chk-editor-mostrar-virtuais">
+                <span>Virtuais (~200m)</span>
+              </label>
+              <button type="button" id="btn-editor-sair" class="btn-rumo-primary" style="background:#b91c1c;">
+                Concluir
+              </button>
+            </div>
+          </div>
+
+          <!-- Barra Flutuante do Editor Interativo de Traçado de Rota -->
+          <div id="barra-editor-rota" class="barra-editor-mapa" hidden>
+            <div class="barra-editor-mapa__status">
+              <i class="bi bi-bezier2"></i>
+              <strong id="titulo-barra-editor-rota">Editor de Traçado</strong>
+              <span id="info-barra-editor-rota">Arraste vértices • Clique no + para inserir • Botão direito remove</span>
+            </div>
+            <div class="barra-editor-mapa__acoes">
+              <button type="button" id="btn-rota-desfazer" class="btn-rumo-secondary" disabled>
+                <i class="bi bi-arrow-counterclockwise"></i> Desfazer
+              </button>
+              <button type="button" id="btn-rota-estender-clique" class="btn-rumo-secondary" aria-pressed="false">
+                + Estender no clique
+              </button>
+              <button type="button" id="btn-rota-salvar-mapa" class="btn-rumo-primary">
+                <i class="bi bi-check2-circle"></i> Salvar Traçado
+              </button>
+              <button type="button" id="btn-rota-sair" class="btn-rumo-secondary" style="color:#b91c1c;border-color:#fca5a5;">
+                Sair
+              </button>
+            </div>
+          </div>
+
+          <div id="mapa" role="application" aria-label="Mapa interativo das rotas de Natal"></div>
+
+          <!-- Legenda do Mapa Estilo .stop-legend do RUMO -->
+          <aside class="legenda-mapa stop-legend" id="legenda-mapa" data-aberta-mobile="false" aria-label="Legenda do mapa">
+            <button type="button" class="btn-toggle-legenda-mobile" id="btn-toggle-legenda" aria-expanded="false">
+              <i class="bi bi-layers"></i>
+              <span>Legenda</span>
+            </button>
+            <div class="legenda-conteudo">
+              <div class="stop-legend-item">
+                <span class="amostra-traco-proposto"></span>
+                <span>Dias úteis e sábados</span>
+              </div>
+              <div class="stop-legend-item">
+                <span class="amostra-traco-domingo"></span>
+                <span>Domingos e feriados</span>
+              </div>
+              <div class="stop-legend-item">
+                <span class="stop-legend-dot" style="background:#162652;"></span>
+                <span>Terminal (T)</span>
+              </div>
+              <div class="stop-legend-item">
+                <span class="stop-legend-dot" style="background:#e0621f;"></span>
+                <span>Integração (I)</span>
+              </div>
+              <div class="stop-legend-item">
+                <span class="stop-legend-dot" style="background:#0e9f6e;"></span>
+                <span>Parada OSM / Manual (P)</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <!-- Bloco Inferior Abaixo do Mapa Igual ao .linha-consorcio-empresa do RUMO -->
+        <div class="linha-aviso">
+          <p class="texto-aviso">
+            * Na consulta pública da Licitação nº 021/2023, a ida e a volta compartilham o mesmo traçado no mapa. A ordem das paradas por sentido deve ser confirmada no edital.
+          </p>
+        </div>
+
+        <div class="linha-consorcio-empresa">
+          <div class="coluna-titulo-consorcio-empresa">
+            <i class="bi bi-building"></i>
+            <span>ÓRGÃO GESTOR / LICITAÇÃO</span>
+          </div>
+          <div class="coluna-consorcio-empresa" id="info-lote-rodape-mapa">
+            Secretaria Municipal de Mobilidade Urbana (STTU Natal) — Concorrência Pública nº 021/2023 (Lote 1: Norte | Lote 2: Sul/Leste/Oeste)
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal Administrativo Exclusivo -->
+  <div id="modal-admin" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-admin" hidden>
+    <div class="modal-caixa">
+      <div class="modal-cabecalho">
+        <h2 id="titulo-modal-admin" style="margin:0;font-size:1.1rem;display:flex;align-items:center;gap:8px;">
+          <i class="bi bi-shield-lock"></i>
+          Acesso Restrito — Gestão de Rotas e Paradas (STTU)
+        </h2>
+        <button type="button" id="btn-fechar-modal-admin" class="btn-rumo-secondary">Fechar ✕</button>
+      </div>
+
+      <div id="feedback-admin" hidden aria-live="polite"></div>
+
+      <form id="form-login-admin">
+        <p style="margin-top:0;font-size:0.9rem;">
+          Área exclusiva da comissão técnica para revisão de paradas no mapa e atualização de arquivos <strong>JSON / GeoJSON / KML / KMZ</strong>.
+        </p>
+        <div class="campo-grupo">
+          <label for="input-chave-admin" class="consulta-search-label">Chave de Administrador:</label>
+          <div class="input-com-botao">
+            <input
+              type="password"
+              id="input-chave-admin"
+              class="form-control-rumo"
+              placeholder="Digite a chave de administrador"
+              required
+            >
+            <button type="submit" class="btn-rumo-primary">Autenticar</button>
+          </div>
+        </div>
+      </form>
+
+      <div id="area-admin-desbloqueada" hidden>
+        <div class="admin-cards-grid">
+          <div class="admin-card-acao">
+            <div class="admin-card-acao__header">
+              <i class="bi bi-geo-alt-fill"></i>
+              <strong>1. Editor Visual de Paradas</strong>
+            </div>
+            <p class="admin-card-acao__desc">
+              Arraste paradas no mapa, crie novas com 1 clique, defina sentido (IDA/VOLTA/AMBOS) e recalcule automaticamente os vínculos em 40 m.
+            </p>
+            <button type="button" id="btn-ativar-editor-mapa" class="btn-rumo-primary" style="width:100%;">
+              <i class="bi bi-cursor-fill"></i> Abrir Editor de Paradas no Mapa
+            </button>
+          </div>
+
+          <div class="admin-card-acao">
+            <div class="admin-card-acao__header">
+              <i class="bi bi-bezier2"></i>
+              <strong>2. Editor Visual de Traçado e Linha</strong>
+            </div>
+            <p class="admin-card-acao__desc">
+              Edite curvas, vértices, nome, cor e categoria de qualquer linha direto no mapa, sem mexer em JSON.
+            </p>
+            <div style="display:grid;grid-template-columns:1fr 170px;gap:6px;margin-bottom:8px;">
+              <select id="select-linha-editor-visual" class="form-select-rumo" aria-label="Linha para editar traçado"></select>
+              <select id="select-dia-editor-visual" class="form-select-rumo" aria-label="Dia de operação">
+                <option value="dias_uteis_sabados">Úteis e Sábados</option>
+                <option value="domingos_feriados">Domingos</option>
+              </select>
+            </div>
+            <button type="button" id="btn-ativar-editor-rota" class="btn-rumo-primary" style="width:100%;background:#e0621f;">
+              <i class="bi bi-pencil-square"></i> Editar Traçado no Mapa
+            </button>
+          </div>
+        </div>
+
+        <details class="admin-avancado">
+          <summary>
+            <i class="bi bi-code-slash"></i>
+            <span>Avançado: Importar / Exportar JSON, GeoJSON, KML ou KMZ</span>
+          </summary>
+
+          <div class="grade-filtros" style="margin:12px 0 10px;">
+            <div>
+              <label for="select-linha-edicao-admin" class="consulta-search-label">Escolher linha para editar JSON:</label>
+              <select id="select-linha-edicao-admin" class="form-select-rumo">
+                <option value="">Selecione uma linha (ou importe um arquivo abaixo)</option>
+              </select>
+            </div>
+            <div>
+              <label for="select-modo-importacao" class="consulta-search-label">Modo de gravação:</label>
+              <select id="select-modo-importacao" class="form-select-rumo">
+                <option value="mesclar">Atualizar/Mesclar apenas a(s) linha(s) do editor</option>
+                <option value="substituir">Substituir base completa pelo JSON</option>
+              </select>
+            </div>
+            <div style="grid-column: 1 / -1;">
+              <label for="input-arquivo-admin" class="consulta-search-label">Importar arquivo (.json, .geojson, .kml, .kmz):</label>
+              <input type="file" id="input-arquivo-admin" class="form-control-rumo" accept=".json,.geojson,.kml,.kmz">
+            </div>
+          </div>
+
+          <div class="campo-grupo">
+            <label for="textarea-json-admin" class="consulta-search-label">Estrutura JSON:</label>
+            <textarea id="textarea-json-admin" class="editor-json-admin" spellcheck="false"></textarea>
+          </div>
+
+          <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin-top:12px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" id="btn-aplicar-json-admin" class="btn-rumo-primary">
+                Aplicar e Salvar Rotas
+              </button>
+              <button type="button" id="btn-baixar-json-admin" class="btn-rumo-secondary">
+                Baixar JSON Consolidado
+              </button>
+            </div>
+            <button type="button" id="btn-restaurar-padrao-admin" class="btn-rumo-secondary">
+              Restaurar Base Original
+            </button>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+
+  <script src="js/utils.js"></script>
+  <script src="js/dados.js"></script>
+  <script src="js/mapa.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+[
+  {
+    "nome": "Brasil Novo (Conjunto Brasil Novo - Pajuçara, Zona Norte)",
+    "bairro": "Pajuçara",
+    "cep": "59133-360",
+    "lat": -5.74113,
+    "lng": -35.23494,
+    "tipo": "Bairro / Conjunto"
+  },
+  {
+    "nome": "Terminal do Brasil Novo (Zona Norte)",
+    "bairro": "Pajuçara",
+    "cep": "59133-360",
+    "lat": -5.741128,
+    "lng": -35.234935,
+    "tipo": "Terminal de Ônibus"
+  },
+  {
+    "nome": "Av. Moema Tinoco da Cunha Lima (Pajuçara, Zona Norte)",
+    "bairro": "Pajuçara",
+    "cep": "59133-400",
+    "lat": -5.73677,
+    "lng": -35.22722,
+    "tipo": "Avenida / Integração"
+  },
+  {
+    "nome": "Terminal Estrutural Parque das Dunas (Zona Norte)",
+    "bairro": "Lagoa Azul",
+    "cep": "59135-000",
+    "lat": -5.729216,
+    "lng": -35.236507,
+    "tipo": "Terminal de Ônibus"
+  },
+  {
+    "nome": "Estação de Integração de Santa Catarina (Av. Pompéia / Potengi)",
+    "bairro": "Potengi",
+    "cep": "59124-000",
+    "lat": -5.762084,
+    "lng": -35.252669,
+    "tipo": "Estação de Integração"
+  },
+  {
+    "nome": "Santa Catarina (Conjunto Santa Catarina - Potengi, Zona Norte)",
+    "bairro": "Potengi",
+    "cep": "59112-000",
+    "lat": -5.75850,
+    "lng": -35.25120,
+    "tipo": "Bairro / Conjunto"
+  },
+  {
+    "nome": "Pajuçara (Zona Norte)",
+    "bairro": "Pajuçara",
+    "cep": "59131-000",
+    "lat": -5.74350,
+    "lng": -35.23920,
+    "tipo": "Bairro"
+  },
+  {
+    "nome": "Lagoa Azul / Nova Natal (Zona Norte)",
+    "bairro": "Lagoa Azul",
+    "cep": "59136-000",
+    "lat": -5.73180,
+    "lng": -35.24910,
+    "tipo": "Bairro"
+  },
+  {
+    "nome": "Igapó (Zona Norte)",
+    "bairro": "Igapó",
+    "cep": "59104-000",
+    "lat": -5.77450,
+    "lng": -35.25640,
+    "tipo": "Bairro"
+  },
+  {
+    "nome": "Redinha (Zona Norte)",
+    "bairro": "Redinha",
+    "cep": "59122-000",
+    "lat": -5.74489,
+    "lng": -35.20412,
+    "tipo": "Bairro"
+  },
+  {
+    "nome": "Nossa Senhora da Apresentação / Parque dos Coqueiros (Zona Norte)",
+    "bairro": "Nossa Senhora da Apresentação",
+    "cep": "59115-000",
+    "lat": -5.75680,
+    "lng": -35.27410,
+    "tipo": "Bairro"
+  },
+  {
+    "nome": "Alecrim (Comércio / Praça Gentil Ferreira)",
+    "bairro": "Alecrim",
+    "cep": "59030-000",
+    "lat": -5.79520,
+    "lng": -35.21790,
+    "tipo": "Bairro / Centro Comercial"
+  },
+  {
+    "nome": "Cidade Alta (Centro de Natal / Prefeitura)",
+    "bairro": "Cidade Alta",
+    "cep": "59025-000",
+    "lat": -5.78420,
+    "lng": -35.20730,
+    "tipo": "Bairro"
+  },
+  {
+    "nome": "Tirol / Midway Mall (Av. Bernardo Vieira / Salgado Filho)",
+    "bairro": "Tirol",
+    "cep": "59015-000",
+    "lat": -5.81120,
+    "lng": -35.20630,
+    "tipo": "Ponto de Referência"
+  },
+  {
+    "nome": "Mirassol / Campus UFRN (Av. Sen. Salgado Filho, Zona Sul)",
+    "bairro": "Lagoa Nova",
+    "cep": "59078-970",
+    "lat": -5.83980,
+    "lng": -35.20360,
+    "tipo": "Ponto de Referência"
+  },
+  {
+    "nome": "Ponta Negra (Zona Sul)",
+    "bairro": "Ponta Negra",
+    "cep": "59090-000",
+    "lat": -5.87810,
+    "lng": -35.17680,
+    "tipo": "Bairro"
+  },
+  {
+    "nome": "Cidade da Esperança / Rodoviária de Natal (Zona Oeste)",
+    "bairro": "Cidade da Esperança",
+    "cep": "59070-400",
+    "lat": -5.81850,
+    "lng": -35.23610,
+    "tipo": "Bairro / Terminal"
+  },
+  {
+    "nome": "Planalto (Zona Oeste)",
+    "bairro": "Planalto",
+    "cep": "59073-000",
+    "lat": -5.84310,
+    "lng": -35.25840,
+    "tipo": "Bairro"
+  },
+  {
+    "nome": "Felipe Camarão (Zona Oeste)",
+    "bairro": "Felipe Camarão",
+    "cep": "59072-000",
+    "lat": -5.82290,
+    "lng": -35.25370,
+    "tipo": "Bairro"
+  },
+  {
+    "nome": "Rocas / Praia do Meio (Zona Leste)",
+    "bairro": "Rocas",
+    "cep": "59010-000",
+    "lat": -5.77490,
+    "lng": -35.19720,
+    "tipo": "Bairro"
+  }
+]

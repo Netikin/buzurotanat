@@ -1,0 +1,10 @@
+# Variáveis de ambiente e segredos
+.env
+.env.*
+!.env.example
+
+# Cache local e arquivos temporários
+dados/osm-vias-cache.json
+node_modules/
+.DS_Store
+Thumbs.db
