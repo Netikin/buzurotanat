@@ -42,6 +42,7 @@
   document.addEventListener('DOMContentLoaded', async () => {
     configurarAcessibilidadeTopo();
     configurarBotoesDiaSemana();
+    configurarToggleLinhas();
     configurarBottomSheetMobile();
     configurarAbasBusca();
     configurarBuscaViagem();
@@ -161,6 +162,21 @@
 
     btnFonteNormal?.addEventListener('click', () => {
       document.documentElement.style.fontSize = '16px';
+    });
+  }
+
+  function configurarToggleLinhas() {
+    const secao = document.getElementById('secao-lista-linhas');
+    const btn = document.getElementById('btn-toggle-linhas');
+    if (!secao || !btn) return;
+
+    btn.addEventListener('click', () => {
+      const expandido = btn.getAttribute('aria-expanded') === 'true';
+      const novoEstado = !expandido;
+      btn.setAttribute('aria-expanded', String(novoEstado));
+      btn.setAttribute('aria-label', novoEstado ? 'Recolher linhas propostas' : 'Mostrar linhas propostas');
+      secao.classList.toggle('secao-lista-linhas--expandida', novoEstado);
+      secao.classList.toggle('secao-lista-linhas--collapsed', !novoEstado);
     });
   }
 
@@ -1693,6 +1709,7 @@
     const sentidoInicial = 'IDA';
     const tarifaCurta =
       linha.tarifa && linha.tarifa.length <= 22 ? linha.tarifa : 'Sistema Natal';
+    const empresaLinha = linha.empresa ? String(linha.empresa).trim() : '';
 
     container.innerHTML = `
       <div class="barra-acoes-detalhe-rumo">
@@ -1751,6 +1768,15 @@
                       tarifaCurta
                     )}</div>
                   </div>
+                </div>
+
+                <div class="linha-empresa-informacao-gerais">
+                  <span class="titulo-colunas-informacao-gerais">
+                    <i class="bi bi-building" aria-hidden="true"></i> Empresa operadora
+                  </span>
+                  <span class="subtitulo-colunas-informacao-gerais${
+                    empresaLinha ? '' : ' subtitulo-colunas-informacao-gerais--vazio'
+                  }">${empresaLinha ? window.BuzuUtils.escaparHtml(empresaLinha) : 'Não informada'}</span>
                 </div>
 
                 <button type="button" id="btn-expandir-dados-rumo" class="btn-expandir">
@@ -2303,6 +2329,13 @@
             )}">
           </div>
 
+          <div class="campo-grupo" style="margin-top:8px;">
+            <label for="edit-rota-empresa" class="consulta-search-label">Empresa operadora:</label>
+            <input type="text" id="edit-rota-empresa" class="form-control-rumo" placeholder="Ainda não cadastrada" value="${window.BuzuUtils.escaparHtml(
+              linha.empresa || ''
+            )}">
+          </div>
+
           <div id="feedback-editor-rota" hidden style="margin:10px 0;"></div>
 
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
@@ -2331,7 +2364,8 @@
         categoria_edital: document.getElementById('edit-rota-categoria')?.value,
         cor: document.getElementById('edit-rota-cor')?.value,
         horario_operacao: document.getElementById('edit-rota-horario')?.value.trim(),
-        tarifa: document.getElementById('edit-rota-tarifa')?.value.trim()
+        tarifa: document.getElementById('edit-rota-tarifa')?.value.trim(),
+        empresa: document.getElementById('edit-rota-empresa')?.value.trim()
       };
 
       const box = document.getElementById('feedback-editor-rota');

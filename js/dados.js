@@ -28,6 +28,7 @@ window.BuzuDados = (function () {
           numero: 'B1',
           nome: 'Brasil Novo/Av. Moema Tinoco',
           lote: '1',
+          empresa: null,
           tipo: 'alimentadora',
           categoria_edital: 'Linha de Bairro',
           sentido: 'ambos',
@@ -1922,6 +1923,9 @@ window.BuzuDados = (function () {
     feature.geometry.coordinates = coordsLimpas;
     feature.properties.nome = novoNome;
     feature.properties.lote = novoLote;
+    if (novosMetadados.empresa !== undefined) {
+      feature.properties.empresa = String(novosMetadados.empresa).trim() || null;
+    }
     feature.properties.cor = novaCor;
     feature.properties.categoria_edital = novaCat;
     feature.properties.extensao_km = extensaoKm;
@@ -1946,6 +1950,10 @@ window.BuzuDados = (function () {
     if (linhaIdx) {
       if (novosMetadados.nome) linhaIdx.nome = novoNome;
       linhaIdx.lote = novoLote;
+      linhaIdx.empresa =
+        novosMetadados.empresa !== undefined
+          ? String(novosMetadados.empresa).trim() || null
+          : linhaIdx.empresa ?? null;
       linhaIdx.cor = novaCor;
       linhaIdx.categoria_edital = novaCat;
       if (novosMetadados.tarifa) linhaIdx.tarifa = novosMetadados.tarifa.trim();
@@ -2170,6 +2178,7 @@ window.BuzuDados = (function () {
             numero,
             nome,
             lote,
+            empresa: props.empresa || null,
             tipo: props.tipo || 'convencional',
             categoria_edital: props.categoria_edital || 'Convencional',
             sentido: props.sentido || 'ambos',

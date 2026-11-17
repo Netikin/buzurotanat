@@ -194,6 +194,52 @@ button, input, select, textarea, .leaflet-container {
   color: var(--c-texto);
 }
 
+.header-brand-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.header-brand-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 2px 9px 2px 7px;
+  border: 1px solid var(--c-borda);
+  border-radius: 999px;
+  background: var(--c-fundo-suave);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--c-texto-sec);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.header-brand-credit i {
+  font-size: 0.8rem;
+  color: var(--c-link);
+}
+
+.header-brand-credit strong {
+  font-weight: 700;
+  color: var(--c-texto);
+}
+
+.header-brand-credit-sep {
+  color: var(--c-borda-forte);
+  opacity: 0.55;
+}
+
+.header-brand-credit-tag {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--c-link);
+}
+
 .header-brand-rumo {
   display: flex;
   align-items: center;
@@ -355,6 +401,10 @@ body.alto-contraste .btn-menu.active {
 
 .consulta-header--rota {
   flex-wrap: wrap;
+}
+
+.consulta-header--rota .consulta-header__intro {
+  flex: 0 0 260px;
 }
 
 .consulta-header__intro {
@@ -811,6 +861,35 @@ body.alto-contraste .btn-menu.active {
   line-height: 1.25;
 }
 
+.linha-empresa-informacao-gerais {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px;
+  border-top: 1px solid var(--c-borda);
+  background: var(--c-fundo);
+}
+
+.linha-empresa-informacao-gerais .titulo-colunas-informacao-gerais {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.linha-empresa-informacao-gerais .subtitulo-colunas-informacao-gerais {
+  text-align: right;
+}
+
+.subtitulo-colunas-informacao-gerais--vazio {
+  font-weight: 500;
+  font-style: italic;
+  color: var(--c-texto-sec);
+}
+
 .subtitulo-colunas-tempo-funcionamento.sim {
   color: #15803d;
 }
@@ -882,6 +961,39 @@ body.alto-contraste .btn-menu.active {
   color: var(--c-texto-sec);
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.linha1-itinerario-partidas__acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-toggle-linhas {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--c-borda);
+  border-radius: 8px;
+  background: var(--c-fundo);
+  color: var(--c-texto);
+  cursor: pointer;
+}
+
+.btn-toggle-linhas:hover {
+  background: var(--c-fundo-destaque);
+}
+
+.btn-toggle-linhas i {
+  font-size: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.btn-toggle-linhas[aria-expanded="true"] i {
+  transform: rotate(180deg);
 }
 
 /* Tabela Zebrada de Itinerário / Ruas (.tabela-itinerario do RUMO) */
@@ -1586,6 +1698,12 @@ body.alto-contraste .btn-menu.active {
     display: none;
   }
 
+  .header-brand-credit {
+    gap: 4px;
+    padding: 2px 8px 2px 6px;
+    font-size: 0.63rem;
+  }
+
   .header-brand-rumo {
     font-size: 1.35rem;
   }
@@ -1605,6 +1723,10 @@ body.alto-contraste .btn-menu.active {
     flex-direction: column;
     padding: 1rem;
     gap: 1rem;
+  }
+
+  .consulta-header--rota .consulta-header__intro {
+    flex: 0 0 auto;
   }
 
   .consulta-header__search {
@@ -1653,6 +1775,123 @@ body.alto-contraste .btn-menu.active {
 
   .container-mapa {
     height: 400px;
+  }
+}
+
+/* Cabeçalho compacto em telas pequenas */
+@media (max-width: 600px) {
+  .header-banner {
+    padding: 8px 12px;
+    gap: 10px;
+  }
+
+  .header-brand-link {
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .header-brand-stack {
+    gap: 3px;
+  }
+
+  .header-brand-rumo {
+    gap: 7px;
+    font-size: 1.2rem;
+  }
+
+  .header-brand-rumo i {
+    font-size: 1.35rem;
+  }
+
+  .header-brand-credit {
+    gap: 4px;
+    padding: 1px 7px 1px 6px;
+    font-size: 0.6rem;
+  }
+
+  .header-brand-credit > span:first-of-type,
+  .header-brand-credit-sep,
+  .header-brand-credit-tag {
+    display: none;
+  }
+
+  .header-banner__actions {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .btn-top-util {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 9px;
+  }
+
+  .btn-top-util > span {
+    display: none;
+  }
+
+  .btn-top-util i {
+    font-size: 1rem;
+  }
+
+  .consulta-header {
+    padding: 0.85rem;
+    gap: 0.75rem;
+  }
+
+  .consulta-header__intro {
+    gap: 0;
+  }
+
+  .consulta-header__icon {
+    display: none;
+  }
+
+  .consulta-header__title {
+    font-size: 1.35rem;
+  }
+
+  .consulta-header__description {
+    font-size: 0.85rem;
+  }
+
+  #painel-busca-endereco .consulta-header__description {
+    display: none;
+  }
+
+  #secao-lista-linhas .linha1-itinerario-partidas {
+    min-height: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--c-borda);
+    border-radius: 10px;
+    background: var(--c-fundo-suave);
+    box-shadow: inset 0 1px 3px rgba(15, 22, 38, 0.08);
+  }
+
+  #secao-lista-linhas .titulo-itinerario-partidas {
+    font-size: 13px;
+  }
+
+  #secao-lista-linhas .linha1-itinerario-partidas__acoes {
+    gap: 6px;
+  }
+
+  #secao-lista-linhas .btn-toggle-linhas {
+    display: inline-flex;
+    width: 28px;
+    height: 28px;
+    background: var(--c-fundo);
+  }
+
+  #secao-lista-linhas.secao-lista-linhas--collapsed #lista-linhas-propostas {
+    display: none;
+  }
+
+  #secao-lista-linhas.secao-lista-linhas--expandida #lista-linhas-propostas {
+    margin-top: 8px;
+    padding-left: 4px;
   }
 }
 

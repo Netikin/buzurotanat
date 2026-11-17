@@ -35,9 +35,18 @@
     <div class="header-banner">
       <div class="header-banner__identity">
         <a href="#/" class="header-brand-link">
-          <div class="header-brand-rumo">
-            <i class="bi bi-bus-front-fill"></i>
-            <span>BUZU<strong>ROTA</strong></span>
+          <div class="header-brand-stack">
+            <div class="header-brand-rumo">
+              <i class="bi bi-bus-front-fill"></i>
+              <span>BUZU<strong>ROTA</strong></span>
+            </div>
+            <span class="header-brand-credit">
+              <i class="bi bi-code-slash" aria-hidden="true"></i>
+              <span>Desenvolvido por</span>
+              <strong>Wesly Nascimento</strong>
+              <span class="header-brand-credit-sep" aria-hidden="true">&bull;</span>
+              <span class="header-brand-credit-tag">wn_busrn</span>
+            </span>
           </div>
           <span class="header-brand-divider" aria-hidden="true"></span>
           <div class="header-brand-org">
@@ -48,17 +57,17 @@
       </div>
 
       <div class="header-banner__actions">
-        <button type="button" id="btn-tema" class="btn-top-util btn-tema" aria-pressed="false" title="Mudar para o modo escuro">
+        <button type="button" id="btn-tema" class="btn-top-util btn-tema" aria-pressed="false" aria-label="Alternar tema claro/escuro" title="Mudar para o modo escuro">
           <i class="bi bi-moon-stars icone-tema-escuro" aria-hidden="true"></i>
           <i class="bi bi-sun icone-tema-claro" aria-hidden="true"></i>
           <span class="rotulo-tema">Escuro</span>
         </button>
-        <button type="button" id="btn-alto-contraste" class="btn-top-util" aria-pressed="false" title="Alternar Alto Contraste">
-          <i class="bi bi-circle-half"></i>
+        <button type="button" id="btn-alto-contraste" class="btn-top-util" aria-pressed="false" aria-label="Alternar alto contraste" title="Alternar Alto Contraste">
+          <i class="bi bi-circle-half" aria-hidden="true"></i>
           <span>Contraste</span>
         </button>
-        <button type="button" id="btn-acesso-restrito" class="btn-top-util btn-top-util--admin" title="Acesso Restrito (JSON e Editor de Mapa)">
-          <i class="bi bi-shield-lock"></i>
+        <button type="button" id="btn-acesso-restrito" class="btn-top-util btn-top-util--admin" aria-label="Acesso restrito" title="Acesso Restrito (JSON e Editor de Mapa)">
+          <i class="bi bi-shield-lock" aria-hidden="true"></i>
           <span>Admin</span>
         </button>
       </div>
@@ -159,7 +168,7 @@
 
       <!-- MODO B: Cabeçalho de Planejamento "Como Chegar" (De -> Para) -->
       <div id="painel-busca-endereco" class="consulta-header consulta-header--rota" role="tabpanel" aria-labelledby="aba-busca-endereco" hidden>
-        <div class="consulta-header__intro" style="flex: 0 0 260px;">
+        <div class="consulta-header__intro">
           <div class="consulta-header__icon" aria-hidden="true">
             <i class="bi bi-map"></i>
           </div>
@@ -292,13 +301,18 @@
             <ul id="lista-resultado-viagem" class="lista-cartoes" style="margin-top:10px;"></ul>
           </section>
 
-          <section id="secao-lista-linhas" class="bloco-secao" aria-labelledby="titulo-lista-linhas">
+          <section id="secao-lista-linhas" class="bloco-secao secao-lista-linhas--collapsed" aria-labelledby="titulo-lista-linhas">
             <div class="linha1-itinerario-partidas">
               <div class="titulo-itinerario-partidas">
                 <i class="bi bi-list-ul"></i>
                 <span id="titulo-lista-linhas">LINHAS PROPOSTAS</span>
               </div>
-              <span id="contador-linhas" class="badge-tipo" aria-live="polite">Carregando...</span>
+              <div class="linha1-itinerario-partidas__acoes">
+                <span id="contador-linhas" class="badge-tipo" aria-live="polite">Carregando...</span>
+                <button type="button" id="btn-toggle-linhas" class="btn-toggle-linhas" aria-expanded="false" aria-controls="lista-linhas-propostas" aria-label="Mostrar linhas propostas">
+                  <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                </button>
+              </div>
             </div>
             <ul id="lista-linhas-propostas" class="lista-cartoes" style="margin-top:10px;"></ul>
           </section>
