@@ -11,6 +11,7 @@
 
   const estadoUI = {
     diaSemana: 'dias_uteis_sabados',
+    horarioViagemManual: false,
     filtroRede: 'transicao',
     filtroLote: 'todos',
     filtroTipo: 'todos',
@@ -30,6 +31,7 @@
     viagemAtiva: null,
     indiceTrajetoEscolhido: 0,
     linhasViagem: [],
+    etapasViagem: [],
     modoEditorParadas: false,
     criarParadaCliqueAtivo: false,
     mostrarVirtuaisNoMapa: false,
@@ -442,6 +444,30 @@
     const btnLimpar = document.getElementById('btn-limpar-viagem');
     const btnInverter = document.getElementById('btn-inverter-viagem');
     const selectMaxBaldeacoes = document.getElementById('select-max-baldeacoes');
+    const inputHorario = document.getElementById('input-horario-viagem');
+    const btnHorarioAgora = document.getElementById('btn-horario-agora');
+
+    // Horário da viagem: começa em "agora" (Brasília) e acompanha o relógio até a pessoa escolher outro
+    const sincronizarHorarioAgora = () => {
+      if (estadoUI.horarioViagemManual || !inputHorario) return;
+      inputHorario.value = window.BuzuDados.obterHorarioBrasilia().texto;
+      atualizarNotaHorarioViagem();
+    };
+    sincronizarHorarioAgora();
+    setInterval(sincronizarHorarioAgora, 30000);
+
+    inputHorario?.addEventListener('change', () => {
+      estadoUI.horarioViagemManual = Boolean(inputHorario.value);
+      if (!inputHorario.value) sincronizarHorarioAgora();
+      atualizarNotaHorarioViagem();
+      if (estadoUI.origemViagem && estadoUI.destinoViagem) void executarBuscaViagem();
+    });
+
+    btnHorarioAgora?.addEventListener('click', () => {
+      estadoUI.horarioViagemManual = false;
+      sincronizarHorarioAgora();
+      if (estadoUI.origemViagem && estadoUI.destinoViagem) void executarBuscaViagem();
+    });
 
     selectMaxBaldeacoes?.addEventListener('change', () => {
       if (estadoUI.origemViagem && estadoUI.destinoViagem) {
@@ -532,11 +558,36 @@
       estadoUI.destinoViagem = null;
       estadoUI.viagemAtiva = null;
       estadoUI.linhasViagem = [];
+      estadoUI.etapasViagem = [];
       atualizarFeedbackViagem('', null);
       window.BuzuMapa.limparPontosViagem();
       renderizarResultadoViagem();
       await atualizarMapaEListagens(true);
     });
+  }
+
+  /** Hora (0-23) e texto do horário considerado na busca "Como chegar" */
+  function obterHorarioViagem() {
+    const valor = document.getElementById('input-horario-viagem')?.value || '';
+    const m = /^(\d{1,2}):(\d{2})/.exec(valor);
+    if (estadoUI.horarioViagemManual && m) {
+      return { hora: Number(m[1]) % 24, texto: `${m[1].padStart(2, '0')}:${m[2]}`, agora: false };
+    }
+    const agora = window.BuzuDados.obterHorarioBrasilia();
+    const campo = document.getElementById('input-horario-viagem');
+    if (campo && !estadoUI.horarioViagemManual) campo.value = agora.texto;
+    return { hora: agora.hora, texto: agora.texto, agora: true };
+  }
+
+  function atualizarNotaHorarioViagem() {
+    const nota = document.getElementById('nota-horario-viagem');
+    if (!nota) return;
+    const { hora } = obterHorarioViagem();
+    const madrugada = window.BuzuDados.ehHorarioMadrugada(hora);
+    nota.className = `nota-horario-viagem ${madrugada ? 'nota-horario-viagem--madrugada' : ''}`;
+    nota.innerHTML = madrugada
+      ? '<i class="bi bi-moon-stars" aria-hidden="true"></i> Madrugada (00:00 às 03:59): só circulam as linhas <strong>Corujão</strong>.'
+      : '<i class="bi bi-sun" aria-hidden="true"></i> Linhas regulares. Os <strong>Corujões</strong> só circulam das 00:00 às 03:59.';
   }
 
   function atualizarFeedbackViagem(texto, tipo) {
@@ -612,19 +663,28 @@
       document.getElementById('select-max-baldeacoes')?.value ?? 3
     );
 
+    const horario = obterHorarioViagem();
+    const madrugada = window.BuzuDados.ehHorarioMadrugada(horario.hora);
+    atualizarNotaHorarioViagem();
+
     const resultados = await window.BuzuDados.calcularLinhasViagem(
       origem,
       destino,
       estadoUI.diaSemana,
-      { maxBaldeacoes }
+      { maxBaldeacoes, hora: horario.hora }
     );
 
-    estadoUI.viagemAtiva = { origem, destino, resultados };
+    estadoUI.viagemAtiva = { origem, destino, resultados, horario, madrugada };
     await selecionarTrajetoSugerido(0, { silencioso: opcoes.silencioso });
 
     if (!opcoes.silencioso) {
       if (resultados.length > 0) {
         atualizarFeedbackViagem('', null);
+      } else if (madrugada) {
+        atualizarFeedbackViagem(
+          `Às ${horario.texto} (madrugada) só circulam as linhas Corujão, e nenhuma delas atende este trajeto a até 1,2 km dos pontos informados. As linhas regulares voltam a partir das 04:00.`,
+          'alerta'
+        );
       } else {
         atualizarFeedbackViagem(
           'Não encontramos linhas com acesso a até 1,2 km dos pontos informados. Tente um terminal/bairro próximo ou selecione outro dia de operação.',
@@ -646,6 +706,7 @@
     if (resultados.length === 0) {
       estadoUI.indiceTrajetoEscolhido = -1;
       estadoUI.linhasViagem = [];
+      estadoUI.etapasViagem = [];
       window.BuzuMapa.definirPontosViagem(viagem.origem, viagem.destino, null);
       await atualizarMapaEListagens();
       renderizarResultadoViagem();
@@ -658,6 +719,13 @@
 
     estadoUI.linhasViagem = Array.from(
       new Set((trajetoEscolhido.linhas || []).map(l => l.numero))
+    );
+    // Só o caminho do passageiro: a pé + trecho percorrido de cada linha, no sentido da viagem
+    estadoUI.etapasViagem = await window.BuzuDados.montarEtapasViagem(
+      trajetoEscolhido,
+      viagem.origem,
+      viagem.destino,
+      estadoUI.diaSemana
     );
 
     const pontosTransferencia =
@@ -715,7 +783,19 @@
       resumo.innerHTML =
         `<strong>A:</strong> ${window.BuzuUtils.escaparHtml(viagem.origem.rotulo)} → ` +
         `<strong>B:</strong> ${window.BuzuUtils.escaparHtml(viagem.destino.rotulo)}<br>` +
-        `Operação: ${window.BuzuUtils.escaparHtml(diaRotulo)} • Grafo Dijkstra (limite 1,2 km a pé a 1,2 m/s × 1,3; penalidade de baldeação: 7 min).`;
+        `Operação: ${window.BuzuUtils.escaparHtml(diaRotulo)} • Horário: ${window.BuzuUtils.escaparHtml(
+          viagem.horario?.texto || '--:--'
+        )}${viagem.horario?.agora ? ' (agora, Brasília)' : ''} — ${
+          viagem.madrugada ? 'somente linhas Corujão' : 'linhas regulares (sem Corujão)'
+        }<br>` +
+        `<span class="nota-algoritmo">Limite de 1,2 km a pé • penalidade de 7 min por baldeação.</span>` +
+        `<button type="button" id="btn-ver-volta" class="btn-ver-volta">` +
+        `<i class="bi bi-arrow-left-right" aria-hidden="true"></i> Ver a volta: ${window.BuzuUtils.escaparHtml(
+          viagem.destino.rotulo
+        )} → ${window.BuzuUtils.escaparHtml(viagem.origem.rotulo)}</button>`;
+      document.getElementById('btn-ver-volta')?.addEventListener('click', () => {
+        document.getElementById('btn-inverter-viagem')?.click();
+      });
     }
 
     if (resultados.length === 0) {
@@ -1275,11 +1355,14 @@
     }
 
     const featuresRotas = [];
-    for (const fc of colecoesLotes) {
-      for (const feat of fc?.features || []) {
-        const num = String(feat.properties?.numero || feat.properties?.linha_id || '').toUpperCase();
-        if (numerosPermitidos.has(num)) {
-          featuresRotas.push(feat);
+    // No "Como chegar" o mapa não desenha as linhas inteiras (ida + volta): só as etapas do trajeto
+    if (!modoViagem) {
+      for (const fc of colecoesLotes) {
+        for (const feat of fc?.features || []) {
+          const num = String(feat.properties?.numero || feat.properties?.linha_id || '').toUpperCase();
+          if (numerosPermitidos.has(num)) {
+            featuresRotas.push(feat);
+          }
         }
       }
     }
@@ -1293,14 +1376,15 @@
       linhaDestacadaId: estadoUI.linhaSelecionadaId,
       diaSemana: estadoUI.diaSemana,
       mostrarRedeAtual: estadoUI.mostrarRedeAtual,
-      redeAtualGeoJson: estadoDados.redeAtualGeoJson
+      redeAtualGeoJson: estadoDados.redeAtualGeoJson,
+      mostrarSentido: modoViagem
     });
 
     const paradasDia = window.BuzuDados.obterParadasPorDia(estadoUI.diaSemana, {
       incluirInativas: estadoUI.modoEditorParadas,
       incluirVirtuaisNoMapa: estadoUI.mostrarVirtuaisNoMapa || linhaSelecionadaAtiva
     });
-    let paradasVisiveis = paradasDia.filter(feat => {
+    let paradasVisiveis = modoViagem ? [] : paradasDia.filter(feat => {
       const rotas = (feat.properties?.rotas || []).map(rota => String(rota).toUpperCase());
       // Paradas sem linha associada só aparecem na visão geral (nunca no detalhe de uma linha)
       if (rotas.length === 0) return !linhaSelecionadaAtiva;
@@ -1312,6 +1396,12 @@
       if (paradaSelecionada && !paradasVisiveis.includes(paradaSelecionada)) {
         paradasVisiveis = [...paradasVisiveis, paradaSelecionada];
       }
+    }
+
+    if (modoViagem) {
+      window.BuzuMapa.renderizarEtapasViagem(estadoUI.etapasViagem || []);
+    } else {
+      window.BuzuMapa.limparEtapasViagem();
     }
 
     window.BuzuMapa.renderizarParadas(paradasVisiveis, estadoUI.paradaSelecionadaId, {

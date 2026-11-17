@@ -222,6 +222,17 @@
             <ul id="lista-autocomplete-destino" class="lista-autocomplete" role="listbox" aria-label="Sugestões de destino" hidden></ul>
           </div>
 
+          <div class="campo-grupo campo-horario-viagem" style="margin:0;">
+            <label for="input-horario-viagem" class="consulta-search-label">
+              <i class="bi bi-clock"></i> Horário da viagem
+            </label>
+            <div class="horario-viagem-controles">
+              <input type="time" id="input-horario-viagem" class="form-control-rumo" aria-describedby="nota-horario-viagem">
+              <button type="button" id="btn-horario-agora" class="btn-rumo-secondary" title="Usar o horário atual de Brasília">Agora</button>
+            </div>
+            <small id="nota-horario-viagem" class="nota-horario-viagem"></small>
+          </div>
+
           <div class="campo-grupo" style="margin:0;">
             <label for="select-max-baldeacoes" class="consulta-search-label">
               <i class="bi bi-arrow-repeat"></i> Baldeações

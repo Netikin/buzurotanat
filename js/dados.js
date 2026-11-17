@@ -659,26 +659,41 @@ window.BuzuDados = (function () {
     // 3. Complementa com geocodificador público OpenStreetMap Nominatim (restrito a Natal/RN).
     // Inclui estabelecimentos como supermercados, shoppings e hospitais. Tempo limite curto
     // para não travar a digitação caso o serviço esteja lento ou sem internet.
+    let consultaOnlineOk = consulta.trim().length < 3;
     if (consulta.trim().length >= 3) {
-      let timerAbort = null;
-      try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=br&viewbox=-35.35,-5.70,-35.15,-5.92&bounded=0&q=${encodeURIComponent(
-          consulta.trim() + ', Natal, RN'
-        )}`;
-        const controlador = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        if (controlador) {
-          timerAbort = setTimeout(() => controlador.abort(), 2200);
+      // O Nominatim às vezes não acha a rua com ", RN" no fim (ex.: "Rua Palmácea"): tenta as duas formas
+      const variantes = [`${consulta.trim()}, Natal, RN`, `${consulta.trim()}, Natal`];
+      for (const textoBusca of variantes) {
+        let timerAbort = null;
+        let itensOsm = [];
+        try {
+          const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=br&viewbox=-35.35,-5.70,-35.15,-5.92&bounded=0&q=${encodeURIComponent(
+            textoBusca
+          )}`;
+          const controlador = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          if (controlador) {
+            timerAbort = setTimeout(() => controlador.abort(), 4000);
+          }
+          const res = await fetch(url, {
+            headers: { 'Accept-Language': 'pt-BR' },
+            signal: controlador ? controlador.signal : undefined
+          });
+          if (!res.ok) continue;
+          itensOsm = await res.json();
+          consultaOnlineOk = true;
+        } catch (_e) {
+          // Se 3G falhar ou offline, os resultados locais de Natal continuam funcionando
+          continue;
+        } finally {
+          if (timerAbort) clearTimeout(timerAbort);
         }
-        const res = await fetch(url, {
-          headers: { 'Accept-Language': 'pt-BR' },
-          signal: controlador ? controlador.signal : undefined
-        });
-        if (res.ok) {
-          const itensOsm = await res.json();
+        let achouEmNatal = false;
+        {
           for (const item of itensOsm) {
             const lat = parseFloat(item.lat);
             const lng = parseFloat(item.lon);
             if (window.BuzuUtils.estaNaAreaDeNatal(lat, lng)) {
+              achouEmNatal = true;
               resultados.push({
                 titulo: item.display_name.split(',').slice(0, 2).join(', '),
                 subtitulo: item.display_name,
@@ -689,15 +704,13 @@ window.BuzuDados = (function () {
             }
           }
         }
-      } catch (_e) {
-        // Se 3G falhar ou offline, os resultados locais de Natal continuam funcionando
-      } finally {
-        if (timerAbort) clearTimeout(timerAbort);
+        if (achouEmNatal) break;
       }
     }
 
     const resultadoFinal = resultados.slice(0, 7);
-    cacheSugestoesEndereco.set(qNorm, resultadoFinal);
+    // só guarda em cache quando a consulta online respondeu (falha de rede não vira "sem resultado")
+    if (consultaOnlineOk || resultadoFinal.length > 0) cacheSugestoesEndereco.set(qNorm, resultadoFinal);
 
     if (cacheSugestoesEndereco.size > 60) {
       const primeiraChave = cacheSugestoesEndereco.keys().next().value;
@@ -1007,7 +1020,8 @@ window.BuzuDados = (function () {
     destino,
     diaSemana,
     limiteCaminhadaMetros = LIMITE_CAMINHADA_PADRAO_METROS,
-    maxBaldeacoes = 3
+    maxBaldeacoes = 3,
+    linhaPermitida = () => true
   ) {
     const grafo = obterOuConstruirGrafoDijkstra(diaSemana);
     const { parAtivas, adjacencia } = grafo;
@@ -1115,6 +1129,8 @@ window.BuzuDados = (function () {
 
       const vizinhos = adjacencia.get(no) || [];
       for (const aresta of vizinhos) {
+        // Não embarca em linhas fora de operação no horário da viagem (ex.: Corujão durante o dia)
+        if (aresta.tipoAresta === 'embarque' && !linhaPermitida(aresta.linhaId)) continue;
         const novasBaldeacoes =
           aresta.tipoAresta === 'baldeacao_desembarque' ? baldeacoes + 1 : baldeacoes;
         if (novasBaldeacoes > maxBaldeacoes) continue;
@@ -1182,6 +1198,8 @@ window.BuzuDados = (function () {
           paradaEmbarqueNome: pEmb ? pEmb.nome : 'Parada de embarque',
           paradaDesembarqueId: a.paradaId,
           paradaDesembarqueNome: pEmb ? pEmb.nome : 'Parada de desembarque',
+          embarqueCoord: pEmb ? { lat: pEmb.lat, lng: pEmb.lng } : null,
+          desembarqueCoord: pEmb ? { lat: pEmb.lat, lng: pEmb.lng } : null,
           distanciaMetros: 0
         };
         trechosOnibus.push(trechoAtual);
@@ -1189,7 +1207,10 @@ window.BuzuDados = (function () {
         trechoAtual.distanciaMetros += a.distanciaMetros;
         trechoAtual.paradaDesembarqueId = a.paradaId;
         const pDes = parAtivas.get(a.paradaId);
-        if (pDes) trechoAtual.paradaDesembarqueNome = pDes.nome;
+        if (pDes) {
+          trechoAtual.paradaDesembarqueNome = pDes.nome;
+          trechoAtual.desembarqueCoord = { lat: pDes.lat, lng: pDes.lng };
+        }
       }
     }
 
@@ -1281,11 +1302,181 @@ window.BuzuDados = (function () {
    * Prioriza o Grafo Dijkstra com a tabela pivot `linha_paradas` (limite 1,2 km de caminhada,
    * velocidade 1,2 m/s + desconforto 1.3x, penalidade de baldeação de 7 min).
    */
+  // ---------------------------------------------------------------------------
+  // "Como chegar": recorta do traçado da linha só o trecho que o passageiro percorre
+  // ---------------------------------------------------------------------------
+
+  /** Distância (m) de um ponto a cada segmento da polilinha [lng, lat] */
+  function distanciasAosSegmentos(coords, lat, lng) {
+    const kx = 111320 * Math.cos((lat * Math.PI) / 180);
+    const ky = 110540;
+    const out = [];
+    for (let i = 0; i < coords.length - 1; i++) {
+      const ax = (coords[i][0] - lng) * kx, ay = (coords[i][1] - lat) * ky;
+      const bx = (coords[i + 1][0] - lng) * kx, by = (coords[i + 1][1] - lat) * ky;
+      const dx = bx - ax, dy = by - ay;
+      const L2 = dx * dx + dy * dy || 1e-9;
+      const t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / L2));
+      out.push({
+        i,
+        t,
+        d: Math.hypot(ax + t * dx, ay + t * dy),
+        ponto: [coords[i][0] + (coords[i + 1][0] - coords[i][0]) * t, coords[i][1] + (coords[i + 1][1] - coords[i][1]) * t]
+      });
+    }
+    return out;
+  }
+
+  /**
+   * Trecho do traçado entre o embarque A e o desembarque B, NO SENTIDO DE CIRCULAÇÃO
+   * (a ordem dos pontos do traçado é a ordem em que o ônibus passa; o traçado é um laço ida+volta).
+   * Testa os pontos do traçado próximos de A e, para cada um, segue em frente até chegar perto de B;
+   * fica com o menor percurso. Assim a ida e a volta nunca se misturam.
+   */
+  function recortarTrechoNoSentido(coords, a, b) {
+    const n = coords.length;
+    if (n < 2) return null;
+    const segsA = distanciasAosSegmentos(coords, a.lat, a.lng);
+    const segsB = distanciasAosSegmentos(coords, b.lat, b.lng);
+    const LIMITE = 120; // metros entre a parada e o traçado
+    const minA = Math.min(...segsA.map(s => s.d));
+    const minB = Math.min(...segsB.map(s => s.d));
+    const candidatosA = segsA.filter(s => s.d <= Math.max(LIMITE, minA + 15));
+    const ehAlvoB = s => s.d <= Math.max(LIMITE, minB + 15);
+    const fechado = Math.hypot(coords[0][0] - coords[n - 1][0], coords[0][1] - coords[n - 1][1]) < 0.0005;
+
+    let melhor = null;
+    for (const ca of candidatosA) {
+      let comprimento = 0;
+      // percorre para a frente a partir de A (dando a volta no laço, se o traçado for fechado)
+      const limitePassos = fechado ? n - 1 : n - 1 - ca.i;
+      for (let passo = 0; passo < limitePassos; passo++) {
+        const idx = (ca.i + passo) % (n - 1);
+        const sb = segsB[idx];
+        const mesmoSegmento = passo === 0;
+        if (ehAlvoB(sb) && (!mesmoSegmento || sb.t >= ca.t)) {
+          // pontuação: percurso + penalidade por "encostar" longe das paradas (evita cortar caminho)
+          const pontuacao = comprimento + 6 * (ca.d + sb.d);
+          if (!melhor || pontuacao < melhor.pontuacao) melhor = { a: ca, b: sb, passos: passo, comprimento, pontuacao };
+          break;
+        }
+        const p = coords[idx];
+        const q = coords[idx + 1];
+        comprimento += Math.hypot((q[0] - p[0]) * 111320, (q[1] - p[1]) * 110540);
+        if (melhor && comprimento > melhor.pontuacao) break;
+      }
+    }
+    if (!melhor) return null;
+
+    const trecho = [melhor.a.ponto];
+    for (let passo = 1; passo <= melhor.passos; passo++) {
+      trecho.push(coords[(melhor.a.i + passo) % (n - 1)]);
+    }
+    trecho.push(melhor.b.ponto);
+    return trecho;
+  }
+
+  /**
+   * Monta as etapas desenháveis de um trajeto do "Como chegar":
+   *  a pé (origem → embarque) • ônibus (só o trecho percorrido) • a pé na integração • … • a pé (desembarque → destino)
+   */
+  async function montarEtapasViagem(trajeto, origem, destino, diaSemana = 'dias_uteis_sabados') {
+    if (!trajeto) return [];
+    const dia = diaSemana === 'todos' ? null : diaSemana;
+    const colecoes = await Promise.all(['1', '2'].map(id => carregarGeoJsonLote(id)));
+    const tracadoDaLinha = numero => {
+      const feats = colecoes
+        .flatMap(fc => fc?.features || [])
+        .filter(f => String(f.properties?.numero || f.properties?.linha_id).toUpperCase() === String(numero).toUpperCase());
+      return (feats.find(f => !dia || f.properties?.dia_semana === dia) || feats[0])?.geometry?.coordinates || null;
+    };
+
+    // Trechos de ônibus: do roteador por paradas (Dijkstra) ou do cálculo simplificado pelo traçado
+    let trechos = (trajeto.trechos || []).filter(t => t.embarqueCoord && t.desembarqueCoord);
+    if (trechos.length === 0) {
+      const linhas = trajeto.linhas || [];
+      const trans = trajeto.transferencia;
+      trechos =
+        trajeto.tipo === 'transferencia' && trans && linhas.length >= 2
+          ? [
+              { numero: linhas[0].numero, embarqueCoord: trajeto.embarque, desembarqueCoord: trans, paradaDesembarqueNome: trans.nome },
+              { numero: linhas[1].numero, embarqueCoord: trans, desembarqueCoord: trajeto.desembarque, paradaEmbarqueNome: trans.nome }
+            ]
+          : [{ numero: linhas[0]?.numero, embarqueCoord: trajeto.embarque, desembarqueCoord: trajeto.desembarque }];
+    }
+
+    const etapas = [];
+    const pe = (de, ate, rotulo) => {
+      if (!de || !ate) return;
+      if (Math.abs(de.lat - ate.lat) < 1e-6 && Math.abs(de.lng - ate.lng) < 1e-6) return;
+      etapas.push({ tipo: 'pe', rotulo, coords: [[de.lng, de.lat], [ate.lng, ate.lat]] });
+    };
+
+    pe(origem, trechos[0]?.embarqueCoord, 'Caminhe até o ponto de embarque');
+    trechos.forEach((t, i) => {
+      if (i > 0) pe(trechos[i - 1].desembarqueCoord, t.embarqueCoord, 'Caminhe até o ponto da próxima linha');
+      const linhaMeta = (trajeto.linhas || [])[i] || obterLinhaPorId(t.numero, diaSemana) || {};
+      const coords = tracadoDaLinha(t.numero);
+      const recorte = coords ? recortarTrechoNoSentido(coords, t.embarqueCoord, t.desembarqueCoord) : null;
+      etapas.push({
+        tipo: 'onibus',
+        numero: t.numero,
+        cor: linhaMeta.cor || '#162652',
+        rotulo: `Linha ${t.numero}`,
+        coords:
+          recorte || [
+            [t.embarqueCoord.lng, t.embarqueCoord.lat],
+            [t.desembarqueCoord.lng, t.desembarqueCoord.lat]
+          ],
+        aproximado: !recorte
+      });
+    });
+    pe(trechos[trechos.length - 1]?.desembarqueCoord, destino, 'Caminhe até o destino');
+    return etapas;
+  }
+
+  /**
+   * Horário oficial de Brasília (America/Sao_Paulo), independente do fuso do aparelho.
+   */
+  function obterHorarioBrasilia(data = new Date()) {
+    const partes = new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23'
+    }).formatToParts(data);
+    const hora = Number(partes.find(p => p.type === 'hour')?.value || 0) % 24;
+    const minuto = Number(partes.find(p => p.type === 'minute')?.value || 0);
+    return { hora, minuto, texto: `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}` };
+  }
+
+  /**
+   * Faixa "Madrugada" do edital (Anexo I.3, Tabela 13): 00:00 às 03:59.
+   * Nela só circulam as linhas Corujão; das 04:00 às 23:59 circulam as linhas regulares.
+   */
+  const HORA_FIM_MADRUGADA = 4;
+  function ehHorarioMadrugada(hora) {
+    return Number(hora) >= 0 && Number(hora) < HORA_FIM_MADRUGADA;
+  }
+
+  function ehLinhaCorujao(numero) {
+    const linha = (estado.indice?.linhas || []).find(
+      l => String(l.numero).toUpperCase() === String(numero).toUpperCase()
+    );
+    if (linha) return linha.tipo === 'noturna';
+    return /^C-?\d+$/i.test(String(numero));
+  }
+
   async function calcularLinhasViagem(origem, destino, diaSemana = 'dias_uteis_sabados', opcoes = {}) {
     if (!origem || !destino) return [];
 
     const limiteCaminhadaMetros = opcoes.limiteCaminhadaMetros || LIMITE_CAMINHADA_PADRAO_METROS;
     const maxBaldeacoes = opcoes.maxBaldeacoes !== undefined ? Number(opcoes.maxBaldeacoes) : 3;
+
+    // Horário da viagem (padrão: agora, em Brasília). Madrugada => só Corujão; demais horários => sem Corujão.
+    const horaViagem = Number.isInteger(opcoes.hora) ? opcoes.hora : obterHorarioBrasilia().hora;
+    const madrugada = ehHorarioMadrugada(horaViagem);
+    const linhaPermitida = numero => ehLinhaCorujao(numero) === madrugada;
 
     // 1. Executa o roteador principal por Grafo Dijkstra sobre `paradas` + `linha_paradas`
     if (Array.isArray(estado.linhaParadas) && estado.linhaParadas.length > 0) {
@@ -1294,7 +1485,8 @@ window.BuzuDados = (function () {
         destino,
         diaSemana,
         limiteCaminhadaMetros,
-        maxBaldeacoes
+        maxBaldeacoes,
+        linhaPermitida
       );
       if (resultadosDijkstra.length > 0) {
         return resultadosDijkstra;
@@ -1324,6 +1516,7 @@ window.BuzuDados = (function () {
         }
         const numero = String(props.numero || props.linha_id || '');
         if (!numero) continue;
+        if (!linhaPermitida(numero)) continue;
         const coords = feat.geometry.coordinates;
         infos.push({
           numero,
@@ -2403,6 +2596,10 @@ window.BuzuDados = (function () {
     buscarSugestoesEndereco,
     buscarSugestoesEnderecoLocal,
     calcularLinhasViagem,
+    montarEtapasViagem,
+    obterHorarioBrasilia,
+    ehHorarioMadrugada,
+    ehLinhaCorujao,
     recalcularVinculosParadaEGrafo,
     criarOuEditarParadaNoMapa,
     moverParadaNoMapa,

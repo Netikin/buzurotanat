@@ -2291,3 +2291,60 @@ body.alto-contraste .btn-menu.active {
 .seta-sentido--clara {
   border-color: #0f172a;
 }
+
+/* ===== Como chegar: horário da viagem ===== */
+.horario-viagem-controles {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.horario-viagem-controles input[type="time"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.horario-viagem-controles .btn-rumo-secondary {
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.nota-horario-viagem {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--c-texto-sec);
+}
+
+.nota-horario-viagem--madrugada {
+  color: var(--c-info-texto);
+}
+
+.nota-algoritmo {
+  font-size: 11px;
+  color: var(--c-texto-sec);
+}
+
+/* ===== Como chegar: atalho para a volta ===== */
+.btn-ver-volta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--c-borda-primaria);
+  background: var(--c-fundo);
+  color: var(--c-texto);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  max-width: 100%;
+  text-align: left;
+}
+
+.btn-ver-volta:hover {
+  background: var(--c-fundo-destaque);
+}
