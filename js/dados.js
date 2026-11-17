@@ -457,25 +457,25 @@ window.BuzuDados = (function () {
         if (termoNorm) {
           const varDia = obterDadosLinhaNoDia(linha, diaSemana);
           const numeroNorm = window.BuzuUtils.normalizarTexto(linha.numero);
-          const termoCompacto = termoNorm.replace(/\s+/g, '');
-          const pareceCodigo = /^[a-z]{0,3}\d+[a-z]?$/.test(termoCompacto);
-          const parecePrefixo = /^[a-z]{1,3}$/.test(termoCompacto);
+          const numeroLimpo = numeroNorm.replace(/[^a-z0-9]/g, '');
+          const termoLimpo = termoNorm.replace(/[^a-z0-9]/g, '');
+          const alvo = window.BuzuUtils.normalizarTexto(
+            `${linha.numero} ${numeroLimpo} ${linha.nome} ${varDia.nome}`
+          );
 
-          if (pareceCodigo) {
-            const termoTemLetraFinal = /[a-z]$/.test(termoCompacto);
-            const combinaVariante =
-              !termoTemLetraFinal &&
-              numeroNorm.startsWith(termoCompacto) &&
-              /^[a-z]$/.test(numeroNorm.charAt(termoCompacto.length));
-
-            if (numeroNorm !== termoCompacto && !combinaVariante) return false;
-          } else if (parecePrefixo) {
-            if (!numeroNorm.startsWith(termoCompacto)) return false;
-          } else {
-            const alvo = window.BuzuUtils.normalizarTexto(
-              `${linha.numero} ${linha.nome} ${varDia.nome}`
-            );
-            if (!alvo.includes(termoNorm)) return false;
+          // Se digitou apenas números (ex.: "79", "2", "33"), aceita com ou sem prefixo/zero à esquerda (ex.: "N-79", "N-02", "O-33A")
+          if (/^\d+$/.test(termoLimpo)) {
+            const numDigitado = Number(termoLimpo);
+            const matchDigitos = numeroLimpo.match(/\d+/);
+            const bateNumeroExato =
+              matchDigitos &&
+              (matchDigitos[0].includes(termoLimpo) || Number(matchDigitos[0]) === numDigitado);
+            if (!bateNumeroExato && !alvo.includes(termoNorm)) return false;
+          } else if (termoLimpo && numeroLimpo.includes(termoLimpo)) {
+            // Aceita "n79", "N-79", "o33", "b4", etc. com ou sem hífen
+            return true;
+          } else if (!alvo.includes(termoNorm)) {
+            return false;
           }
         }
         return true;
