@@ -1,6 +1,6 @@
 /**
  * js/app.js
- * Controlador Principal — Consulta Pública Licitação nº 021/2023 (STTU / Prefeitura do Natal).
+ * Controlador Principal — Nova rede de ônibus, Concorrência Pública nº 11.001/2026 (STTU / Prefeitura do Natal).
  * - Diretriz DSGov / eMAG / USWDS + Fluxo Cartográfico MTA / Metropolin
  * - Dois pontos de entrada claros ("Onde estou / Endereço" e "Qual é a linha?") com navegação por teclado (↑ ↓ Enter Esc)
  * - Fluxo de dois níveis no painel lateral / bottom sheet (Terminal/Ponto -> Linhas; Linha -> Paradas e Detalhes)
@@ -11,6 +11,7 @@
 
   const estadoUI = {
     diaSemana: 'dias_uteis_sabados',
+    filtroRede: 'transicao',
     filtroLote: 'todos',
     filtroTipo: 'todos',
     filtroAcessivel: false,
@@ -103,6 +104,12 @@
           btnDesfazer.disabled = !info.podeDesfazer;
         }
       }
+    });
+
+    // Modo escuro: troca o mapa base e redesenha linhas/paradas com as cores do tema
+    document.addEventListener('buzu:tema', async e => {
+      window.BuzuMapa.definirTemaMapa(e.detail?.tema === 'escuro');
+      await atualizarMapaEListagens();
     });
 
     window.addEventListener('hashchange', processarRotaHash);
@@ -1230,6 +1237,7 @@
     } else {
       linhasFiltradas = window.BuzuDados.filtrarLinhas({
         diaSemana: estadoUI.diaSemana,
+        rede: estadoUI.filtroRede,
         lote: estadoUI.filtroLote,
         tipo: estadoUI.filtroTipo,
         apenasAcessiveis: estadoUI.filtroAcessivel,
@@ -1278,7 +1286,8 @@
     });
     let paradasVisiveis = paradasDia.filter(feat => {
       const rotas = (feat.properties?.rotas || []).map(rota => String(rota).toUpperCase());
-      if (rotas.length === 0) return true;
+      // Paradas sem linha associada só aparecem na visão geral (nunca no detalhe de uma linha)
+      if (rotas.length === 0) return !linhaSelecionadaAtiva;
       return rotas.some(rota => numerosPermitidos.has(rota));
     });
 
@@ -1289,7 +1298,10 @@
       }
     }
 
-    window.BuzuMapa.renderizarParadas(paradasVisiveis, estadoUI.paradaSelecionadaId);
+    window.BuzuMapa.renderizarParadas(paradasVisiveis, estadoUI.paradaSelecionadaId, {
+      linhaSelecionada: linhaSelecionadaAtiva,
+      corLinha: linhaSelecionadaAtiva ? linhasFiltradas[0]?.cor || null : null
+    });
 
     atualizarSelectLinhaRapida();
     renderizarListaLinhasTextual(linhasFiltradas);
@@ -1301,6 +1313,7 @@
 
     const todasLinhas = window.BuzuDados.filtrarLinhas({
       diaSemana: estadoUI.diaSemana,
+      rede: estadoUI.filtroRede,
       lote: estadoUI.filtroLote,
       tipo: estadoUI.filtroTipo,
       apenasAcessiveis: estadoUI.filtroAcessivel,
@@ -1324,6 +1337,92 @@
     if (valorAtual) {
       sel.value = valorAtual;
     }
+  }
+
+  function formatarNumero(valor) {
+    return typeof valor === 'number' ? valor.toLocaleString('pt-BR') : '-';
+  }
+
+  /**
+   * Célula do quadro FUNCIONAMENTO: mostra o intervalo do edital ("a cada 13 min"),
+   * "Não opera" quando o edital prevê 0, ou SIM/NÃO quando não há dado do edital.
+   */
+  function celulaFuncionamento(intervalo, operaPeloDia) {
+    if (intervalo === undefined) {
+      return `<div class="subtitulo-colunas-tempo-funcionamento ${operaPeloDia ? 'sim' : 'nao'}">${
+        operaPeloDia ? 'SIM' : 'NÃO'
+      }</div>`;
+    }
+    if (intervalo === null) {
+      return '<div class="subtitulo-colunas-tempo-funcionamento sim">Madrugada</div>';
+    }
+    if (!intervalo) {
+      return '<div class="subtitulo-colunas-tempo-funcionamento nao">Não opera</div>';
+    }
+    return `<div class="subtitulo-colunas-tempo-funcionamento sim">A cada ${Math.round(intervalo)} min</div>`;
+  }
+
+  function badgeSituacaoRota(linha) {
+    if (linha.situacao_rota === 'indefinida') {
+      return '<span class="badge-tipo badge-rota-indefinida"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Rota ainda não divulgada</span>';
+    }
+    if (linha.situacao_rota === 'alterada') {
+      return '<span class="badge-tipo badge-rota-alterada"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Traçado em atualização</span>';
+    }
+    if (linha.situacao_rota === 'parcial') {
+      return '<span class="badge-tipo badge-rota-parcial"><i class="bi bi-calendar-week" aria-hidden="true"></i> Rota só de domingo</span>';
+    }
+    return '';
+  }
+
+  /**
+   * Aviso exibido no detalhe da linha quando o traçado não existe ou está desatualizado
+   */
+  function avisoSituacaoRota(linha) {
+    if (linha.situacao_rota === 'indefinida') {
+      return `
+        <div class="aviso-rota aviso-rota--indefinida" role="note">
+          <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+          <div>
+            <strong>Rota ainda não definida.</strong>
+            Esta linha faz parte da rede de início da concessão (edital da Concorrência nº 11.001/2026),
+            mas o traçado e as paradas ainda não estão disponíveis.
+            ${linha.aviso_rota ? window.BuzuUtils.escaparHtml(linha.aviso_rota) : ''}
+            Assim que a STTU divulgar a rota, ela será incluída aqui.
+          </div>
+        </div>`;
+    }
+    if (linha.situacao_rota === 'alterada') {
+      return `
+        <div class="aviso-rota aviso-rota--alterada" role="note">
+          <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+          <div>
+            <strong>Traçado em atualização.</strong>
+            ${window.BuzuUtils.escaparHtml(linha.aviso_rota || 'O edital de 2026 alterou o itinerário desta linha.')}
+            ${
+              linha.fonte_rota
+                ? 'O traçado será atualizado quando a STTU divulgar a nova rota.'
+                : 'O traçado no mapa ainda é o do projeto de 2021 e será atualizado quando a STTU divulgar a nova rota.'
+            }
+          </div>
+        </div>`;
+    }
+    if (linha.situacao_rota === 'parcial') {
+      const ehDomingo = linha.dia_ativo_codigo === 'domingos_feriados' || estadoUI.diaSemana === 'domingos_feriados';
+      return `
+        <div class="aviso-rota ${ehDomingo ? 'aviso-rota--info' : 'aviso-rota--indefinida'}" role="note">
+          <i class="bi ${ehDomingo ? 'bi-info-circle' : 'bi-calendar-week'}" aria-hidden="true"></i>
+          <div>
+            ${
+              ehDomingo
+                ? '<strong>Rota de domingos e feriados.</strong>'
+                : '<strong>Rota de dias úteis e sábados ainda não divulgada.</strong> Por enquanto só há o itinerário de domingos e feriados (OSO da STTU): para vê-lo, escolha <em>Domingos e feriados</em> em CIRCULAÇÃO.'
+            }
+            ${ehDomingo ? window.BuzuUtils.escaparHtml(linha.aviso_rota || '') : ''}
+          </div>
+        </div>`;
+    }
+    return '';
   }
 
   function renderizarListaLinhasTextual(linhas) {
@@ -1371,6 +1470,7 @@
                     linha.categoria_edital || linha.tipo
                   )}</span>
                   <span class="badge-tipo">Lote ${window.BuzuUtils.escaparHtml(linha.lote)}</span>
+                  ${badgeSituacaoRota(linha)}
                 </div>
               </div>
             </div>
@@ -1507,8 +1607,11 @@
     const operaUtilSab = diasDisp.includes('dias_uteis_sabados');
     const operaDom = diasDisp.includes('domingos_feriados');
 
-    // Quilometragem (Ida, Volta, Total) igual ao bloco expansível QUILOMETRAGEM do RUMO
-    const kmTotal = Number(linha.extensao_km || 0);
+    // Dados operacionais do edital (Tabela 17): intervalos, frota, veículo, extensão
+    const op = linha.operacao || null;
+
+    // Quilometragem (Ida, Volta, Total): usa a extensão oficial (ida + volta) do edital quando houver
+    const kmTotal = Number(op?.extensao_ida_volta_km || linha.extensao_km || 0);
     const kmMeiaViagem = kmTotal > 0 ? (kmTotal / 2).toFixed(2).replace('.', ',') : '-';
     const kmTotalFormatado = kmTotal > 0 ? kmTotal.toFixed(2).replace('.', ',') : '-';
 
@@ -1567,7 +1670,11 @@
       const itens = modoSentido === 'VOLTA' ? ruasVolta : ruasIda;
 
       if (!itens || itens.length === 0) {
-        return `<tr><td colspan="3" style="padding:12px;">Consulte o traçado da linha no mapa ao lado.</td></tr>`;
+        return linha.situacao_rota === 'indefinida' || (linha.situacao_rota === 'parcial' && !linha.itinerario_ruas)
+          ? `<tr><td colspan="3" style="padding:12px;">Itinerário ainda não divulgado pela STTU${
+              linha.situacao_rota === 'parcial' ? ' para este dia' : ''
+            }.</td></tr>`
+          : `<tr><td colspan="3" style="padding:12px;">Consulte o traçado da linha no mapa ao lado.</td></tr>`;
       }
 
       return itens
@@ -1600,6 +1707,8 @@
           <span>Compartilhar linha</span>
         </button>
       </div>
+
+      ${avisoSituacaoRota(linha)}
 
       <!-- Estrutura exata de 2 sub-colunas (.colunas-conteudo-linha) do /rumo/itinerarios/ -->
       <div class="colunas-conteudo-linha">
@@ -1680,13 +1789,22 @@
                     </div>
                   </div>
 
-                  <div style="font-size:12px;color:#475569;margin-top:8px;line-height:1.45;">
-                    <strong>Horário previsto:</strong> ${window.BuzuUtils.escaparHtml(
-                      linha.horario_operacao || '05:00 às 23:00'
-                    )}<br>
-                    <strong>Frota acessível:</strong> ${
-                      linha.acessivel ? 'Sim (100% acessível)' : 'Consultar edital'
+                  <div class="info-operacao-edital">
+                    ${
+                      op
+                        ? `
+                    <div><strong>Veículo:</strong> ${window.BuzuUtils.escaparHtml(op.veiculo || '-')}</div>
+                    <div><strong>Ônibus no pico (dias úteis):</strong> ${formatarNumero(op.frota_du)}</div>
+                    <div><strong>Tempo de uma volta completa:</strong> ${
+                      op.tempo_ciclo_min ? `${Math.round(op.tempo_ciclo_min)} min` : '-'
+                    }</div>
+                    <div><strong>Viagens por mês:</strong> ${formatarNumero(op.viagens_mes)}</div>`
+                        : ''
                     }
+                    <div><strong>Frota acessível:</strong> ${
+                      linha.acessivel ? 'Sim (100% acessível)' : 'Consultar edital'
+                    }</div>
+                    ${op ? '<div class="fonte-edital">Fonte: edital da Concorrência nº 11.001/2026, Anexo I.3, Tabela 17.</div>' : ''}
                   </div>
                 </div>
               </div>
@@ -1718,21 +1836,24 @@
 
                 <div class="linha3-tempo-funcionamento">
                   <div class="coluna1-linha3-tempo-funcionamento">
-                    <div class="subtitulo-colunas-tempo-funcionamento ${
-                      operaUtilSab ? 'sim' : 'nao'
-                    }">${operaUtilSab ? 'SIM' : 'NÃO'}</div>
+                    ${celulaFuncionamento(op ? op.intervalo_du : undefined, operaUtilSab)}
                   </div>
                   <div class="coluna2-linha3-tempo-funcionamento">
-                    <div class="subtitulo-colunas-tempo-funcionamento ${
-                      operaUtilSab ? 'sim' : 'nao'
-                    }">${operaUtilSab ? 'SIM' : 'NÃO'}</div>
+                    ${celulaFuncionamento(op ? op.intervalo_sab : undefined, operaUtilSab)}
                   </div>
                   <div class="coluna3-linha3-tempo-funcionamento">
-                    <div class="subtitulo-colunas-tempo-funcionamento ${
-                      operaDom ? 'sim' : 'nao'
-                    }">${operaDom ? 'SIM' : 'NÃO'}</div>
+                    ${celulaFuncionamento(op ? op.intervalo_dom : undefined, operaDom)}
                   </div>
                 </div>
+                ${
+                  op
+                    ? `<p class="nota-funcionamento">${
+                        linha.tipo === 'noturna'
+                          ? 'Linha Corujão: viagens na madrugada, todos os dias.'
+                          : 'Intervalo máximo entre ônibus no horário de pico, conforme o edital (Tabela 17).'
+                      }</p>`
+                    : ''
+                }
               </div>
             </div>
           </div>

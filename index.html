@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#162652">
-  <meta name="description" content="STTU Natal - RUMO Consulta Pública da Licitação nº 021/2023. Consulte itinerários, paradas, funcionamento e mapa das 87 linhas propostas.">
-  <title>Natal — Consulta de Itinerários e Rotas (Licitação nº 021/2023)</title>
+  <meta name="description" content="Nova rede de ônibus de Natal — Concorrência Pública nº 11.001/2026 (STTU). Consulte itinerários, paradas, funcionamento e mapa das linhas da Rede de Transição.">
+  <title>Natal — Consulta de Itinerários e Rotas (Concorrência nº 11.001/2026)</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,10 +16,12 @@
 
   <!-- Leaflet CSS + Leaflet.markercluster CSS via CDN -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
 
   <link rel="stylesheet" href="css/estilos.css">
+  <script src="js/tema.js"></script>
 </head>
 <body>
   <nav class="skip-links" aria-label="Atalhos de navegação rápida">
@@ -40,12 +42,17 @@
           <span class="header-brand-divider" aria-hidden="true"></span>
           <div class="header-brand-org">
             <strong>PREFEITURA DO NATAL • STTU</strong>
-            <span>Consulta Pública — Licitação nº 021/2023</span>
+            <span>Nova Rede de Ônibus — Concorrência nº 11.001/2026</span>
           </div>
         </a>
       </div>
 
       <div class="header-banner__actions">
+        <button type="button" id="btn-tema" class="btn-top-util btn-tema" aria-pressed="false" title="Mudar para o modo escuro">
+          <i class="bi bi-moon-stars icone-tema-escuro" aria-hidden="true"></i>
+          <i class="bi bi-sun icone-tema-claro" aria-hidden="true"></i>
+          <span class="rotulo-tema">Escuro</span>
+        </button>
         <button type="button" id="btn-alto-contraste" class="btn-top-util" aria-pressed="false" title="Alternar Alto Contraste">
           <i class="bi bi-circle-half"></i>
           <span>Contraste</span>
@@ -102,7 +109,7 @@
             <!-- Filtros rápidos compactos de Lote, Categoria e Dia -->
             <div class="consulta-header__filters">
               <select id="filtro-lote" class="form-select-rumo form-select-rumo--sm" aria-label="Filtrar por Lote">
-                <option value="todos">Todos os Lotes (87 linhas)</option>
+                <option value="todos">Todos os Lotes</option>
                 <option value="1">Lote 1 — Norte</option>
                 <option value="2">Lote 2 — Sul / Leste / Oeste</option>
               </select>
@@ -112,6 +119,7 @@
                 <option value="expressa">Estruturais / Diretas (E / D)</option>
                 <option value="convencional">Regionais (R)</option>
                 <option value="noturna">Corujões / Noturnas (C)</option>
+                <option value="atual">Linhas atuais mantidas (N / O / L)</option>
               </select>
               <label class="rumo-inline-check" for="filtro-acessivel">
                 <input type="checkbox" id="filtro-acessivel">
@@ -357,24 +365,32 @@
             </button>
             <div class="legenda-conteudo">
               <div class="stop-legend-item">
-                <span class="amostra-traco-proposto"></span>
-                <span>Dias úteis e sábados</span>
+                <span class="amostra-linha-solida"></span>
+                <span>Linha (cor própria de cada linha)</span>
               </div>
               <div class="stop-legend-item">
-                <span class="amostra-traco-domingo"></span>
-                <span>Domingos e feriados</span>
+                <span class="amostra-sentido" style="--cor-amostra:#0d63c9;"><span class="seta-sentido" style="--cor-seta:#0d63c9;"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5 10.5 8 5 12.5" /></svg></span></span>
+                <span>Ida (cor da linha)</span>
               </div>
               <div class="stop-legend-item">
-                <span class="stop-legend-dot" style="background:#162652;"></span>
-                <span>Terminal (T)</span>
+                <span class="amostra-sentido" style="--cor-amostra:#86b1e4;"><span class="seta-sentido" style="--cor-seta:#86b1e4;"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5 10.5 8 5 12.5" /></svg></span></span>
+                <span>Volta (tom mais claro)</span>
               </div>
               <div class="stop-legend-item">
-                <span class="stop-legend-dot" style="background:#e0621f;"></span>
-                <span>Integração (I)</span>
+                <span class="amostra-linha-tracejada"></span>
+                <span>Traçado em atualização</span>
               </div>
               <div class="stop-legend-item">
-                <span class="stop-legend-dot" style="background:#0e9f6e;"></span>
-                <span>Parada OSM / Manual (P)</span>
+                <span class="amostra-ponto amostra-ponto--terminal"></span>
+                <span>Terminal / Integração</span>
+              </div>
+              <div class="stop-legend-item">
+                <span class="amostra-ponto"></span>
+                <span>Parada (aproxime o mapa)</span>
+              </div>
+              <div class="stop-legend-item">
+                <span class="amostra-ponto amostra-ponto--selecionado"></span>
+                <span>Parada selecionada</span>
               </div>
             </div>
           </aside>
@@ -383,7 +399,7 @@
         <!-- Bloco Inferior Abaixo do Mapa Igual ao .linha-consorcio-empresa do RUMO -->
         <div class="linha-aviso">
           <p class="texto-aviso">
-            * Na consulta pública da Licitação nº 021/2023, a ida e a volta compartilham o mesmo traçado no mapa. A ordem das paradas por sentido deve ser confirmada no edital.
+            * Nos mapas da Concorrência Pública nº 11.001/2026, a ida e a volta compartilham o mesmo traçado. A ordem das paradas por sentido deve ser confirmada no edital.
           </p>
         </div>
 
@@ -393,7 +409,7 @@
             <span>ÓRGÃO GESTOR / LICITAÇÃO</span>
           </div>
           <div class="coluna-consorcio-empresa" id="info-lote-rodape-mapa">
-            Secretaria Municipal de Mobilidade Urbana (STTU Natal) — Concorrência Pública nº 021/2023 (Lote 1: Norte | Lote 2: Sul/Leste/Oeste)
+            Secretaria Municipal de Mobilidade Urbana (STTU Natal) — Concorrência Pública nº 11.001/2026 (Lote 1: Norte | Lote 2: Sul/Leste/Oeste)
           </div>
         </div>
       </div>
@@ -519,6 +535,9 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <!-- Mapa base vetorial gratuito (OpenFreeMap) desenhado pelo MapLibre dentro do Leaflet -->
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" crossorigin=""></script>
+  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js" crossorigin=""></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
 
   <script src="js/utils.js"></script>

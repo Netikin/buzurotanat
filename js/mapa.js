@@ -26,6 +26,140 @@ window.BuzuMapa = (function () {
   let indiceMarkersParadas = new Map();
   let ehRequisitadoEnquadramento = false;
 
+  // Paradas fora do modo editor: círculos leves em canvas próprio (acima das linhas)
+  let renderParadas = null;
+  let camadaParadasPrincipais = null; // terminais e pontos de integração (sempre visíveis)
+  let camadaParadasComuns = null; // paradas comuns (aparecem ao aproximar o mapa)
+  let zoomMinimoParadas = 15;
+  let controleDicaZoom = null;
+  let camadaMapaBase = null;
+  let temaEscuro = false;
+
+  const ESTILO_MAPA_CLARO = 'https://tiles.openfreemap.org/styles/positron';
+  const ESTILO_MAPA_ESCURO = 'https://tiles.openfreemap.org/styles/dark';
+
+  function corContornoRota() {
+    return temaEscuro ? '#0b1220' : '#FFFFFF';
+  }
+
+  // ---------- Sentido da viagem (ida / volta) da linha selecionada ----------
+  let camadaSentidos = null; // setas e marcadores de terminal/retorno
+  let linhasComSentido = []; // [{ idaLatLngs, voltaLatLngs, cor }] para redesenhar ao mudar o zoom
+
+  function misturarCor(hex, alvo, fracao) {
+    const h = String(hex || '#0057B8').replace('#', '');
+    const n = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    const rgb = [0, 2, 4].map(i => parseInt(n.slice(i, i + 2), 16));
+    const t = alvo === 'branco' ? 255 : 0;
+    return '#' + rgb.map(v => Math.round(v + (t - v) * fracao).toString(16).padStart(2, '0')).join('');
+  }
+
+  /**
+   * Índice do ponto de retorno: o informado no traçado ou, nos traçados em laço do projeto,
+   * o ponto mais distante do terminal entre 40% e 60% do percurso (ida e volta têm extensões parecidas).
+   */
+  function indiceRetorno(coords, props) {
+    const informado = Number(props.indice_retorno);
+    if (Number.isInteger(informado) && informado > 0 && informado < coords.length - 1) return informado;
+    const acum = window.BuzuUtils.calcularComprimentoAcumulado(coords);
+    const total = acum[acum.length - 1] || 1;
+    const [x0, y0] = coords[0];
+    let melhor = Math.floor(coords.length / 2);
+    let maior = -1;
+    coords.forEach(([x, y], i) => {
+      const f = acum[i] / total;
+      if (f < 0.4 || f > 0.6) return;
+      const d = (x - x0) ** 2 + (y - y0) ** 2;
+      if (d > maior) {
+        maior = d;
+        melhor = i;
+      }
+    });
+    return melhor;
+  }
+
+  function corEhClara(hex) {
+    const n = String(hex || '').replace('#', '');
+    if (n.length < 6) return false;
+    const [r, g, b] = [0, 2, 4].map(i => parseInt(n.slice(i, i + 2), 16) / 255);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6;
+  }
+
+  /** Desloca o traçado para o lado direito do sentido de circulação (mão de direção no Brasil) */
+  function paraLadoDireito(coords, pixels) {
+    const lat = coords[0]?.[1] || -5.8;
+    const metrosPorPixel = (40075016.686 * Math.cos((lat * Math.PI) / 180)) / Math.pow(2, mapa.getZoom() + 8);
+    return window.BuzuUtils.deslocarPolilinhaMetros(coords, -pixels * metrosPorPixel);
+  }
+
+  function iconeSeta(angulo, cor) {
+    return L.divIcon({
+      className: '',
+      html: `<div class="seta-sentido${corEhClara(cor) ? ' seta-sentido--clara' : ''}" style="--cor-seta:${cor};transform:rotate(${angulo}deg)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5 10.5 8 5 12.5" /></svg></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+  }
+
+  /** Coloca setas a cada ~120 px ao longo da polilinha, apontando no sentido do percurso */
+  function desenharSetas(latLngs, cor, rotulo) {
+    if (latLngs.length < 2) return;
+    const pts = latLngs.map(ll => mapa.latLngToLayerPoint(ll));
+    const ESPACO = 120;
+    let acumulado = ESPACO * 0.5;
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1];
+      const b = pts[i];
+      const seg = a.distanceTo(b);
+      while (acumulado <= seg && seg > 0) {
+        const f = acumulado / seg;
+        const p = L.point(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f);
+        const angulo = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+        L.marker(mapa.layerPointToLatLng(p), {
+          icon: iconeSeta(angulo, cor),
+          interactive: false,
+          keyboard: false,
+          title: rotulo,
+          pane: 'paneSetas'
+        }).addTo(camadaSentidos);
+        acumulado += ESPACO;
+      }
+      acumulado -= seg;
+    }
+  }
+
+  function marcadorPonta(latLng, texto, classe) {
+    L.marker(latLng, {
+      icon: L.divIcon({
+        className: '',
+        html: `<div class="pino-ponta ${classe}">${texto}</div>`,
+        iconSize: null,
+        iconAnchor: [0, 0]
+      }),
+      interactive: false,
+      keyboard: false,
+      pane: 'paneSetas'
+    }).addTo(camadaSentidos);
+  }
+
+  /** Redesenha setas e pontas (chamado ao renderizar e a cada mudança de zoom) */
+  function atualizarSentidos() {
+    if (!camadaSentidos) return;
+    camadaSentidos.clearLayers();
+    for (const l of linhasComSentido) {
+      const idaPx = paraLadoDireito(l.ida, 4).map(c => [c[1], c[0]]);
+      const voltaPx = paraLadoDireito(l.volta, 4).map(c => [c[1], c[0]]);
+      l.polIda?.setLatLngs(idaPx);
+      l.polVolta?.setLatLngs(voltaPx);
+      l.casIda?.setLatLngs(idaPx);
+      l.casVolta?.setLatLngs(voltaPx);
+      desenharSetas(idaPx, l.cor, 'Sentido ida');
+      desenharSetas(voltaPx, l.corVolta, 'Sentido volta');
+      marcadorPonta(idaPx[0], '<i class="bi bi-flag-fill" aria-hidden="true"></i> Terminal', 'pino-ponta--inicio');
+      marcadorPonta(idaPx[idaPx.length - 1], '<i class="bi bi-arrow-return-left" aria-hidden="true"></i> Retorno', 'pino-ponta--retorno');
+    }
+  }
+
   let callbacks = {
     aoClicarLinha: null,
     aoClicarParada: null,
@@ -50,6 +184,7 @@ window.BuzuMapa = (function () {
     mapa = L.map(idElemento, {
       center: CENTRO_NATAL,
       zoom: ZOOM_INICIAL,
+      maxZoom: 19, // necessário para o agrupamento de paradas (markercluster)
       renderer: canvasRenderer,
       zoomControl: false,
       preferCanvas: true
@@ -58,12 +193,32 @@ window.BuzuMapa = (function () {
     // Posiciona controles de zoom no canto superior direito para não colidir com o painel/bottom sheet
     L.control.zoom({ position: 'topright' }).addTo(mapa);
 
-    // Tiles OpenStreetMap com paleta neutra cartográfica aplicada via CSS (.leaflet-tile-pane)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> | STTU Natal — Licitação 021/2023'
-    }).addTo(mapa);
+    // Mapa base: OpenFreeMap (gratuito, sem chave, sem limite de acessos), estilo claro "Positron".
+    // Se o MapLibre não carregar (CDN fora do ar ou navegador sem WebGL), usa os tiles do OpenStreetMap.
+    const creditoMapa =
+      '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> | STTU Natal — Concorrência 11.001/2026';
+    const suportaWebGL = (() => {
+      try {
+        const c = document.createElement('canvas');
+        return !!(c.getContext('webgl2') || c.getContext('webgl'));
+      } catch (_e) {
+        return false;
+      }
+    })();
+
+    temaEscuro = document.documentElement.getAttribute('data-tema') === 'escuro';
+    if (typeof L.maplibreGL === 'function' && suportaWebGL) {
+      camadaMapaBase = L.maplibreGL({
+        style: temaEscuro ? ESTILO_MAPA_ESCURO : ESTILO_MAPA_CLARO,
+        attribution: creditoMapa
+      }).addTo(mapa);
+    } else {
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> | STTU Natal — Concorrência 11.001/2026'
+      }).addTo(mapa);
+    }
 
     camadaRedeAtual = L.layerGroup().addTo(mapa);
     camadaRotasPropostas = L.layerGroup().addTo(mapa);
@@ -81,6 +236,30 @@ window.BuzuMapa = (function () {
       clusterParadas = L.layerGroup();
     }
     mapa.addLayer(clusterParadas);
+
+    mapa.createPane('paneParadas');
+    mapa.getPane('paneParadas').style.zIndex = 450; // acima das linhas (overlayPane = 400)
+    renderParadas = L.canvas({ pane: 'paneParadas', padding: 0.5, tolerance: 6 });
+    camadaParadasPrincipais = L.layerGroup().addTo(mapa);
+    camadaParadasComuns = L.layerGroup();
+
+    const DicaZoom = L.Control.extend({
+      options: { position: 'bottomleft' },
+      onAdd() {
+        const div = L.DomUtil.create('div', 'dica-zoom-paradas');
+        div.innerHTML = '<i class="bi bi-zoom-in" aria-hidden="true"></i> Aproxime o mapa para ver as paradas';
+        div.hidden = true;
+        return div;
+      }
+    });
+    controleDicaZoom = new DicaZoom().addTo(mapa);
+    mapa.on('zoomend', atualizarVisibilidadeParadas);
+
+    mapa.createPane('paneSetas');
+    mapa.getPane('paneSetas').style.zIndex = 460; // acima das linhas e das paradas comuns
+    mapa.getPane('paneSetas').style.pointerEvents = 'none';
+    camadaSentidos = L.layerGroup().addTo(mapa);
+    mapa.on('zoomend', atualizarSentidos);
 
     // Clique no mapa durante o Modo Editor Administrativo (nova parada ou estender rota)
     mapa.on('click', e => {
@@ -149,6 +328,7 @@ window.BuzuMapa = (function () {
 
     camadaRotasPropostas.clearLayers();
     camadaRedeAtual.clearLayers();
+    linhasComSentido = [];
 
     // Camada opcional de rede atual em linha sólida fina
     if (mostrarRedeAtual && redeAtualGeoJson && Array.isArray(redeAtualGeoJson.features)) {
@@ -175,20 +355,25 @@ window.BuzuMapa = (function () {
 
     const boundsParaEnquadrar = [];
     const totalVisiveis = featuresVisiveis.length;
+    // Visão geral com muitas linhas: traços finos e translúcidos, para formar uma "malha" legível
+    // em que cada linha só ganha destaque ao passar o mouse/tocar.
+    const visaoGeral = !linhaDestacadaId && totalVisiveis > 6;
+    const camadasHover = [];
 
     featuresVisiveis.forEach((feat, idxFeature) => {
       if (!feat.geometry || feat.geometry.type !== 'LineString') return;
       const props = feat.properties || {};
       const sentido = props.sentido || 'ambos';
 
-      // Aplica deslocamento paralelo Stamen/MetroMatch apenas quando há mais de um traçado visível
-      // ou quando sentido for "ida"/"volta" no futuro. Para uma única linha com sentido="ambos", mantém 0m.
-      const coordsProcessadas = window.BuzuUtils.obterCoordenadasCartograficas(
-        feat.geometry.coordinates,
-        sentido,
-        idxFeature,
-        totalVisiveis
-      );
+      // Deslocamento paralelo só quando há poucas linhas (evita o efeito "espaguete" na visão geral)
+      const coordsProcessadas = visaoGeral
+        ? feat.geometry.coordinates
+        : window.BuzuUtils.obterCoordenadasCartograficas(
+            feat.geometry.coordinates,
+            sentido,
+            idxFeature,
+            totalVisiveis
+          );
 
       const latLngs = coordsProcessadas.map(c => [c[1], c[0]]);
       const ehDestacada =
@@ -196,17 +381,45 @@ window.BuzuMapa = (function () {
         (String(props.linha_id).toUpperCase() === String(linhaDestacadaId).toUpperCase() ||
           String(props.numero).toUpperCase() === String(linhaDestacadaId).toUpperCase());
 
-      const opacidade = linhaDestacadaId ? (ehDestacada ? 1.0 : 0.22) : 0.95;
-      const espessura = ehDestacada ? 6.5 : 4.5;
       const corLinha = props.cor || (props.lote === '2' ? '#D9531E' : '#0057B8');
+      const tracadoDesatualizado = props.situacao_rota === 'alterada';
 
-      // Casing (contorno cartográfico branco sólido) para garantir contraste sobre o mapa neutro
-      if (ehDestacada || totalVisiveis <= 15) {
-        L.polyline(latLngs, {
+      // Linha selecionada: ida e volta separadas, cada uma do seu lado da via, com setas de sentido
+      if (ehDestacada && feat.geometry.coordinates.length > 3) {
+        const coords = feat.geometry.coordinates;
+        const corte = indiceRetorno(coords, props);
+        const ida = coords.slice(0, corte + 1);
+        const volta = coords.slice(corte);
+        const corVolta = temaEscuro ? misturarCor(corLinha, 'branco', 0.45) : misturarCor(corLinha, 'branco', 0.5);
+        const registro = { ida, volta, cor: corLinha, corVolta };
+        const estiloComum = { renderer: canvasRenderer, lineCap: 'round', lineJoin: 'round', dashArray: tracadoDesatualizado ? '10, 8' : null };
+        registro.casVolta = L.polyline([], { ...estiloComum, color: corContornoRota(), weight: 9, opacity: 0.9, interactive: false, dashArray: null }).addTo(camadaRotasPropostas);
+        registro.casIda = L.polyline([], { ...estiloComum, color: corContornoRota(), weight: 9, opacity: 0.9, interactive: false, dashArray: null }).addTo(camadaRotasPropostas);
+        registro.polVolta = L.polyline([], { ...estiloComum, color: corVolta, weight: 5, opacity: 1 }).addTo(camadaRotasPropostas);
+        registro.polIda = L.polyline([], { ...estiloComum, color: corLinha, weight: 5, opacity: 1 }).addTo(camadaRotasPropostas);
+        const titulo = `<strong>${window.BuzuUtils.escaparHtml(props.numero)} — ${window.BuzuUtils.escaparHtml(props.nome)}</strong>`;
+        registro.polIda.bindTooltip(`${titulo}<br><span class="tooltip-sentido">➜ Ida</span> do terminal até o ponto de retorno`, { sticky: true, className: 'tooltip-linha' });
+        registro.polVolta.bindTooltip(`${titulo}<br><span class="tooltip-sentido tooltip-sentido--volta">➜ Volta</span> do ponto de retorno até o terminal`, { sticky: true, className: 'tooltip-linha' });
+        linhasComSentido.push(registro);
+        boundsParaEnquadrar.push(...coords.map(c => [c[1], c[0]]));
+        return;
+      }
+      const estiloBase = ehDestacada
+        ? { weight: 6, opacity: 1 }
+        : visaoGeral
+        ? { weight: 2.5, opacity: 0.55 }
+        : { weight: 4.5, opacity: linhaDestacadaId ? 0.25 : 0.9 };
+
+      // Contorno branco (casing) apenas na linha em destaque ou com poucas linhas no mapa
+      let casing = null;
+      if (!visaoGeral) {
+        casing = L.polyline(latLngs, {
           renderer: canvasRenderer,
-          color: '#FFFFFF',
-          weight: espessura + 3,
-          opacity: ehDestacada ? 0.95 : 0.7,
+          color: corContornoRota(),
+          weight: estiloBase.weight + 4,
+          opacity: ehDestacada ? 0.95 : 0.6,
+          lineCap: 'round',
+          lineJoin: 'round',
           interactive: false
         }).addTo(camadaRotasPropostas);
       }
@@ -215,25 +428,26 @@ window.BuzuMapa = (function () {
         boundsParaEnquadrar.push(...latLngs);
       }
 
-      // Linha proposta em traçado tracejado nítido
       const polyline = L.polyline(latLngs, {
         renderer: canvasRenderer,
         color: corLinha,
-        weight: espessura,
-        opacity: opacidade,
-        dashArray: '12, 6',
-        lineCap: 'butt',
+        weight: estiloBase.weight,
+        opacity: estiloBase.opacity,
+        dashArray: tracadoDesatualizado ? '10, 8' : null,
+        lineCap: 'round',
         lineJoin: 'round'
       });
 
       polyline.bindTooltip(
-        `<strong>[${window.BuzuUtils.escaparHtml(props.numero)}] ${window.BuzuUtils.escaparHtml(
+        `<strong>${window.BuzuUtils.escaparHtml(props.numero)} — ${window.BuzuUtils.escaparHtml(
           props.nome
         )}</strong><br>` +
           `${window.BuzuUtils.escaparHtml(props.dia_rotulo || 'Dias úteis e sábados')} • Lote ${window.BuzuUtils.escaparHtml(
             props.lote || '1'
-          )}`,
-        { sticky: true }
+          )}` +
+          (tracadoDesatualizado ? '<br><em>Traçado em atualização (edital 2026)</em>' : '') +
+          '<br><small>Clique para ver o itinerário</small>',
+        { sticky: true, className: 'tooltip-linha' }
       );
 
       polyline.on('click', () => {
@@ -243,20 +457,36 @@ window.BuzuMapa = (function () {
       });
 
       polyline.on('mouseover', function () {
-        this.setStyle({ weight: espessura + 2, opacity: 1 });
+        // Na visão geral, apaga as demais linhas para a linha sob o cursor saltar aos olhos
+        if (visaoGeral) {
+          for (const outra of camadasHover) {
+            if (outra !== this) outra.setStyle({ opacity: 0.12 });
+          }
+        }
+        this.setStyle({ weight: estiloBase.weight + 3, opacity: 1 });
+        this.bringToFront();
       });
 
       polyline.on('mouseout', function () {
-        this.setStyle({ weight: espessura, opacity: opacidade });
+        if (visaoGeral) {
+          for (const outra of camadasHover) outra.setStyle({ opacity: estiloBase.opacity });
+        }
+        this.setStyle({ weight: estiloBase.weight, opacity: estiloBase.opacity });
       });
 
       polyline.addTo(camadaRotasPropostas);
+      camadasHover.push(polyline);
+      if (ehDestacada) {
+        casing?.bringToFront();
+        polyline.bringToFront();
+      }
     });
 
     if (ehRequisitadoEnquadramento && boundsParaEnquadrar.length > 0) {
-      mapa.fitBounds(boundsParaEnquadrar, { padding: [42, 42], maxZoom: 16 });
+      mapa.fitBounds(boundsParaEnquadrar, { padding: [42, 42], maxZoom: 16, animate: false });
       ehRequisitadoEnquadramento = false;
     }
+    atualizarSentidos();
   }
 
   function solicitarEnquadramentoNaProximaRenderizacao() {
@@ -268,12 +498,94 @@ window.BuzuMapa = (function () {
    * Fluxo de dois níveis: clicar no ponto abre direto no painel lateral/bottom sheet,
    * sem abrir modal nem popup cobrindo o mapa.
    */
-  function renderizarParadas(featuresParadas = [], idParadaDestacada = null) {
+  function ehParadaPrincipal(tipo) {
+    const t = String(tipo || '').toLowerCase();
+    return t.includes('terminal') || t.includes('integração') || t.includes('integracao') || t.includes('estação');
+  }
+
+  function atualizarVisibilidadeParadas() {
+    if (!mapa || !camadaParadasComuns) return;
+    const mostrar = !modoEditorAtivo && mapa.getZoom() >= zoomMinimoParadas;
+    if (mostrar && !mapa.hasLayer(camadaParadasComuns)) mapa.addLayer(camadaParadasComuns);
+    if (!mostrar && mapa.hasLayer(camadaParadasComuns)) mapa.removeLayer(camadaParadasComuns);
+
+    const elDica = controleDicaZoom?.getContainer();
+    if (elDica) {
+      elDica.hidden = modoEditorAtivo || mostrar || camadaParadasComuns.getLayers().length === 0;
+    }
+  }
+
+  function textoTooltipParada(props) {
+    const linhas = (props.rotas || []).slice(0, 10);
+    const extra = (props.rotas || []).length > linhas.length ? ` +${props.rotas.length - linhas.length}` : '';
+    const tipo = ehParadaPrincipal(props.tipo) ? `<span class="tooltip-parada-tipo">${window.BuzuUtils.escaparHtml(props.tipo)}</span><br>` : '';
+    return (
+      `${tipo}<strong>${window.BuzuUtils.escaparHtml(props.nome)}</strong>` +
+      (linhas.length ? `<br>Linhas: ${window.BuzuUtils.escaparHtml(linhas.join(', '))}${extra}` : '')
+    );
+  }
+
+  /**
+   * Paradas no modo de consulta (não editor):
+   *  - Terminais e integrações: círculo maior com borda escura, sempre visíveis.
+   *  - Paradas comuns: pontos pequenos (estilo mapa de metrô), só a partir do zoom 15
+   *    (ou 13 quando uma linha está selecionada), para não poluir a visão geral.
+   */
+  function renderizarParadasConsulta(featuresParadas, idParadaDestacada, opcoes) {
+    const { linhaSelecionada = false, corLinha = null } = opcoes;
+    zoomMinimoParadas = linhaSelecionada ? 13 : 15;
+    const corBorda = temaEscuro ? '#e2e8f0' : '#1e293b';
+    const corPreenchimento = temaEscuro ? '#0f172a' : '#ffffff';
+
+    for (const feat of featuresParadas) {
+      if (!feat.geometry || feat.geometry.type !== 'Point') continue;
+      const [lng, lat] = feat.geometry.coordinates;
+      const props = feat.properties || {};
+      const ehDestacada = idParadaDestacada && String(props.id) === String(idParadaDestacada);
+      const principal = ehParadaPrincipal(props.tipo);
+      const virtual = props.origem === 'virtual';
+
+      const estilo = ehDestacada
+        ? { radius: 10, color: corBorda, weight: 3, fillColor: '#FFBE2E', fillOpacity: 1 }
+        : principal
+        ? { radius: 7, color: corBorda, weight: 3, fillColor: corPreenchimento, fillOpacity: 1 }
+        : {
+            radius: virtual ? 3.5 : 4.5,
+            color: corLinha || (temaEscuro ? '#94a3b8' : '#475569'),
+            weight: 2,
+            fillColor: corPreenchimento,
+            fillOpacity: 1
+          };
+
+      const marker = L.circleMarker([lat, lng], { renderer: renderParadas, ...estilo });
+      marker.bindTooltip(textoTooltipParada(props), { direction: 'top', offset: [0, -6], className: 'tooltip-parada' });
+      marker.on('click', () => {
+        if (typeof callbacks.aoClicarParada === 'function') {
+          callbacks.aoClicarParada(props.id);
+        }
+      });
+
+      (principal || ehDestacada ? camadaParadasPrincipais : camadaParadasComuns).addLayer(marker);
+      indiceMarkersParadas.set(String(props.id), marker);
+    }
+    atualizarVisibilidadeParadas();
+  }
+
+  function renderizarParadas(featuresParadas = [], idParadaDestacada = null, opcoes = {}) {
     if (!mapa || !clusterParadas) return;
 
     clusterParadas.clearLayers();
+    camadaParadasPrincipais?.clearLayers();
+    camadaParadasComuns?.clearLayers();
     indiceMarkersParadas.clear();
 
+    if (!modoEditorAtivo) {
+      renderizarParadasConsulta(featuresParadas, idParadaDestacada, opcoes);
+      return;
+    }
+    atualizarVisibilidadeParadas();
+
+    // Modo Editor (Admin): marcadores arrastáveis com sigla, agrupados
     for (const feat of featuresParadas) {
       if (!feat.geometry || feat.geometry.type !== 'Point') continue;
       const [lng, lat] = feat.geometry.coordinates;
@@ -493,10 +805,26 @@ window.BuzuMapa = (function () {
     if (!mapa) return;
     mapa.setView([lat, lng], 16, { animate: true });
     const marker = indiceMarkersParadas.get(String(idParada));
-    if (marker && clusterParadas && typeof clusterParadas.zoomToShowLayer === 'function') {
+    if (!marker) return;
+    if (modoEditorAtivo && clusterParadas && typeof clusterParadas.zoomToShowLayer === 'function') {
       clusterParadas.zoomToShowLayer(marker, () => {
         marker.openTooltip();
       });
+    } else {
+      mapa.once('moveend', () => marker.openTooltip());
+    }
+  }
+
+  /**
+   * Troca o mapa base entre claro e escuro (chamado pelo botão de tema)
+   */
+  function definirTemaMapa(escuro) {
+    temaEscuro = Boolean(escuro);
+    const mlMap = camadaMapaBase && typeof camadaMapaBase.getMaplibreMap === 'function'
+      ? camadaMapaBase.getMaplibreMap()
+      : null;
+    if (mlMap) {
+      mlMap.setStyle(temaEscuro ? ESTILO_MAPA_ESCURO : ESTILO_MAPA_CLARO);
     }
   }
 
@@ -629,6 +957,7 @@ style="width:30px;height:30px;font-size:13px;">${sigla}</div>`,
     desfazerEdicaoRota,
     obterCoordenadasEdicaoRota,
     solicitarEnquadramentoNaProximaRenderizacao,
-    invalidarTamanho
+    invalidarTamanho,
+    definirTemaMapa
   };
 })();
