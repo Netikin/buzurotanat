@@ -45,6 +45,8 @@ window.BuzuMapa = (function () {
   // ---------- Sentido da viagem (ida / volta) da linha selecionada ----------
   let camadaSentidos = null; // setas e marcadores de terminal/retorno
   let linhasComSentido = []; // [{ idaLatLngs, voltaLatLngs, cor }] para redesenhar ao mudar o zoom
+  let camadaEtapas = null; // "Como chegar": só o caminho do passageiro
+  let etapasViagem = []; // [{ tipo: 'pe'|'onibus', coords, cor, numero }]
 
   function misturarCor(hex, alvo, fracao) {
     const h = String(hex || '#0057B8').replace('#', '');
@@ -102,11 +104,13 @@ window.BuzuMapa = (function () {
   }
 
   /** Coloca setas a cada ~120 px ao longo da polilinha, apontando no sentido do percurso */
-  function desenharSetas(latLngs, cor, rotulo) {
+  function desenharSetas(latLngs, cor, rotulo, ESPACO = 120) {
     if (latLngs.length < 2) return;
     const pts = latLngs.map(ll => mapa.latLngToLayerPoint(ll));
-    const ESPACO = 120;
-    let acumulado = ESPACO * 0.5;
+    // trecho curto na tela: ao menos uma seta no meio
+    let totalPx = 0;
+    for (let i = 1; i < pts.length; i++) totalPx += pts[i - 1].distanceTo(pts[i]);
+    let acumulado = totalPx < ESPACO ? totalPx / 2 : ESPACO * 0.5;
     for (let i = 1; i < pts.length; i++) {
       const a = pts[i - 1];
       const b = pts[i];
@@ -146,7 +150,13 @@ window.BuzuMapa = (function () {
   function atualizarSentidos() {
     if (!camadaSentidos) return;
     camadaSentidos.clearLayers();
+    const varias = linhasComSentido.length > 1;
+    // setas dos trechos de ônibus do "Como chegar"
+    for (const e of etapasViagem) {
+      if (e.tipo === 'onibus') desenharSetas(e.coords.map(c => [c[1], c[0]]), e.cor, `Linha ${e.numero}`, 70);
+    }
     for (const l of linhasComSentido) {
+      const sufixo = varias ? ` ${window.BuzuUtils.escaparHtml(l.numero)}` : '';
       const idaPx = paraLadoDireito(l.ida, 4).map(c => [c[1], c[0]]);
       const voltaPx = paraLadoDireito(l.volta, 4).map(c => [c[1], c[0]]);
       l.polIda?.setLatLngs(idaPx);
@@ -155,8 +165,8 @@ window.BuzuMapa = (function () {
       l.casVolta?.setLatLngs(voltaPx);
       desenharSetas(idaPx, l.cor, 'Sentido ida');
       desenharSetas(voltaPx, l.corVolta, 'Sentido volta');
-      marcadorPonta(idaPx[0], '<i class="bi bi-flag-fill" aria-hidden="true"></i> Terminal', 'pino-ponta--inicio');
-      marcadorPonta(idaPx[idaPx.length - 1], '<i class="bi bi-arrow-return-left" aria-hidden="true"></i> Retorno', 'pino-ponta--retorno');
+      marcadorPonta(idaPx[0], `<i class="bi bi-flag-fill" aria-hidden="true"></i> Terminal${sufixo}`, 'pino-ponta--inicio');
+      marcadorPonta(idaPx[idaPx.length - 1], `<i class="bi bi-arrow-return-left" aria-hidden="true"></i> Retorno${sufixo}`, 'pino-ponta--retorno');
     }
   }
 
@@ -259,6 +269,7 @@ window.BuzuMapa = (function () {
     mapa.getPane('paneSetas').style.zIndex = 460; // acima das linhas e das paradas comuns
     mapa.getPane('paneSetas').style.pointerEvents = 'none';
     camadaSentidos = L.layerGroup().addTo(mapa);
+    camadaEtapas = L.layerGroup().addTo(mapa);
     mapa.on('zoomend', atualizarSentidos);
 
     // Clique no mapa durante o Modo Editor Administrativo (nova parada ou estender rota)
@@ -323,7 +334,8 @@ window.BuzuMapa = (function () {
       linhaDestacadaId = null,
       diaSemana = 'dias_uteis_sabados',
       mostrarRedeAtual = false,
-      redeAtualGeoJson = null
+      redeAtualGeoJson = null,
+      mostrarSentido = false // "Como chegar": mostra ida/volta e setas de todas as linhas do trajeto
     } = opcoes;
 
     camadaRotasPropostas.clearLayers();
@@ -385,13 +397,13 @@ window.BuzuMapa = (function () {
       const tracadoDesatualizado = props.situacao_rota === 'alterada';
 
       // Linha selecionada: ida e volta separadas, cada uma do seu lado da via, com setas de sentido
-      if (ehDestacada && feat.geometry.coordinates.length > 3) {
+      if ((ehDestacada || mostrarSentido) && feat.geometry.coordinates.length > 3) {
         const coords = feat.geometry.coordinates;
         const corte = indiceRetorno(coords, props);
         const ida = coords.slice(0, corte + 1);
         const volta = coords.slice(corte);
         const corVolta = temaEscuro ? misturarCor(corLinha, 'branco', 0.45) : misturarCor(corLinha, 'branco', 0.5);
-        const registro = { ida, volta, cor: corLinha, corVolta };
+        const registro = { ida, volta, cor: corLinha, corVolta, numero: props.numero };
         const estiloComum = { renderer: canvasRenderer, lineCap: 'round', lineJoin: 'round', dashArray: tracadoDesatualizado ? '10, 8' : null };
         registro.casVolta = L.polyline([], { ...estiloComum, color: corContornoRota(), weight: 9, opacity: 0.9, interactive: false, dashArray: null }).addTo(camadaRotasPropostas);
         registro.casIda = L.polyline([], { ...estiloComum, color: corContornoRota(), weight: 9, opacity: 0.9, interactive: false, dashArray: null }).addTo(camadaRotasPropostas);
@@ -917,6 +929,64 @@ style="width:30px;height:30px;font-size:13px;">${sigla}</div>`,
     });
   }
 
+  /**
+   * "Como chegar": desenha somente o caminho do passageiro — a pé (tracejado) e, de ônibus,
+   * apenas o trecho percorrido de cada linha, no sentido da viagem, com setas.
+   */
+  function renderizarEtapasViagem(etapas = []) {
+    if (!camadaEtapas) return;
+    camadaEtapas.clearLayers();
+    etapasViagem = etapas;
+    for (const e of etapas) {
+      const latLngs = e.coords.map(c => [c[1], c[0]]);
+      if (e.tipo === 'pe') {
+        L.polyline(latLngs, {
+          renderer: canvasRenderer,
+          color: temaEscuro ? '#cbd5e1' : '#475569',
+          weight: 3.5,
+          opacity: 0.95,
+          dashArray: '2, 8',
+          lineCap: 'round',
+          interactive: true
+        })
+          .bindTooltip(`<i class="bi bi-person-walking" aria-hidden="true"></i> ${window.BuzuUtils.escaparHtml(e.rotulo || 'A pé')}`, { sticky: true })
+          .addTo(camadaEtapas);
+        continue;
+      }
+      L.polyline(latLngs, {
+        renderer: canvasRenderer,
+        color: corContornoRota(),
+        weight: 11,
+        opacity: 0.95,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false
+      }).addTo(camadaEtapas);
+      L.polyline(latLngs, {
+        renderer: canvasRenderer,
+        color: e.cor || '#0057B8',
+        weight: 6.5,
+        opacity: 1,
+        lineCap: 'round',
+        lineJoin: 'round',
+        dashArray: e.aproximado ? '10, 8' : null
+      })
+        .bindTooltip(
+          `<strong>${window.BuzuUtils.escaparHtml(e.rotulo || '')}</strong><br>Trecho percorrido nesta linha` +
+            (e.aproximado ? '<br><em>Traçado aproximado</em>' : ''),
+          { sticky: true, className: 'tooltip-linha' }
+        )
+        .addTo(camadaEtapas);
+    }
+    atualizarSentidos();
+  }
+
+  function limparEtapasViagem() {
+    etapasViagem = [];
+    camadaEtapas?.clearLayers();
+    atualizarSentidos();
+  }
+
   function limparPontosViagem() {
     if (camadaViagem) camadaViagem.clearLayers();
   }
@@ -958,6 +1028,8 @@ style="width:30px;height:30px;font-size:13px;">${sigla}</div>`,
     obterCoordenadasEdicaoRota,
     solicitarEnquadramentoNaProximaRenderizacao,
     invalidarTamanho,
-    definirTemaMapa
+    definirTemaMapa,
+    renderizarEtapasViagem,
+    limparEtapasViagem
   };
 })();
