@@ -429,7 +429,7 @@ window.BuzuDados = (function () {
   /**
    * Retorna todas as linhas filtradas por dia da semana, lote, tipo, acessibilidade e termo de busca
    */
-  function filtrarLinhas({ diaSemana = 'dias_uteis_sabados', lote = 'todos', tipo = 'todos', apenasAcessiveis = false, termo = '' } = {}) {
+  function filtrarLinhas({ diaSemana = 'dias_uteis_sabados', lote = 'todos', tipo = 'todos', apenasAcessiveis = false, termo = '', rede = 'todos' } = {}) {
     const todas = estado.indice?.linhas || [];
     const termoNorm = window.BuzuUtils.normalizarTexto(termo);
 
@@ -442,6 +442,9 @@ window.BuzuDados = (function () {
           }
         }
         if (lote !== 'todos' && String(linha.lote) !== String(lote)) {
+          return false;
+        }
+        if (rede !== 'todos' && (linha.rede || 'transicao') !== rede) {
           return false;
         }
         if (tipo !== 'todos' && linha.tipo !== tipo && linha.categoria_edital !== tipo) {
@@ -487,7 +490,9 @@ window.BuzuDados = (function () {
     const variantes = linha.variantes_dia || {};
     let varianteAtiva = variantes[diaSemana];
 
-    if (!varianteAtiva) {
+    // Só usa a variante de outro dia na visão "Todos". Num dia específico, linha sem traçado
+    // para aquele dia fica sem rota (ex.: linhas atuais com rota divulgada só para domingos).
+    if (!varianteAtiva && diaSemana === 'todos') {
       const primeiraChave = Object.keys(variantes)[0];
       varianteAtiva = primeiraChave ? variantes[primeiraChave] : null;
     }

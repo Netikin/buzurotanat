@@ -40,11 +40,12 @@ for (const linha of indice.linhas || []) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Linha ${linha.numero} - ${linha.nome} | Consulta Pública Transporte de Natal (Licitação 021/2023)</title>
-  <meta name="description" content="Consulte o traçado, paradas e integrações da Linha ${linha.numero} (${linha.nome}) na Consulta Pública da Licitação nº 021/2023 da Prefeitura do Natal.">
-  <meta property="og:title" content="Linha ${linha.numero} - ${linha.nome} (Licitação 021/2023 - Natal)">
+  <title>Linha ${linha.numero} - ${linha.nome} | Nova Rede de Ônibus de Natal (Concorrência 11.001/2026)</title>
+  <meta name="description" content="Consulte o traçado, paradas e integrações da Linha ${linha.numero} (${linha.nome}) na nova rede de ônibus de Natal — Concorrência Pública nº 11.001/2026.">
+  <meta property="og:title" content="Linha ${linha.numero} - ${linha.nome} (Concorrência 11.001/2026 - Natal)">
   <meta property="og:description" content="Veja o itinerário de dias úteis/sábados e domingos/feriados, paradas e conexões no mapa interativo.">
   <link rel="stylesheet" href="../css/estilos.css">
+  <script src="../js/tema.js"></script>
 </head>
 <body>
   <main style="max-width:780px;margin:24px auto;padding:0 16px;">

@@ -1,7 +1,7 @@
 {
   "name": "buzurota-natal",
   "version": "1.0.0",
-  "description": "Portal BuzuRota Natal - Consulta Pública Licitação nº 021/2023 (STTU)",
+  "description": "Portal BuzuRota Natal - Nova rede de ônibus de Natal, Concorrência Pública nº 11.001/2026 (STTU)",
   "main": "servidor.js",
   "scripts": {
     "start": "node servidor.js"
