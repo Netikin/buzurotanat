@@ -189,7 +189,7 @@ window.BuzuMapa = (function () {
   function inicializar(idElemento = 'mapa', opcoesCallbacks = {}) {
     callbacks = { ...callbacks, ...opcoesCallbacks };
 
-    canvasRenderer = L.canvas({ padding: 0.5, tolerance: 10 });
+    canvasRenderer = L.canvas({ padding: 0.5, tolerance: 15 });
 
     mapa = L.map(idElemento, {
       center: CENTRO_NATAL,
@@ -249,6 +249,7 @@ window.BuzuMapa = (function () {
 
     mapa.createPane('paneParadas');
     mapa.getPane('paneParadas').style.zIndex = 450; // acima das linhas (overlayPane = 400)
+    mapa.getPane('paneParadas').style.pointerEvents = 'none';
     renderParadas = L.canvas({ pane: 'paneParadas', padding: 0.5, tolerance: 6 });
     camadaParadasPrincipais = L.layerGroup().addTo(mapa);
     camadaParadasComuns = L.layerGroup();
@@ -412,6 +413,18 @@ window.BuzuMapa = (function () {
         const titulo = `<strong>${window.BuzuUtils.escaparHtml(props.numero)} — ${window.BuzuUtils.escaparHtml(props.nome)}</strong>`;
         registro.polIda.bindTooltip(`${titulo}<br><span class="tooltip-sentido">➜ Ida</span> do terminal até o ponto de retorno`, { sticky: true, className: 'tooltip-linha' });
         registro.polVolta.bindTooltip(`${titulo}<br><span class="tooltip-sentido tooltip-sentido--volta">➜ Volta</span> do ponto de retorno até o terminal`, { sticky: true, className: 'tooltip-linha' });
+        registro.polIda.on('click', e => {
+          L.popup({ maxWidth: 280 })
+            .setLatLng(e.latlng)
+            .setContent(`${titulo}<br><small>Sentido IDA • ${window.BuzuUtils.escaparHtml(props.dia_rotulo || '')}</small>`)
+            .openOn(mapa);
+        });
+        registro.polVolta.on('click', e => {
+          L.popup({ maxWidth: 280 })
+            .setLatLng(e.latlng)
+            .setContent(`${titulo}<br><small>Sentido VOLTA • ${window.BuzuUtils.escaparHtml(props.dia_rotulo || '')}</small>`)
+            .openOn(mapa);
+        });
         linhasComSentido.push(registro);
         boundsParaEnquadrar.push(...coords.map(c => [c[1], c[0]]));
         return;
@@ -419,7 +432,7 @@ window.BuzuMapa = (function () {
       const estiloBase = ehDestacada
         ? { weight: 6, opacity: 1 }
         : visaoGeral
-        ? { weight: 2.5, opacity: 0.55 }
+        ? { weight: 3.2, opacity: 0.65 }
         : { weight: 4.5, opacity: linhaDestacadaId ? 0.25 : 0.9 };
 
       // Contorno branco (casing) apenas na linha em destaque ou com poucas linhas no mapa
@@ -462,28 +475,21 @@ window.BuzuMapa = (function () {
         { sticky: true, className: 'tooltip-linha' }
       );
 
-      polyline.on('click', () => {
+      polyline.on('click', e => {
+        L.popup({ maxWidth: 280 })
+          .setLatLng(e.latlng)
+          .setContent(
+            `<strong>${window.BuzuUtils.escaparHtml(props.numero)} — ${window.BuzuUtils.escaparHtml(
+              props.nome
+            )}</strong><br><small>${window.BuzuUtils.escaparHtml(
+              props.dia_rotulo || 'Dias úteis e sábados'
+            )} • Lote ${window.BuzuUtils.escaparHtml(props.lote || '1')}</small>`
+          )
+          .openOn(mapa);
+
         if (typeof callbacks.aoClicarLinha === 'function') {
           callbacks.aoClicarLinha(props.linha_id || props.numero, props.dia_semana);
         }
-      });
-
-      polyline.on('mouseover', function () {
-        // Na visão geral, apaga as demais linhas para a linha sob o cursor saltar aos olhos
-        if (visaoGeral) {
-          for (const outra of camadasHover) {
-            if (outra !== this) outra.setStyle({ opacity: 0.12 });
-          }
-        }
-        this.setStyle({ weight: estiloBase.weight + 3, opacity: 1 });
-        this.bringToFront();
-      });
-
-      polyline.on('mouseout', function () {
-        if (visaoGeral) {
-          for (const outra of camadasHover) outra.setStyle({ opacity: estiloBase.opacity });
-        }
-        this.setStyle({ weight: estiloBase.weight, opacity: estiloBase.opacity });
       });
 
       polyline.addTo(camadaRotasPropostas);

@@ -391,6 +391,13 @@
 
           <div id="mapa" role="application" aria-label="Mapa interativo das rotas de Natal"></div>
 
+          <!-- Etiqueta Flutuante da Linha Selecionada/Destacada no Mapa -->
+          <div id="pill-linha-mapa" class="pill-linha-mapa" hidden>
+            <span id="pill-linha-mapa-num" class="pill-linha-mapa__num">N-02</span>
+            <span id="pill-linha-mapa-nome" class="pill-linha-mapa__nome">Nome da Linha</span>
+            <a href="#/" id="pill-linha-mapa-fechar" class="pill-linha-mapa__fechar" title="Voltar para todas as linhas" aria-label="Limpar seleção da linha">&times;</a>
+          </div>
+
           <!-- Legenda do Mapa Estilo .stop-legend do RUMO -->
           <aside class="legenda-mapa stop-legend" id="legenda-mapa" data-aberta-mobile="false" aria-label="Legenda do mapa">
             <button type="button" class="btn-toggle-legenda-mobile" id="btn-toggle-legenda" aria-expanded="false">

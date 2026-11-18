@@ -1644,6 +1644,8 @@
     }
 
     if (faixaItinerario) faixaItinerario.hidden = true;
+    const pillMapa = document.getElementById('pill-linha-mapa');
+    if (pillMapa) pillMapa.hidden = true;
 
     if (caminhoHash.startsWith('#/parada/')) {
       const idParada = decodeURIComponent(caminhoHash.replace('#/parada/', '').trim());
@@ -1698,6 +1700,17 @@
       faixaNum.textContent = linha.numero;
       faixaNum.style.backgroundColor = linha.cor || '#172554';
       faixaTexto.textContent = linha.nome;
+    }
+
+    // Atualiza a etiqueta flutuante sobre o mapa com o código e nome da linha destacada
+    const pillMapa = document.getElementById('pill-linha-mapa');
+    const pillNum = document.getElementById('pill-linha-mapa-num');
+    const pillNome = document.getElementById('pill-linha-mapa-nome');
+    if (pillMapa && pillNum && pillNome) {
+      pillMapa.hidden = false;
+      pillNum.textContent = linha.numero;
+      pillNum.style.backgroundColor = linha.cor || '#162652';
+      pillNome.textContent = linha.nome;
     }
 
     if (Array.isArray(linha.bbox)) {
