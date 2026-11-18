@@ -1986,6 +1986,26 @@ body.alto-contraste .btn-menu.active {
   background: #e0621f;
 }
 
+.aviso-independencia {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--c-borda-suave, #cbd5e1);
+  background: var(--c-fundo-suave, #f1f5f9);
+  color: var(--c-texto, #1e293b);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.aviso-independencia i {
+  font-size: 1rem;
+  color: #162652;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
 @media (max-width: 760px) {
   .admin-cards-grid {
     grid-template-columns: 1fr;
