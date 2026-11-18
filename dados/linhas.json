@@ -31537,6 +31537,50 @@
         "extensao_oso_km": 41.2,
         "metodo": "Traçado gerado a partir da sequência oficial de ruas da OSO sobre o mapa viário do OpenStreetMap"
       }
+    },
+    {
+      "id": "N",
+      "numero": "N",
+      "nome": "02 - Sentido IDA",
+      "lote": "1",
+      "empresa": null,
+      "tipo": "convencional",
+      "categoria_edital": "Convencional",
+      "sentido": "ambos",
+      "cor": "#0057B8",
+      "acessivel": true,
+      "tarifa": "Tarifa Social / Sistema Natal",
+      "frequencia_pico": "Consultar edital",
+      "frequencia_entre_pico": "Consultar edital",
+      "horario_operacao": "05:00 às 23:00",
+      "ordem_confirmada_por_sentido": false,
+      "dias_disponiveis": [
+        "dias_uteis_sabados"
+      ],
+      "variantes_dia": {
+        "dias_uteis_sabados": {
+          "dia_semana": "dias_uteis_sabados",
+          "dia_rotulo": "Dias úteis e sábados",
+          "nome": "02 - Sentido VOLTA",
+          "extensao_km": null,
+          "cor": "#0057B8",
+          "sentido": "ambos",
+          "paradas_atendidas": [],
+          "integracoes": [],
+          "bbox": [
+            -35.25481,
+            -5.81377,
+            -35.20227,
+            -5.7233
+          ]
+        }
+      },
+      "bbox": [
+        -35.25492,
+        -5.81386,
+        -35.20227,
+        -5.7233
+      ]
     }
   ]
 }
