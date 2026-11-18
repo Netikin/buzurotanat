@@ -12806,11 +12806,10 @@
           "dia_semana": "dias_uteis_sabados",
           "dia_rotulo": "Dias úteis e sábados",
           "nome": "Gramoré/CRI, via Midway Mall",
-          "extensao_km": 41.38,
+          "extensao_km": 32.587,
           "cor": "#B45309",
           "sentido": "ambos",
           "paradas_atendidas": [
-            "P-009",
             "DA-02788",
             "OSM-9512450802",
             "OSM-9512450803",
@@ -12824,7 +12823,6 @@
             "OSM-9482447597",
             "DA-02791",
             "OSM-9482447593",
-            "OSM-9482447591",
             "DA-02792",
             "DA-02793",
             "DA-02794",
@@ -12864,40 +12862,6 @@
             "DA-02423",
             "OSM-9515359520",
             "OSM-6027753258",
-            "OSM-501784916",
-            "DA-02424",
-            "OSM-501784909",
-            "DA-02425",
-            "OSM-501784911",
-            "OSM-502847235",
-            "DA-02601",
-            "OSM-501215660",
-            "DA-02728",
-            "OSM-502846471",
-            "OSM-501791602",
-            "OSM-501086754",
-            "OSM-501791613",
-            "DA-02426",
-            "OSM-501791618",
-            "OSM-501253811",
-            "DA-02427",
-            "DA-02428",
-            "OSM-501086646",
-            "OSM-501834687",
-            "P-007",
-            "OSM-10015221328",
-            "OSM-501086748",
-            "DA-02943",
-            "OSM-501152506",
-            "OSM-501215669",
-            "OSM-501215671",
-            "DA-02429",
-            "DA-02430",
-            "OSM-501784915",
-            "OSM-10236563323",
-            "OSM-6189111400",
-            "DA-02528",
-            "OSM-9516636622",
             "DA-02431",
             "DA-02432",
             "OSM-9516583716",
@@ -12921,11 +12885,11 @@
             "DA-02603",
             "DA-02604",
             "OSM-7021976585",
-            "OSM-10061242635",
-            "DA-02605",
-            "DA-02606",
-            "DA-02607",
-            "DA-02801",
+            "DA-02816",
+            "DA-02817",
+            "OSM-9456960615",
+            "OSM-9483420484",
+            "OSM-9483420485",
             "OSM-11916287616",
             "DA-02802",
             "DA-02803",
@@ -12935,246 +12899,295 @@
             "DA-02804",
             "DA-02805",
             "MAN-37248",
-            "DA-02806"
+            "DA-02806",
+            "P-009"
           ],
           "integracoes": [],
           "itinerario_ruas": {
             "ida": [
               {
                 "ordem": 1,
-                "logradouro": "Rua Jacupiranga",
+                "logradouro": "Av Pirassununga (terminal)",
                 "bairro": "Lagoa Azul",
-                "lat": -5.723583,
-                "lng": -35.249783
+                "lat": -5.723299,
+                "lng": -35.250606
               },
               {
                 "ordem": 2,
                 "logradouro": "Rua Riversul",
                 "bairro": "Lagoa Azul",
-                "lat": -5.724688,
-                "lng": -35.251293
+                "lat": -5.724656,
+                "lng": -35.251262
               },
               {
                 "ordem": 3,
-                "logradouro": "Avenida Piratininga",
+                "logradouro": "Av. Piratininga",
                 "bairro": "Lagoa Azul",
-                "lat": -5.72645,
-                "lng": -35.25153
+                "lat": -5.726318,
+                "lng": -35.251744
               },
               {
                 "ordem": 4,
                 "logradouro": "Rua Atibaia",
                 "bairro": "Lagoa Azul",
-                "lat": -5.72695,
-                "lng": -35.250933
+                "lat": -5.727934,
+                "lng": -35.25138
               },
               {
                 "ordem": 5,
                 "logradouro": "Rua Eldorado",
                 "bairro": "Lagoa Azul",
-                "lat": -5.729817,
-                "lng": -35.252733
+                "lat": -5.730641,
+                "lng": -35.253307
               },
               {
                 "ordem": 6,
-                "logradouro": "Avenida Guararapes",
+                "logradouro": "Av Guararapes",
                 "bairro": "Lagoa Azul",
-                "lat": -5.7325,
-                "lng": -35.253717
+                "lat": -5.732002,
+                "lng": -35.254302
               },
               {
                 "ordem": 7,
-                "logradouro": "Rua Flor do Paraíso",
-                "bairro": "Pajuçara",
-                "lat": -5.734017,
-                "lng": -35.250517
+                "logradouro": "Av. Tocantínea",
+                "bairro": "Lagoa Azul",
+                "lat": -5.733947,
+                "lng": -35.251082
               },
               {
                 "ordem": 8,
-                "logradouro": "Rua São Rufino",
+                "logradouro": "Rua Flor do Paraiso",
                 "bairro": "Pajuçara",
-                "lat": -5.735433,
-                "lng": -35.24815
+                "lat": -5.733904,
+                "lng": -35.25075
               },
               {
                 "ordem": 9,
-                "logradouro": "Avenida Governardor Antônio de Melo e Souza",
-                "bairro": "Potengi",
-                "lat": -5.738267,
-                "lng": -35.249067
+                "logradouro": "Rua São Rufino",
+                "bairro": "Pajuçara",
+                "lat": -5.735247,
+                "lng": -35.247842
               },
               {
                 "ordem": 10,
-                "logradouro": "Avenida Doutor João Medeiros Filho",
+                "logradouro": "Av. Governador Antônio de Melo Souza",
                 "bairro": "Potengi",
-                "lat": -5.754133,
-                "lng": -35.238517
+                "lat": -5.737828,
+                "lng": -35.249366
               },
               {
                 "ordem": 11,
-                "logradouro": "Avenida Bacharel Tomaz Landim",
-                "bairro": "Igapó",
-                "lat": -5.776633,
-                "lng": -35.251683
+                "logradouro": "Av. Doutor João Medeiros Filho",
+                "bairro": "Potengi",
+                "lat": -5.753472,
+                "lng": -35.237331
               },
               {
                 "ordem": 12,
-                "logradouro": "Avenida Felizardo Firmino Moura",
-                "bairro": "Nordeste",
-                "lat": -5.788357,
-                "lng": -35.24493
+                "logradouro": "Túnel Ulisses de Góis",
+                "bairro": "Igapó",
+                "lat": -5.776195,
+                "lng": -35.252578
               },
               {
                 "ordem": 13,
-                "logradouro": "Rua Jandira",
-                "bairro": "Nordeste",
-                "lat": -5.797667,
-                "lng": -35.2392
+                "logradouro": "Av Bacharel Tomaz Landim",
+                "bairro": "Igapó",
+                "lat": -5.776435,
+                "lng": -35.251906
               },
               {
                 "ordem": 14,
-                "logradouro": "Avenida Nevaldo Rocha",
-                "bairro": "Quintas",
-                "lat": -5.801917,
-                "lng": -35.234917
+                "logradouro": "Ponte de Igapó",
+                "bairro": "Salinas",
+                "lat": -5.780006,
+                "lng": -35.248378
               },
               {
                 "ordem": 15,
-                "logradouro": "Avenida Senador Salgado Filho",
-                "bairro": "Lagoa Nova",
-                "lat": -5.8179,
-                "lng": -35.207083
+                "logradouro": "Av. Felizardo Firmino Moura",
+                "bairro": "Nordeste",
+                "lat": -5.784854,
+                "lng": -35.246478
+              },
+              {
+                "ordem": 16,
+                "logradouro": "Rua Jandira",
+                "bairro": "Nordeste",
+                "lat": -5.797762,
+                "lng": -35.239054
+              },
+              {
+                "ordem": 17,
+                "logradouro": "Rua Doutor Mário Negócio",
+                "bairro": "Quintas",
+                "lat": -5.799131,
+                "lng": -35.238155
+              },
+              {
+                "ordem": 18,
+                "logradouro": "Viaduto da Urbana",
+                "bairro": "Quintas",
+                "lat": -5.799701,
+                "lng": -35.23832
+              },
+              {
+                "ordem": 19,
+                "logradouro": "Av. Nevaldo Rocha",
+                "bairro": "Quintas",
+                "lat": -5.80107,
+                "lng": -35.237134
+              },
+              {
+                "ordem": 20,
+                "logradouro": "Av. Rui Barbosa",
+                "bairro": "Morro Branco",
+                "lat": -5.813816,
+                "lng": -35.202306
               }
             ],
             "volta": [
               {
                 "ordem": 1,
-                "logradouro": "Rua Leôncio Etelvino de Medeiros",
-                "bairro": "Capim Macio",
-                "lat": -5.848733,
-                "lng": -35.206933
+                "logradouro": "Av. Rui Barbosa",
+                "bairro": "Morro Branco",
+                "lat": -5.813766,
+                "lng": -35.202269
               },
               {
                 "ordem": 2,
-                "logradouro": "Avenida Senador Salgado Filho",
-                "bairro": "Capim Macio",
-                "lat": -5.844517,
-                "lng": -35.208567
+                "logradouro": "Av. Nevaldo Rocha",
+                "bairro": "Morro Branco",
+                "lat": -5.813733,
+                "lng": -35.202361
               },
               {
                 "ordem": 3,
-                "logradouro": "Avenida Antônio Basílio",
-                "bairro": "Morro Branco",
-                "lat": -5.8173,
-                "lng": -35.20125
+                "logradouro": "Viaduto da Urbana",
+                "bairro": "Nordeste",
+                "lat": -5.800387,
+                "lng": -35.238129
               },
               {
                 "ordem": 4,
-                "logradouro": "Avenida Xavier da Silveira",
-                "bairro": "Morro Branco",
-                "lat": -5.81585,
-                "lng": -35.199867
+                "logradouro": "Rua Doutor Mário Negócio",
+                "bairro": "Quintas",
+                "lat": -5.799381,
+                "lng": -35.23814
               },
               {
                 "ordem": 5,
-                "logradouro": "Avenida Nevaldo Rocha",
-                "bairro": "Morro Branco",
-                "lat": -5.813367,
-                "lng": -35.203167
+                "logradouro": "Av. Felizardo Firmino Moura",
+                "bairro": "Quintas",
+                "lat": -5.798088,
+                "lng": -35.237772
               },
               {
                 "ordem": 6,
-                "logradouro": "Avenida Felizardo Firmino Moura",
+                "logradouro": "Ponte de Igapó",
                 "bairro": "Nordeste",
-                "lat": -5.796717,
-                "lng": -35.239133
+                "lat": -5.782427,
+                "lng": -35.247322
               },
               {
                 "ordem": 7,
-                "logradouro": "Avenida Doutor João Medeiros Filho",
-                "bairro": "Igapó",
-                "lat": -5.7752,
-                "lng": -35.253733
+                "logradouro": "Av Bacharel Tomaz Landim",
+                "bairro": "Salinas",
+                "lat": -5.779195,
+                "lng": -35.248594
               },
               {
                 "ordem": 8,
-                "logradouro": "Avenida Itapetinga",
-                "bairro": "Potengi",
-                "lat": -5.75495,
-                "lng": -35.241283
+                "logradouro": "Av. Doutor João Medeiros Filho",
+                "bairro": "Igapó",
+                "lat": -5.775629,
+                "lng": -35.253274
               },
               {
                 "ordem": 9,
-                "logradouro": "Rua Itororós",
-                "bairro": "Potengi",
-                "lat": -5.747334,
-                "lng": -35.243671
+                "logradouro": "Praça Presidente Juscelino Kubitschek",
+                "bairro": "Pajuçara",
+                "lat": -5.752035,
+                "lng": -35.235596
               },
               {
                 "ordem": 10,
-                "logradouro": "Avenida Governardor Antônio de Melo e Souza",
-                "bairro": "Potengi",
-                "lat": -5.745872,
-                "lng": -35.242996
+                "logradouro": "Rua do Catetinho",
+                "bairro": "Pajuçara",
+                "lat": -5.751214,
+                "lng": -35.236951
               },
               {
                 "ordem": 11,
-                "logradouro": "Rua São Rufino",
-                "bairro": "Pajuçara",
-                "lat": -5.736617,
-                "lng": -35.249567
+                "logradouro": "Av. Governador Antônio de Melo Souza",
+                "bairro": "Potengi",
+                "lat": -5.751789,
+                "lng": -35.238531
               },
               {
                 "ordem": 12,
-                "logradouro": "Rua Flor do Paraíso",
+                "logradouro": "Rua São Rufino",
                 "bairro": "Pajuçara",
-                "lat": -5.734667,
-                "lng": -35.248783
+                "lat": -5.736312,
+                "lng": -35.249215
               },
               {
                 "ordem": 13,
-                "logradouro": "Avenida Tocantínea",
-                "bairro": "Lagoa Azul",
-                "lat": -5.734017,
-                "lng": -35.251167
+                "logradouro": "Rua Flor do Paraiso",
+                "bairro": "Pajuçara",
+                "lat": -5.735066,
+                "lng": -35.247959
               },
               {
                 "ordem": 14,
-                "logradouro": "Avenida Guararapes",
+                "logradouro": "Av. Tocantínea",
                 "bairro": "Lagoa Azul",
-                "lat": -5.7337,
-                "lng": -35.252
+                "lat": -5.733947,
+                "lng": -35.251082
               },
               {
                 "ordem": 15,
-                "logradouro": "Rua Eldorado",
+                "logradouro": "Av Guararapes",
                 "bairro": "Lagoa Azul",
-                "lat": -5.731467,
-                "lng": -35.253867
+                "lat": -5.734146,
+                "lng": -35.251516
               },
               {
                 "ordem": 16,
-                "logradouro": "Rua Atibaia",
+                "logradouro": "Rua Eldorado",
                 "bairro": "Lagoa Azul",
-                "lat": -5.7283,
-                "lng": -35.251517
+                "lat": -5.730783,
+                "lng": -35.253428
               },
               {
                 "ordem": 17,
-                "logradouro": "Rua Penápolis",
+                "logradouro": "Rua Atibaia",
                 "bairro": "Lagoa Azul",
-                "lat": -5.726467,
-                "lng": -35.249802
+                "lat": -5.729388,
+                "lng": -35.252063
+              },
+              {
+                "ordem": 18,
+                "logradouro": "Av. Piratininga",
+                "bairro": "Lagoa Azul",
+                "lat": -5.726859,
+                "lng": -35.250578
+              },
+              {
+                "ordem": 19,
+                "logradouro": "Av Pirassununga (terminal)",
+                "bairro": "Lagoa Azul",
+                "lat": -5.7241,
+                "lng": -35.24891
               }
             ]
           },
           "bbox": [
-            -35.254942,
-            -5.849856,
-            -35.19948,
-            -5.723262
-          ],
-          "fonte": "Dados abertos STTU 2018"
+            -35.254931,
+            -5.813863,
+            -35.202269,
+            -5.723299
+          ]
         }
       },
       "bbox": [
@@ -13199,11 +13212,13 @@
         "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
       },
       "fonte_rota_uteis": {
-        "tipo": "Dados abertos STTU 2018",
-        "arquivo": "rotas__guanabara__02.kml",
-        "extensao_km": 41.38,
-        "extensao_edital_km": 35.1,
-        "metodo": "Trilha de GPS publicada pela STTU no Portal de Dados Abertos (2018)"
+        "tipo": "OSO STTU",
+        "oso": "0057/2026",
+        "vigencia": "26/04/2026",
+        "nome_oso": "Gramoré/Cri, via Midway Mall",
+        "dia": "Dias úteis e sábados (copiado de domingo)",
+        "extensao_oso_km": 35.1,
+        "metodo": "Traçado gerado a partir da sequência oficial de ruas da OSO sobre o mapa viário do OpenStreetMap"
       },
       "fonte_rota": {
         "tipo": "OSO STTU",
