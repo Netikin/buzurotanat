@@ -411,10 +411,18 @@ window.BuzuDados = (function () {
       // Garante simplificação de cada LineString em memória caso tenha muitos vértices
       for (const feat of geojson.features || []) {
         if (feat.geometry && feat.geometry.type === 'LineString' && feat.geometry.coordinates.length > 100) {
-          feat.geometry.coordinates = window.BuzuUtils.simplificarLineString(
-            feat.geometry.coordinates,
-            window.BuzuUtils.TOLERANCIA_PADRAO_GRAUS
-          );
+          const coords = feat.geometry.coordinates;
+          const tol = window.BuzuUtils.TOLERANCIA_PADRAO_GRAUS;
+          const ret = Number(feat.properties?.indice_retorno);
+          if (Number.isInteger(ret) && ret > 0 && ret < coords.length - 1) {
+            // Simplifica ida e volta separadamente para o ponto de retorno continuar no lugar certo
+            const ida = window.BuzuUtils.simplificarLineString(coords.slice(0, ret + 1), tol);
+            const volta = window.BuzuUtils.simplificarLineString(coords.slice(ret), tol);
+            feat.geometry.coordinates = [...ida, ...volta.slice(1)];
+            feat.properties.indice_retorno = ida.length - 1;
+          } else {
+            feat.geometry.coordinates = window.BuzuUtils.simplificarLineString(coords, tol);
+          }
         }
       }
 
@@ -608,21 +616,26 @@ window.BuzuDados = (function () {
     const resultados = [];
 
     // 1. Paradas e terminais cadastrados
+    // (só paradas em uso por alguma linha; no máximo 4, terminais primeiro)
+    const paradasAchadas = [];
     for (const f of estado.paradas?.features || []) {
       const p = f.properties || {};
-      const textoParada = window.BuzuUtils.normalizarTexto(
-        `${p.nome} ${p.tipo} ${(p.rotas || []).join(' ')}`
-      );
+      if (p.ativo === false || !(p.rotas || []).length) continue;
+      const textoParada = window.BuzuUtils.normalizarTexto(`${p.nome} ${p.bairro || ''} ${p.tipo}`);
       if (textoParada.includes(qNorm)) {
-        resultados.push({
-          titulo: `${p.nome} (${p.dia_rotulo || 'Parada/Terminal'})`,
-          subtitulo: `Tipo: ${p.tipo} • Linhas: ${(p.rotas || []).join(', ')}`,
+        const linhas = p.rotas.slice(0, 6).join(', ') + (p.rotas.length > 6 ? ` +${p.rotas.length - 6}` : '');
+        paradasAchadas.push({
+          titulo: p.nome,
+          subtitulo: [/terminal/i.test(p.tipo) ? 'Terminal' : 'Parada', p.bairro, `Linhas: ${linhas}`].filter(Boolean).join(' • '),
           lat: f.geometry.coordinates[1],
           lng: f.geometry.coordinates[0],
-          origem: 'Terminal / Parada Oficial'
+          origem: 'Parada atendida',
+          terminal: /terminal|integra/i.test(p.tipo)
         });
       }
     }
+    paradasAchadas.sort((a, b) => Number(b.terminal) - Number(a.terminal));
+    resultados.push(...paradasAchadas.slice(0, 4));
 
     // 2. Bairros, CEPs e referências de Natal
     for (const local of estado.locaisNatal) {
@@ -646,6 +659,60 @@ window.BuzuDados = (function () {
   /**
    * Busca de endereço / CEP / bairro / ponto de referência (local + Nominatim OSM)
    */
+  // Região metropolitana (Natal + bairros de divisa dos municípios vizinhos)
+  const VIEWBOX_METROPOLITANA = '-35.45,-5.60,-35.10,-6.05';
+  const RAIO_ATENDIMENTO_M = 2000;
+
+  /**
+   * Área de atendimento: a até 2 km de alguma parada em uso — em qualquer município.
+   * (Bairros de divisa dos municípios vizinhos também são atendidos por linhas de Natal.)
+   */
+  let gradeAtendimento = null;
+  function estaNaAreaDeAtendimento(lat, lng) {
+    if (!gradeAtendimento) {
+      gradeAtendimento = new Set();
+      for (const f of estado.paradas?.features || []) {
+        if (f.properties?.ativo === false) continue;
+        const [x, y] = f.geometry.coordinates;
+        gradeAtendimento.add(`${Math.floor(x / 0.01)}|${Math.floor(y / 0.01)}`);
+      }
+      if (gradeAtendimento.size === 0) gradeAtendimento = null;
+    }
+    if (!gradeAtendimento) return window.BuzuUtils.estaNaAreaDeNatal(lat, lng);
+    const cx = Math.floor(lng / 0.01);
+    const cy = Math.floor(lat / 0.01);
+    let candidato = false;
+    for (let dx = -2; dx <= 2 && !candidato; dx++) {
+      for (let dy = -2; dy <= 2 && !candidato; dy++) {
+        if (gradeAtendimento.has(`${cx + dx}|${cy + dy}`)) candidato = true;
+      }
+    }
+    if (!candidato) return false;
+    for (const f of estado.paradas?.features || []) {
+      if (f.properties?.ativo === false) continue;
+      const [x, y] = f.geometry.coordinates;
+      if (Math.abs(x - lng) > 0.02 || Math.abs(y - lat) > 0.02) continue;
+      if (window.BuzuUtils.calcularDistanciaGeodesica(lat, lng, y, x) <= RAIO_ATENDIMENTO_M) return true;
+    }
+    return false;
+  }
+
+  /** "Rua, Bairro — Município" (o município só aparece quando não é Natal) */
+  function descreverEnderecoOsm(item) {
+    const a = item.address || {};
+    const local = item.name || a.road || a.pedestrian || item.display_name.split(',')[0];
+    const rua = a.road && a.road !== local ? a.road : null;
+    const bairro = a.suburb || a.neighbourhood || a.quarter || a.city_district || null;
+    const municipio = a.city || a.town || a.municipality || a.village || null;
+    const partes = [local, rua, bairro].filter(Boolean);
+    const foraDeNatal = municipio && municipio !== 'Natal';
+    return {
+      titulo: partes.slice(0, 2).join(', ') + (foraDeNatal ? ` — ${municipio}` : ''),
+      subtitulo: [bairro, municipio].filter(Boolean).join(' • ') || item.display_name,
+      municipio: municipio || null
+    };
+  }
+
   async function buscarSugestoesEndereco(consulta) {
     const qNorm = window.BuzuUtils.normalizarTexto(consulta);
     if (!qNorm || qNorm.length < 2) return [];
@@ -656,24 +723,27 @@ window.BuzuDados = (function () {
 
     const resultados = buscarSugestoesEnderecoLocal(consulta);
 
-    // 3. Complementa com geocodificador público OpenStreetMap Nominatim (restrito a Natal/RN).
-    // Inclui estabelecimentos como supermercados, shoppings e hospitais. Tempo limite curto
-    // para não travar a digitação caso o serviço esteja lento ou sem internet.
+    // 3. Complementa com o geocodificador público do OpenStreetMap (Nominatim) em toda a região
+    // metropolitana — inclui bairros de divisa de São Gonçalo do Amarante, Parnamirim, Macaíba e
+    // Extremoz. Só entram endereços dentro da área de atendimento (perto de alguma parada atendida).
     let consultaOnlineOk = consulta.trim().length < 3;
     if (consulta.trim().length >= 3) {
-      // O Nominatim às vezes não acha a rua com ", RN" no fim (ex.: "Rua Palmácea"): tenta as duas formas
-      const variantes = [`${consulta.trim()}, Natal, RN`, `${consulta.trim()}, Natal`];
-      for (const textoBusca of variantes) {
+      const texto = consulta.trim();
+      const variantes = [
+        { q: texto, extra: `&viewbox=${VIEWBOX_METROPOLITANA}&bounded=1` },
+        // o Nominatim às vezes só acha a rua quando a cidade está no texto
+        { q: `${texto}, Natal`, extra: `&viewbox=${VIEWBOX_METROPOLITANA}&bounded=0` }
+      ];
+      const vistos = new Set(resultados.map(r => `${r.lat.toFixed(4)}|${r.lng.toFixed(4)}`));
+      let encontrados = 0;
+      for (const v of variantes) {
+        if (encontrados >= 3) break;
         let timerAbort = null;
         let itensOsm = [];
         try {
-          const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=br&viewbox=-35.35,-5.70,-35.15,-5.92&bounded=0&q=${encodeURIComponent(
-            textoBusca
-          )}`;
+          const url = `https://nominatim.openstreetmap.org/search?format=json&limit=8&countrycodes=br&addressdetails=1${v.extra}&q=${encodeURIComponent(v.q)}`;
           const controlador = typeof AbortController !== 'undefined' ? new AbortController() : null;
-          if (controlador) {
-            timerAbort = setTimeout(() => controlador.abort(), 4000);
-          }
+          if (controlador) timerAbort = setTimeout(() => controlador.abort(), 4000);
           const res = await fetch(url, {
             headers: { 'Accept-Language': 'pt-BR' },
             signal: controlador ? controlador.signal : undefined
@@ -682,29 +752,20 @@ window.BuzuDados = (function () {
           itensOsm = await res.json();
           consultaOnlineOk = true;
         } catch (_e) {
-          // Se 3G falhar ou offline, os resultados locais de Natal continuam funcionando
+          // Se 3G falhar ou offline, os resultados locais continuam funcionando
           continue;
         } finally {
           if (timerAbort) clearTimeout(timerAbort);
         }
-        let achouEmNatal = false;
-        {
-          for (const item of itensOsm) {
-            const lat = parseFloat(item.lat);
-            const lng = parseFloat(item.lon);
-            if (window.BuzuUtils.estaNaAreaDeNatal(lat, lng)) {
-              achouEmNatal = true;
-              resultados.push({
-                titulo: item.display_name.split(',').slice(0, 2).join(', '),
-                subtitulo: item.display_name,
-                lat,
-                lng,
-                origem: 'OpenStreetMap'
-              });
-            }
-          }
+        for (const item of itensOsm) {
+          const lat = parseFloat(item.lat);
+          const lng = parseFloat(item.lon);
+          const chave = `${lat.toFixed(4)}|${lng.toFixed(4)}`;
+          if (vistos.has(chave) || !estaNaAreaDeAtendimento(lat, lng)) continue;
+          vistos.add(chave);
+          encontrados++;
+          resultados.push({ ...descreverEnderecoOsm(item), lat, lng, origem: 'OpenStreetMap' });
         }
-        if (achouEmNatal) break;
       }
     }
 
@@ -1150,9 +1211,9 @@ window.BuzuDados = (function () {
       }
     }
 
-    return Array.from(solucoesPorAssinatura.values())
-      .sort((a, b) => a.custoDijkstraMin - b.custoDijkstraMin)
-      .slice(0, 15);
+    return Array.from(solucoesPorAssinatura.values()).sort(
+      (a, b) => a.custoDijkstraMin - b.custoDijkstraMin
+    );
   }
 
   function reconstruirERegistrarSolucaoDijkstra(
@@ -1377,6 +1438,75 @@ window.BuzuDados = (function () {
   }
 
   /**
+   * Paradas de um trecho de ônibus para o mapa do "Como chegar":
+   *  - embarque e desembarque (destaque);
+   *  - até 3 paradas antes/depois de cada um (onde também dá para embarcar ou descer);
+   *  - as paradas no caminho entre eles;
+   *  - "extensões": pedaço do traçado antes do embarque e depois do desembarque, para as
+   *    paradas alternativas ficarem sobre a linha.
+   */
+  const VIZINHAS = 3;
+  function paradasEmVoltaDoTrecho(trecho, coordsLinha, dia) {
+    if (!trecho.paradaEmbarqueId || !trecho.paradaDesembarqueId || !trecho.sentido) return null;
+    const seq = (estado.linhaParadas || [])
+      .filter(
+        lp =>
+          String(lp.linha_id).toUpperCase() === String(trecho.numero).toUpperCase() &&
+          lp.sentido === trecho.sentido &&
+          (!lp.dia_semana || lp.dia_semana === dia || lp.dia_semana === 'todos')
+      )
+      .sort((a, b) => a.ordem_sequencial - b.ordem_sequencial);
+    const iE = seq.findIndex(lp => String(lp.parada_id) === String(trecho.paradaEmbarqueId));
+    const iD = seq.findIndex((lp, i) => i > iE && String(lp.parada_id) === String(trecho.paradaDesembarqueId));
+    if (iE < 0 || iD < 0) return null;
+
+    const ponto = (lp, papel) => {
+      const f = obterParadaPorId(lp.parada_id);
+      if (!f) return null;
+      return {
+        id: String(lp.parada_id),
+        nome: f.properties?.nome || 'Parada',
+        lng: f.geometry.coordinates[0],
+        lat: f.geometry.coordinates[1],
+        papel
+      };
+    };
+    const paradas = [];
+    const vistos = new Set();
+    const add = (lp, papel) => {
+      if (!lp || vistos.has(String(lp.parada_id))) return;
+      const p = ponto(lp, papel);
+      if (p) {
+        paradas.push(p);
+        vistos.add(p.id);
+      }
+    };
+    add(seq[iE], 'embarque');
+    add(seq[iD], 'desembarque');
+    for (let k = Math.max(0, iE - VIZINHAS); k < iE; k++) add(seq[k], 'alternativa_embarque');
+    for (let k = iE + 1; k <= Math.min(iD - 1, iE + VIZINHAS); k++) add(seq[k], 'alternativa_embarque');
+    for (let k = Math.max(iE + 1, iD - VIZINHAS); k < iD; k++) add(seq[k], 'alternativa_desembarque');
+    for (let k = iD + 1; k <= Math.min(seq.length - 1, iD + VIZINHAS); k++) add(seq[k], 'alternativa_desembarque');
+    for (let k = iE + 1; k < iD; k++) add(seq[k], 'caminho');
+
+    // Traçado antes do embarque (até a 3ª parada anterior) e depois do desembarque (até a 3ª posterior)
+    const extensoes = [];
+    const pEmb = ponto(seq[iE]);
+    const pDes = ponto(seq[iD]);
+    const pAntes = iE > 0 ? ponto(seq[Math.max(0, iE - VIZINHAS)]) : null;
+    const pDepois = iD < seq.length - 1 ? ponto(seq[Math.min(seq.length - 1, iD + VIZINHAS)]) : null;
+    if (pAntes && pEmb) {
+      const ext = recortarTrechoNoSentido(coordsLinha, pAntes, pEmb);
+      if (ext) extensoes.push(ext);
+    }
+    if (pDes && pDepois) {
+      const ext = recortarTrechoNoSentido(coordsLinha, pDes, pDepois);
+      if (ext) extensoes.push(ext);
+    }
+    return { paradas, extensoes };
+  }
+
+  /**
    * Monta as etapas desenháveis de um trajeto do "Como chegar":
    *  a pé (origem → embarque) • ônibus (só o trecho percorrido) • a pé na integração • … • a pé (desembarque → destino)
    */
@@ -1418,6 +1548,7 @@ window.BuzuDados = (function () {
       const linhaMeta = (trajeto.linhas || [])[i] || obterLinhaPorId(t.numero, diaSemana) || {};
       const coords = tracadoDaLinha(t.numero);
       const recorte = coords ? recortarTrechoNoSentido(coords, t.embarqueCoord, t.desembarqueCoord) : null;
+      const contexto = coords ? paradasEmVoltaDoTrecho(t, coords, dia || 'dias_uteis_sabados') : null;
       etapas.push({
         tipo: 'onibus',
         numero: t.numero,
@@ -1428,11 +1559,65 @@ window.BuzuDados = (function () {
             [t.embarqueCoord.lng, t.embarqueCoord.lat],
             [t.desembarqueCoord.lng, t.desembarqueCoord.lat]
           ],
-        aproximado: !recorte
+        aproximado: !recorte,
+        paradas: contexto?.paradas || [],
+        extensoes: contexto?.extensoes || []
       });
     });
     pe(trechos[trechos.length - 1]?.desembarqueCoord, destino, 'Caminhe até o destino');
     return etapas;
+  }
+
+  /**
+   * Busca alternativas variadas: o Dijkstra guarda só o melhor caminho por parada, então linhas que
+   * compartilham paradas "escondem" umas às outras. Roda de novo proibindo a linha de embarque da melhor
+   * opção encontrada (até 6 rodadas), junta tudo e filtra opções sem sentido.
+   */
+  function buscarAlternativasDijkstra(origem, destino, diaSemana, limiteCaminhadaMetros, maxBaldeacoes, linhaPermitida) {
+    const todas = new Map();
+    const proibidas = new Set();
+    for (let rodada = 0; rodada < 6; rodada++) {
+      const sols = executarDijkstraViagem(
+        origem,
+        destino,
+        diaSemana,
+        limiteCaminhadaMetros,
+        maxBaldeacoes,
+        numero => linhaPermitida(numero) && !proibidas.has(numero)
+      );
+      if (!sols.length) break;
+      for (const s of sols) {
+        const chave = s.trechos.map(t => `${t.numero}(${t.sentido})`).join('>');
+        if (!todas.has(chave) || todas.get(chave).custoDijkstraMin > s.custoDijkstraMin) todas.set(chave, s);
+      }
+      proibidas.add(sols[0].trechos[0].numero);
+    }
+    const ordenadas = Array.from(todas.values()).sort((a, b) => a.custoDijkstraMin - b.custoDijkstraMin);
+
+    // Opção sem sentido: embarcar numa linha que sozinha já leva ao destino e depois trocar sem ganhar tempo
+    const custoDireto = new Map();
+    for (const s of ordenadas) {
+      if (s.trechos.length === 1 && !custoDireto.has(s.trechos[0].numero)) {
+        custoDireto.set(s.trechos[0].numero, s.custoDijkstraMin);
+      }
+    }
+    const uteis = ordenadas.filter(s => {
+      if (s.trechos.length === 1) return true;
+      const primeira = s.trechos[0].numero;
+      return !(custoDireto.has(primeira) && custoDireto.get(primeira) <= s.custoDijkstraMin + 5);
+    });
+
+    // Variedade: no máximo 2 opções começando pela mesma linha
+    const porPrimeiraLinha = new Map();
+    return uteis
+      .filter(s => {
+        const primeira = s.trechos[0].numero;
+        const qtd = porPrimeiraLinha.get(primeira) || 0;
+        if (qtd >= 2) return false;
+        porPrimeiraLinha.set(primeira, qtd + 1);
+        return true;
+      })
+      .slice(0, 15);
   }
 
   /**
@@ -1480,7 +1665,7 @@ window.BuzuDados = (function () {
 
     // 1. Executa o roteador principal por Grafo Dijkstra sobre `paradas` + `linha_paradas`
     if (Array.isArray(estado.linhaParadas) && estado.linhaParadas.length > 0) {
-      const resultadosDijkstra = executarDijkstraViagem(
+      const resultadosDijkstra = buscarAlternativasDijkstra(
         origem,
         destino,
         diaSemana,
@@ -2596,6 +2781,7 @@ window.BuzuDados = (function () {
     buscarSugestoesEndereco,
     buscarSugestoesEnderecoLocal,
     calcularLinhasViagem,
+    estaNaAreaDeAtendimento,
     montarEtapasViagem,
     obterHorarioBrasilia,
     ehHorarioMadrugada,

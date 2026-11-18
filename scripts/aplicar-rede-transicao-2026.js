@@ -401,6 +401,182 @@ rotasOso.forEach((rota, idx) => {
   relatorio.rotasOso = (relatorio.rotasOso || []).concat(`${linha.numero} (${paradasAtendidas.length} paradas)`);
 });
 
+// 2c) Linhas atuais mantidas: rota de DIAS ÚTEIS a partir do Portal de Dados Abertos (dados.natal.br, 2018)
+//     Arquivo produzido por scripts/dados-abertos-natal/ (só linhas cuja trilha confere com a extensão do edital).
+const FONTE_DA = 'Dados abertos STTU 2018';
+const ARQ_DA = path.join(DADOS, 'rotas-dadosabertos-2018.geojson');
+const rotasDA = fs.existsSync(ARQ_DA) ? lerJson(ARQ_DA).features : [];
+const linhasDA = new Set(rotasDA.map(f => String(f.properties.numero).toUpperCase()));
+const featuresDA = [];
+
+// limpa o que execuções anteriores criaram a partir dos dados abertos (o script pode ser rodado de novo)
+for (const linha of indice.linhas) {
+  for (const [dia, v] of Object.entries(linha.variantes_dia || {})) {
+    if (v.fonte === FONTE_DA) delete linha.variantes_dia[dia];
+  }
+  if (linha.fonte_rota_uteis && !linhasDA.has(String(linha.numero).toUpperCase())) delete linha.fonte_rota_uteis;
+}
+for (let i = linhaParadas.length - 1; i >= 0; i--) {
+  if (linhaParadas[i].fonte === FONTE_DA) linhaParadas.splice(i, 1);
+}
+
+const ehNomeGenerico = nome => /^(via local|parada revisada|parada virtual|parada \d|ponto sobre)/i.test(String(nome || '').trim());
+let paradasNovasDA = 0;
+let paradasRenomeadasDA = 0;
+
+/** Rumo (0–360°, 0 = norte) do trecho da polilinha mais próximo do ponto: direção em que o ônibus passa */
+function rumoNoPonto(lngLat, parte) {
+  if (!parte || parte.length < 2) return null;
+  const { i } = projetar(lngLat, parte);
+  const k = Math.min(Math.floor(i), parte.length - 2);
+  const a = parte[k];
+  const b = parte[k + 1];
+  const dx = (b[0] - a[0]) * 111320 * Math.cos((a[1] * Math.PI) / 180);
+  const dy = (b[1] - a[1]) * 110540;
+  return Math.round(((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360);
+}
+
+/** Parada existente a até 20 m (não virtual) ou cria uma nova com o nome da rua */
+function paradaParaPontoDA(p) {
+  let melhor = null;
+  for (const feat of paradas.features) {
+    if (feat.properties.origem === 'virtual') continue;
+    const [lng, lat] = feat.geometry.coordinates;
+    if (Math.abs(lng - p.lng) > 0.0004 || Math.abs(lat - p.lat) > 0.0004) continue;
+    const d = distM([lng, lat], [p.lng, p.lat]);
+    if (d <= 20 && (!melhor || d < melhor.d)) melhor = { feat, d };
+  }
+  if (melhor) {
+    const props = melhor.feat.properties;
+    if (p.rumo !== undefined && props.rumo === undefined) props.rumo = p.rumo;
+    if (p.rua && ehNomeGenerico(props.nome)) {
+      props.nome = p.rua;
+      props.logradouro = p.rua;
+      paradasRenomeadasDA++;
+    }
+    props.ativo = true;
+    return props.id;
+  }
+  const id = `DA-${String(paradas.features.length + 1).padStart(5, '0')}`;
+  paradas.features.push({
+    type: 'Feature',
+    properties: {
+      id,
+      nome: p.rua || 'Parada de ônibus',
+      logradouro: p.rua || null,
+      lat: p.lat,
+      lng: p.lng,
+      tipo: 'parada',
+      origem: 'dados_abertos',
+      ativo: true,
+      acessivel: 'sim',
+      sentidos_atendidos: 'AUTO',
+      rotas: [],
+      dias_semana: [],
+      dia_rotulo: '',
+      integracoes_descricao: [],
+      bairro: 'Natal',
+      rumo: p.rumo ?? null,
+      fonte: 'dados.natal.br (STTU, 2018)'
+    },
+    geometry: { type: 'Point', coordinates: [p.lng, p.lat] }
+  });
+  paradasNovasDA++;
+  return id;
+}
+
+rotasDA.forEach(rota => {
+  const pr = rota.properties;
+  const linha = porNumero.get(String(pr.numero).toUpperCase());
+  if (!linha) return;
+  const t = TABELA17[linha.numero];
+  if (!diasPelaTabela17(t).includes('dias_uteis_sabados')) return;
+  const ida = rota.geometry.coordinates[0];
+  const volta = rota.geometry.coordinates[1] || [];
+  const todos = [...ida, ...volta.slice(1)];
+  const caixaRota = caixa(todos);
+  if (!linha.cor || linha.cor === '#64748B') linha.cor = CORES_LINHAS_ATUAIS[(linhasDA.size + [...linhasDA].indexOf(String(pr.numero).toUpperCase())) % CORES_LINHAS_ATUAIS.length];
+
+  const sequencias = { IDA: [], VOLTA: [] };
+  for (const [sentido, lista, parte] of [['IDA', pr.paradas_ida || [], ida], ['VOLTA', pr.paradas_volta || [], volta]]) {
+    let ultimo = null;
+    for (const p of lista) {
+      const id = paradaParaPontoDA({ ...p, rumo: rumoNoPonto([p.lng, p.lat], parte) });
+      if (id === ultimo) continue; // duas paradas do portal no mesmo ponto
+      sequencias[sentido].push({ id, metros: p.metros });
+      ultimo = id;
+    }
+  }
+  const ruasDe = lista => {
+    const out = [];
+    for (const p of lista) {
+      if (!p.rua) continue;
+      if (out.length && out[out.length - 1].logradouro === p.rua) continue;
+      out.push({ ordem: out.length + 1, logradouro: p.rua, bairro: 'Natal', lat: p.lat, lng: p.lng });
+    }
+    return out;
+  };
+
+  linha.variantes_dia = linha.variantes_dia || {};
+  linha.variantes_dia.dias_uteis_sabados = {
+    dia_semana: 'dias_uteis_sabados',
+    dia_rotulo: ROTULO_DIA.dias_uteis_sabados,
+    nome: linha.nome,
+    extensao_km: pr.extensao_km,
+    cor: linha.cor,
+    sentido: 'ambos',
+    paradas_atendidas: Array.from(new Set([...sequencias.IDA, ...sequencias.VOLTA].map(s => s.id))),
+    integracoes: [],
+    itinerario_ruas: { ida: ruasDe(pr.paradas_ida || []), volta: ruasDe(pr.paradas_volta || []) },
+    bbox: caixaRota,
+    fonte: FONTE_DA
+  };
+  linha.bbox = linha.bbox || caixaRota;
+  linha.fonte_rota_uteis = {
+    tipo: FONTE_DA,
+    arquivo: pr.arquivo_portal,
+    extensao_km: pr.extensao_km,
+    extensao_edital_km: t?.extensao_ida_volta_km ?? null,
+    metodo: 'Trilha de GPS publicada pela STTU no Portal de Dados Abertos (2018)'
+  };
+
+  for (const sentido of ['IDA', 'VOLTA']) {
+    sequencias[sentido].forEach((s, i) => {
+      linhaParadas.push({
+        linha_id: linha.numero,
+        dia_semana: 'dias_uteis_sabados',
+        sentido,
+        parada_id: s.id,
+        ordem_sequencial: i + 1,
+        distancia_acumulada_metros: s.metros,
+        fonte: FONTE_DA
+      });
+    });
+  }
+
+  featuresDA.push({
+    type: 'Feature',
+    properties: {
+      id: `${linha.numero}-dias_uteis_sabados`,
+      linha_id: linha.numero,
+      numero: linha.numero,
+      nome: linha.nome,
+      lote: String(linha.lote),
+      tipo: linha.tipo,
+      categoria_edital: linha.categoria_edital,
+      sentido: 'ambos',
+      dia_semana: 'dias_uteis_sabados',
+      dia_rotulo: ROTULO_DIA.dias_uteis_sabados,
+      extensao_km: pr.extensao_km,
+      cor: linha.cor,
+      fonte: FONTE_DA,
+      indice_retorno: ida.length - 1
+    },
+    geometry: { type: 'LineString', coordinates: todos }
+  });
+  relatorio.rotasDA = (relatorio.rotasDA || []).concat(`${linha.numero} (${sequencias.IDA.length}+${sequencias.VOLTA.length} paradas)`);
+});
+
 // 3) Nome, lote, dias, operação e situação do traçado de cada linha
 for (const linha of indice.linhas) {
   const chave = String(linha.numero).toUpperCase();
@@ -466,12 +642,16 @@ for (const linha of indice.linhas) {
     linha.situacao_rota = 'indefinida';
     if (AVISO_SEM_ROTA[chave]) linha.aviso_rota = AVISO_SEM_ROTA[chave];
     else delete linha.aviso_rota;
-  } else if (linha.fonte_rota) {
+  } else if (linha.fonte_rota && !variantes.dias_uteis_sabados) {
     linha.situacao_rota = 'parcial';
     linha.aviso_rota =
       `Conforme a OSO nº ${linha.fonte_rota.oso} da STTU (vigência ${linha.fonte_rota.vigencia}): ` +
       `${linha.fonte_rota.nome_oso}. Aos domingos a tarifa é gratuita e o itinerário pode ser diferente do de dias úteis. ` +
       'A rota de dias úteis e sábados na Rede de Transição ainda não foi divulgada.';
+  } else if (linha.fonte_rota_uteis) {
+    // rota dos dados abertos: sem aviso na tela (a origem fica registrada em fonte_rota_uteis)
+    linha.situacao_rota = 'disponivel';
+    delete linha.aviso_rota;
   } else if (ROTA_ALTERADA[chave]) {
     linha.situacao_rota = 'alterada';
     linha.aviso_rota = ROTA_ALTERADA[chave];
@@ -491,7 +671,8 @@ salvarJson(path.join(DADOS, 'linha_paradas.json'), linhaParadas);
 const lotes = { 1: lerJson(path.join(DADOS, 'lote-1.geojson')), 2: lerJson(path.join(DADOS, 'lote-2.geojson')) };
 const novas = { 1: [], 2: [] };
 const todasFeatures = [...lotes[1].features, ...lotes[2].features];
-for (const feat of [...todasFeatures.filter(f => f.properties?.fonte !== 'OSO STTU'), ...featuresOso]) {
+const featuresBase = todasFeatures.filter(f => !['OSO STTU', FONTE_DA].includes(f.properties?.fonte) && !f.properties?.copia_domingo);
+for (const feat of [...featuresBase, ...featuresOso, ...featuresDA]) {
   const p = feat.properties || {};
   const linha = porNumero.get(String(p.numero || p.linha_id).toUpperCase());
   if (!linha) continue; // linha removida
@@ -500,11 +681,13 @@ for (const feat of [...todasFeatures.filter(f => f.properties?.fonte !== 'OSO ST
 }
 for (const numero of relatorio.domingoCopiado) {
   const linha = porNumero.get(numero.toUpperCase());
-  const base = todasFeatures.find(f => f.properties.numero === numero && f.properties.dia_semana === 'dias_uteis_sabados');
-  const jaTem = todasFeatures.some(f => f.properties.numero === numero && f.properties.dia_semana === 'domingos_feriados');
+  const candidatas = [...featuresBase, ...featuresOso, ...featuresDA];
+  const base = candidatas.find(f => f.properties.numero === numero && f.properties.dia_semana === 'dias_uteis_sabados');
+  const jaTem = candidatas.some(f => f.properties.numero === numero && f.properties.dia_semana === 'domingos_feriados');
   if (!base || jaTem) continue;
   const copia = JSON.parse(JSON.stringify(base));
   Object.assign(copia.properties, {
+    copia_domingo: true,
     id: `${numero}-domingos_feriados`,
     dia_semana: 'domingos_feriados',
     dia_rotulo: ROTULO_DIA.domingos_feriados
@@ -516,6 +699,223 @@ lotes[2].features = novas[2];
 salvarJson(path.join(DADOS, 'lote-1.geojson'), lotes[1]);
 salvarJson(path.join(DADOS, 'lote-2.geojson'), lotes[2]);
 
+// 4b) Vínculos parada -> linha para TODAS as linhas, a partir do traçado:
+//     se a linha passa pela rua da parada, no mesmo sentido em que a parada é atendida, ela para ali.
+//     - paradas reais (portal, OSM, cadastradas) a até 20 m do trajeto;
+//     - parada com rumo conhecido (dados abertos) só vale para o sentido com rumo parecido (±60°);
+//     - parada sem rumo fica no sentido (ida/volta) que passa mais perto;
+//     - pontos "virtuais" do projeto de 2021 só ficam onde não há parada real num raio de 300 m.
+const RAIO_PARADA_M = 20;
+const LACUNA_VIRTUAL_M = 600;
+
+function acumulado(coords) {
+  const out = [0];
+  for (let i = 1; i < coords.length; i++) out.push(out[i - 1] + distM(coords[i - 1], coords[i]));
+  return out;
+}
+
+/** Índice do retorno: o informado ou o ponto mais distante do terminal entre 30% e 70% do percurso */
+function indiceRetornoDe(coords, props) {
+  const informado = Number(props.indice_retorno);
+  if (Number.isInteger(informado) && informado > 0 && informado < coords.length - 1) return informado;
+  const ac = acumulado(coords);
+  const total = ac[ac.length - 1] || 1;
+  let melhor = Math.floor(coords.length / 2);
+  let maior = -1;
+  coords.forEach((c, i) => {
+    const f = ac[i] / total;
+    if (f < 0.3 || f > 0.7) return;
+    const d = distM(coords[0], c);
+    if (d > maior) {
+      maior = d;
+      melhor = i;
+    }
+  });
+  return melhor;
+}
+
+const difAngulo = (a, b) => {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+};
+
+// índice espacial simples das paradas (células de ~220 m)
+const CEL = 0.002;
+const grade = new Map();
+for (const feat of paradas.features) {
+  const [lng, lat] = feat.geometry.coordinates;
+  const k = `${Math.floor(lng / CEL)}|${Math.floor(lat / CEL)}`;
+  if (!grade.has(k)) grade.set(k, []);
+  grade.get(k).push(feat);
+}
+function paradasPerto(a, b) {
+  const out = new Set();
+  const x0 = Math.floor((Math.min(a[0], b[0]) - 0.0003) / CEL);
+  const x1 = Math.floor((Math.max(a[0], b[0]) + 0.0003) / CEL);
+  const y0 = Math.floor((Math.min(a[1], b[1]) - 0.0003) / CEL);
+  const y1 = Math.floor((Math.max(a[1], b[1]) + 0.0003) / CEL);
+  for (let x = x0; x <= x1; x++) {
+    for (let y = y0; y <= y1; y++) {
+      for (const f of grade.get(`${x}|${y}`) || []) out.add(f);
+    }
+  }
+  return out;
+}
+
+/** Para cada parada perto da parte: menor distância, posição (m) e rumo do trecho */
+function candidatosNaParte(parte) {
+  const ac = acumulado(parte);
+  const achados = new Map(); // id -> { d, metros, rumo }
+  for (let i = 0; i < parte.length - 1; i++) {
+    const a = parte[i];
+    const b = parte[i + 1];
+    const kx = 111320 * Math.cos((a[1] * Math.PI) / 180);
+    const segDx = (b[0] - a[0]) * kx;
+    const segDy = (b[1] - a[1]) * 110540;
+    const L = Math.hypot(segDx, segDy);
+    if (L < 0.5) continue;
+    const rumoSeg = ((Math.atan2(segDx, segDy) * 180) / Math.PI + 360) % 360;
+    for (const feat of paradasPerto(a, b)) {
+      const [lng, lat] = feat.geometry.coordinates;
+      const px = (lng - a[0]) * kx;
+      const py = (lat - a[1]) * 110540;
+      const t = Math.max(0, Math.min(1, (px * segDx + py * segDy) / (L * L)));
+      const d = Math.hypot(px - t * segDx, py - t * segDy);
+      if (d > RAIO_PARADA_M) continue;
+      const id = String(feat.properties.id);
+      const atual = achados.get(id);
+      if (!atual || d < atual.d) achados.set(id, { d, metros: ac[i] + t * L, rumo: rumoSeg });
+    }
+  }
+  return achados;
+}
+
+const paradaPorId = new Map(paradas.features.map(f => [String(f.properties.id), f]));
+const antigosPorLinhaDia = new Map(); // vínculos anteriores (para preservar virtuais nas lacunas)
+for (const lp of linhaParadas) {
+  const k = `${lp.linha_id}|${lp.dia_semana}|${lp.sentido}`;
+  if (!antigosPorLinhaDia.has(k)) antigosPorLinhaDia.set(k, []);
+  antigosPorLinhaDia.get(k).push(lp);
+}
+
+const novosVinculos = [];
+const atendidasPorLinhaDia = new Map();
+let totalVinculos = 0;
+for (const feat of [...lotes[1].features, ...lotes[2].features]) {
+  const p = feat.properties || {};
+  const numero = String(p.numero || p.linha_id);
+  const dia = p.dia_semana || 'dias_uteis_sabados';
+  const coords = feat.geometry?.coordinates || [];
+  if (coords.length < 3) continue;
+  const ret = indiceRetornoDe(coords, p);
+  p.indice_retorno = ret;
+  const partes = { IDA: coords.slice(0, ret + 1), VOLTA: coords.slice(ret) };
+  const cand = { IDA: candidatosNaParte(partes.IDA), VOLTA: candidatosNaParte(partes.VOLTA) };
+
+  const escolhidos = { IDA: [], VOLTA: [] };
+  const ids = new Set([...cand.IDA.keys(), ...cand.VOLTA.keys()]);
+  for (const id of ids) {
+    const f = paradaPorId.get(id);
+    if (!f || f.properties.origem === 'virtual') continue;
+    const rumoParada = f.properties.rumo;
+    const temRumo = rumoParada !== undefined && rumoParada !== null;
+    const ok = {};
+    for (const s of ['IDA', 'VOLTA']) {
+      const c = cand[s].get(id);
+      if (!c) continue;
+      if (temRumo && difAngulo(rumoParada, c.rumo) > 60) continue;
+      ok[s] = c;
+    }
+    if (ok.IDA && ok.VOLTA && !temRumo && Math.abs(ok.IDA.d - ok.VOLTA.d) > 4) {
+      // sem rumo e as duas passagens perto: fica com a mais próxima (ou as duas, se for a mesma via)
+      delete ok[ok.IDA.d < ok.VOLTA.d ? 'VOLTA' : 'IDA'];
+    }
+    for (const s of Object.keys(ok)) escolhidos[s].push({ id, metros: ok[s].metros });
+  }
+
+  for (const s of ['IDA', 'VOLTA']) {
+    const lista = escolhidos[s];
+    // virtuais antigos só nas lacunas sem parada real
+    const antigos = antigosPorLinhaDia.get(`${numero}|${dia}|${s}`) || [];
+    const virtuais = antigos.filter(lp => paradaPorId.get(String(lp.parada_id))?.properties.origem === 'virtual');
+    if (virtuais.length) {
+      const candVirt = candidatosNaParte(partes[s]);
+      for (const lp of virtuais) {
+        const c = candVirt.get(String(lp.parada_id));
+        if (!c) continue;
+        const pertoDeReal = lista.some(x => Math.abs(x.metros - c.metros) < LACUNA_VIRTUAL_M / 2);
+        if (!pertoDeReal) lista.push({ id: String(lp.parada_id), metros: c.metros });
+      }
+    }
+    lista.sort((a, b) => a.metros - b.metros);
+    lista.forEach((x, i) => {
+      novosVinculos.push({
+        linha_id: numero,
+        dia_semana: dia,
+        sentido: s,
+        parada_id: x.id,
+        ordem_sequencial: i + 1,
+        distancia_acumulada_metros: Math.round(x.metros)
+      });
+    });
+    totalVinculos += lista.length;
+    const k = `${numero}|${dia}`;
+    if (!atendidasPorLinhaDia.has(k)) atendidasPorLinhaDia.set(k, new Set());
+    lista.forEach(x => atendidasPorLinhaDia.get(k).add(x.id));
+  }
+}
+linhaParadas.length = 0;
+linhaParadas.push(...novosVinculos);
+
+// paradas_atendidas de cada linha/dia e rotas de cada parada
+for (const linha of indice.linhas) {
+  for (const [dia, v] of Object.entries(linha.variantes_dia || {})) {
+    const s = atendidasPorLinhaDia.get(`${linha.numero}|${dia}`);
+    if (s) v.paradas_atendidas = Array.from(s);
+  }
+}
+const rotasPorParada = new Map();
+for (const lp of linhaParadas) {
+  if (!rotasPorParada.has(lp.parada_id)) rotasPorParada.set(lp.parada_id, { rotas: new Set(), dias: new Set() });
+  rotasPorParada.get(lp.parada_id).rotas.add(lp.linha_id);
+  rotasPorParada.get(lp.parada_id).dias.add(lp.dia_semana);
+}
+let paradasAtivas = 0;
+for (const feat of paradas.features) {
+  const pr = feat.properties;
+  const v = rotasPorParada.get(String(pr.id));
+  pr.rotas = v ? Array.from(v.rotas).sort() : [];
+  pr.dias_semana = v ? Array.from(v.dias) : [];
+  pr.ativo = Boolean(v);
+  if (pr.ativo) paradasAtivas++;
+}
+salvarJson(ARQ_LINHAS, indice);
+salvarJson(path.join(DADOS, 'linha_paradas.json'), linhaParadas);
+salvarJson(path.join(DADOS, 'lote-1.geojson'), lotes[1]);
+salvarJson(path.join(DADOS, 'lote-2.geojson'), lotes[2]);
+// bairro de cada rua do itinerário: o da parada em uso mais próxima (até 150 m)
+const paradasEmUso = paradas.features.filter(fe => fe.properties.ativo && fe.properties.bairro && fe.properties.bairro !== 'Natal');
+for (const linha of indice.linhas) {
+  for (const v of Object.values(linha.variantes_dia || {})) {
+    for (const lista of Object.values(v.itinerario_ruas || {})) {
+      if (!Array.isArray(lista)) continue;
+      for (const r of lista) {
+        if (typeof r.lat !== 'number' || (r.bairro && r.bairro !== 'Natal')) continue;
+        let melhor = null;
+        for (const fe of paradasEmUso) {
+          const [lng, lat] = fe.geometry.coordinates;
+          if (Math.abs(lng - r.lng) > 0.0015 || Math.abs(lat - r.lat) > 0.0015) continue;
+          const d = distM([lng, lat], [r.lng, r.lat]);
+          if (d <= 150 && (!melhor || d < melhor.d)) melhor = { d, bairro: fe.properties.bairro };
+        }
+        if (melhor) r.bairro = melhor.bairro;
+      }
+    }
+  }
+}
+salvarJson(ARQ_LINHAS, indice);
+relatorio.vinculos = `${totalVinculos} vínculos linha-parada; ${paradasAtivas} paradas em uso`;
+
 // 5) Paradas: tira as linhas removidas; parada que só atendia linhas removidas fica inativa
 let paradasDesativadas = 0;
 for (const feat of paradas.features) {
@@ -523,10 +923,7 @@ for (const feat of paradas.features) {
   const antes = (p.rotas || []).length;
   p.rotas = (p.rotas || []).filter(r => !removidas.has(String(r).toUpperCase()));
   if (Array.isArray(p.integracoes_descricao)) p.integracoes_descricao = p.integracoes_descricao.filter(i => !citaRemovida(i));
-  if (antes > 0 && p.rotas.length === 0 && p.ativo !== false) {
-    p.ativo = false;
-    paradasDesativadas++;
-  }
+  if (antes > 0 && p.rotas.length === 0) paradasDesativadas++;
 }
 salvarJson(path.join(DADOS, 'paradas.json'), paradas);
 
@@ -540,5 +937,7 @@ console.log(`Traçado de domingo reaproveitado do de dias úteis: ${relatorio.do
 console.log(`Lote corrigido: ${relatorio.loteAlterado.join('; ') || '-'}`);
 console.log(`Paradas desativadas (só atendiam linhas removidas): ${paradasDesativadas}`);
 console.log(`Nomes atualizados: ${relatorio.renomeadas.length}`);
+console.log(`Paradas: ${relatorio.vinculos || '-'}`);
 console.log(`Traçados das linhas atuais (OSO STTU, só domingos e feriados): ${(relatorio.rotasOso || []).join(', ') || '-'}`);
+console.log(`Rotas de dias úteis (dados abertos 2018): ${(relatorio.rotasDA || []).join(', ') || '-'} | paradas novas: ${paradasNovasDA}, renomeadas: ${paradasRenomeadasDA}`);
 console.log(`OSO ignorada porque o edital não prevê a linha aos domingos: ${(relatorio.osoSemDomingo || []).join(' ') || '-'}`);

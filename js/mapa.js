@@ -953,6 +953,17 @@ style="width:30px;height:30px;font-size:13px;">${sigla}</div>`,
           .addTo(camadaEtapas);
         continue;
       }
+      for (const ext of e.extensoes || []) {
+        L.polyline(ext.map(c => [c[1], c[0]]), {
+          renderer: canvasRenderer,
+          color: e.cor || '#0057B8',
+          weight: 4,
+          opacity: 0.35,
+          lineCap: 'round',
+          lineJoin: 'round',
+          interactive: false
+        }).addTo(camadaEtapas);
+      }
       L.polyline(latLngs, {
         renderer: canvasRenderer,
         color: corContornoRota(),
@@ -978,7 +989,53 @@ style="width:30px;height:30px;font-size:13px;">${sigla}</div>`,
         )
         .addTo(camadaEtapas);
     }
+    desenharParadasDaViagem(etapas);
     atualizarSentidos();
+  }
+
+  /**
+   * Paradas do "Como chegar": embarque/desembarque em destaque, até 3 paradas antes/depois
+   * (onde também dá para embarcar ou descer) e, bem discretas, as paradas do caminho.
+   */
+  function desenharParadasDaViagem(etapas) {
+    const fundo = temaEscuro ? '#0f172a' : '#ffffff';
+    for (const e of etapas) {
+      if (e.tipo !== 'onibus') continue;
+      const cor = e.cor || '#0057B8';
+      const numero = window.BuzuUtils.escaparHtml(e.numero || '');
+      // ordem de desenho: caminho < alternativas < destaques
+      const ordem = { caminho: 0, alternativa_embarque: 1, alternativa_desembarque: 1, embarque: 2, desembarque: 2 };
+      for (const p of [...(e.paradas || [])].sort((a, b) => ordem[a.papel] - ordem[b.papel])) {
+        const nome = window.BuzuUtils.escaparHtml(p.nome);
+        const ll = [p.lat, p.lng];
+        if (p.papel === 'caminho') {
+          L.circleMarker(ll, { renderer: renderParadas, radius: 2.8, color: cor, weight: 1.5, fillColor: fundo, fillOpacity: 1 })
+            .bindTooltip(`<strong>${nome}</strong><br><small>Parada no caminho da linha ${numero}</small>`, { direction: 'top', className: 'tooltip-parada' })
+            .addTo(camadaEtapas);
+        } else if (p.papel === 'alternativa_embarque' || p.papel === 'alternativa_desembarque') {
+          const texto = p.papel === 'alternativa_embarque' ? 'Também dá para embarcar aqui' : 'Também dá para descer aqui';
+          L.circleMarker(ll, { renderer: renderParadas, radius: 4.5, color: cor, weight: 2.5, fillColor: fundo, fillOpacity: 1 })
+            .bindTooltip(`<span class="tooltip-parada-tipo">${texto} • ${numero}</span><br><strong>${nome}</strong>`, { direction: 'top', className: 'tooltip-parada' })
+            .addTo(camadaEtapas);
+        } else {
+          const embarque = p.papel === 'embarque';
+          L.circleMarker(ll, { renderer: renderParadas, radius: 8, color: fundo, weight: 3, fillColor: cor, fillOpacity: 1 })
+            .bindTooltip(`<span class="tooltip-parada-tipo">${embarque ? 'Embarque' : 'Desembarque'} • linha ${numero}</span><br><strong>${nome}</strong>`, { direction: 'top', className: 'tooltip-parada' })
+            .addTo(camadaEtapas);
+          L.marker(ll, {
+            icon: L.divIcon({
+              className: '',
+              html: `<div class="pino-parada-viagem" style="--cor-pino:${cor}"><i class="bi ${embarque ? 'bi-box-arrow-in-right' : 'bi-box-arrow-right'}" aria-hidden="true"></i> ${embarque ? 'Embarque' : 'Desça aqui'} • ${numero}</div>`,
+              iconSize: null,
+              iconAnchor: [0, 0]
+            }),
+            interactive: false,
+            keyboard: false,
+            pane: 'paneSetas'
+          }).addTo(camadaEtapas);
+        }
+      }
+    }
   }
 
   function limparEtapasViagem() {

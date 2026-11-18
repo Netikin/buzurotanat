@@ -530,9 +530,9 @@
           };
           if (inputOrigem) inputOrigem.value = 'Minha localização atual';
 
-          if (!window.BuzuUtils.estaNaAreaDeNatal(latitude, longitude)) {
+          if (!window.BuzuDados.estaNaAreaDeAtendimento(latitude, longitude)) {
             atualizarFeedbackViagem(
-              'Sua localização está fora dos limites de Natal. Confira a origem ou digite um endereço.',
+              'Sua localização está fora da área atendida pelas linhas (a mais de 2 km de qualquer parada). Confira a origem ou digite um endereço.',
               'alerta'
             );
           } else {
@@ -1181,9 +1181,9 @@
       pos => {
         const { latitude, longitude } = pos.coords;
 
-        if (!window.BuzuUtils.estaNaAreaDeNatal(latitude, longitude)) {
+        if (!window.BuzuDados.estaNaAreaDeAtendimento(latitude, longitude)) {
           mostrarMensagemLocalizacao(
-            'Coordenada atual fora do município do Natal. Exibindo as paradas propostas mais próximas ou busque por um bairro de Natal abaixo.',
+            'Sua localização está fora da área atendida pelas linhas. Exibindo as paradas mais próximas, ou busque por um bairro ou endereço abaixo.',
             'alerta'
           );
         } else {
