@@ -495,10 +495,21 @@ const servidor = http.createServer(async (req, res) => {
     const ext = path.extname(caminhoSeguro).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-    // Dados (.json/.geojson): o navegador guarda uma cópia, mas confere a versão a cada visita
-    // (ETag → 304 sem corpo); assim uma publicação do admin aparece na hora.
+    // Páginas: os endereços de css/js/dados ganham ?v=<versão do arquivo> (ver servirHtmlVersionado)
+    if (ext === '.html') {
+      servirHtmlVersionado(req, res, caminhoSeguro, stats, contentType);
+      return;
+    }
+
+    // Com ?v= (endereço com a versão do arquivo): pode ficar em cache "para sempre" — quando o
+    // arquivo muda, a página passa a pedir outro endereço. Sem ?v=, os dados são conferidos a cada
+    // visita (ETag → 304 sem corpo), para uma publicação do admin aparecer na hora.
     const ehDados = ext === '.json' || ext === '.geojson';
-    const cacheControl = ehDados ? 'no-cache' : 'public, max-age=60';
+    const cacheControl = urlObj.searchParams.has('v')
+      ? 'public, max-age=31536000, immutable'
+      : ehDados
+      ? 'no-cache'
+      : 'public, max-age=60';
     const etag = `W/"${stats.size.toString(16)}-${Math.floor(stats.mtimeMs).toString(16)}"`;
     const cabecalhos = {
       'Content-Type': contentType,
@@ -533,6 +544,89 @@ const servidor = http.createServer(async (req, res) => {
     });
   });
 });
+
+// ---------- Páginas com endereços versionados ----------
+// Cada <script src="js/..."> e <link href="css/..."> ganha ?v=<versão do arquivo> e a página recebe
+// <meta name="buzu-versoes"> com as versões dos dados (usado por js/precarga.js). Assim:
+// - depois de um deploy, o navegador/Cloudflare nunca mistura arquivos novos com antigos em cache;
+// - no F5 o navegador só busca a página: css, js e dados já guardados são usados sem consultar o servidor.
+const DADOS_VERSIONADOS = [
+  'dados/linhas.json',
+  'dados/paradas.json',
+  'dados/linha_paradas.json',
+  'dados/lote-1.geojson',
+  'dados/lote-2.geojson',
+  'dados/locais-natal.json',
+  'dados/rede-atual.geojson' // camada opcional: fora da lista quando o arquivo não existe
+];
+const cacheHtml = new Map(); // caminho -> { chave, html }
+
+function versaoDoArquivo(relativo) {
+  try {
+    const st = fs.statSync(path.join(RAIZ, relativo));
+    return `${st.size.toString(36)}${Math.floor(st.mtimeMs).toString(36)}`;
+  } catch (_e) {
+    return null;
+  }
+}
+
+function servirHtmlVersionado(req, res, caminho, stats, contentType) {
+  fs.readFile(caminho, 'utf8', (err, bruto) => {
+    if (err) {
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Erro ao ler a página');
+      return;
+    }
+    const versoesDados = {};
+    for (const rel of DADOS_VERSIONADOS) {
+      const v = versaoDoArquivo(rel);
+      if (v) versoesDados[rel] = v;
+    }
+    const html = bruto
+      .replace(/(<script\b[^>]*\ssrc=")(js\/[^"?#]+\.js)(")/g, (m, a, rel, b) => {
+        const v = versaoDoArquivo(rel);
+        return v ? `${a}${rel}?v=${v}${b}` : m;
+      })
+      .replace(/(<link\b[^>]*\shref=")(css\/[^"?#]+\.css)(")/g, (m, a, rel, b) => {
+        const v = versaoDoArquivo(rel);
+        return v ? `${a}${rel}?v=${v}${b}` : m;
+      })
+      .replace(
+        /<head>/i,
+        `<head>\n  <meta name="buzu-versoes" content='${JSON.stringify(versoesDados)}'>`
+      );
+
+    const etag = `W/"h-${crypto.createHash('sha1').update(html).digest('hex').slice(0, 16)}"`;
+    const cabecalhos = {
+      'Content-Type': contentType,
+      'Cache-Control': 'no-cache',
+      ETag: etag,
+      Vary: 'Accept-Encoding'
+    };
+    if (req.headers['if-none-match'] === etag) {
+      res.writeHead(304, cabecalhos);
+      res.end();
+      return;
+    }
+    const corpo = Buffer.from(html, 'utf8');
+    const codificacao = escolherCodificacao(req.headers['accept-encoding'], '.html', corpo.length);
+    const enviar = (buf, cod) => {
+      res.writeHead(200, { ...cabecalhos, ...(cod ? { 'Content-Encoding': cod } : {}), 'Content-Length': buf.length });
+      res.end(req.method === 'HEAD' ? undefined : buf);
+    };
+    if (!codificacao) return enviar(corpo, null);
+    const chave = `${etag}|${codificacao}`;
+    const salvo = cacheHtml.get(caminho);
+    if (salvo && salvo.chave === chave) return enviar(salvo.corpo, codificacao);
+    const pronto = (errZip, comprimido) => {
+      if (errZip) return enviar(corpo, null);
+      cacheHtml.set(caminho, { chave, corpo: comprimido });
+      enviar(comprimido, codificacao);
+    };
+    if (codificacao === 'br') zlib.brotliCompress(corpo, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 6 } }, pronto);
+    else zlib.gzip(corpo, { level: 6 }, pronto);
+  });
+}
 
 // ---------- Compressão (brotli/gzip) com cache em memória ----------
 // Os arquivos de dados somam ~10 MB; comprimidos ficam ~10x menores. A versão comprimida é guardada
