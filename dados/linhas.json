@@ -12433,15 +12433,489 @@
           "dia_semana": "dias_uteis_sabados",
           "dia_rotulo": "Dias úteis e sábados",
           "nome": "Gramoré/CRI, via Midway Mall",
-          "extensao_km": 0,
-          "cor": "#b45309",
+          "extensao_km": 35.025,
+          "cor": "#B45309",
           "sentido": "ambos",
-          "paradas_atendidas": [],
+          "paradas_atendidas": [
+            "P-009",
+            "P-NOVA-3",
+            "P-NOVA-74",
+            "OSM-9512450802",
+            "P-NOVA-27",
+            "OSM-9512450803",
+            "P-NOVA-28",
+            "P-NOVA-89",
+            "OSM-9512450806",
+            "P-NOVA-29",
+            "OSM-9512450808",
+            "P-NOVA-31",
+            "P-NOVA-75",
+            "OSM-9512450807",
+            "P-NOVA-30",
+            "OSM-9512450809",
+            "P-NOVA-32",
+            "OSM-9512450814",
+            "P-NOVA-35",
+            "OSM-9512450812",
+            "P-NOVA-34",
+            "P-NOVA-76",
+            "OSM-9512450811",
+            "P-NOVA-33",
+            "OSM-9512450798",
+            "P-NOVA-26",
+            "OSM-9482447597",
+            "P-NOVA-23",
+            "P-NOVA-77",
+            "OSM-9482447593",
+            "P-NOVA-22",
+            "P-NOVA-78",
+            "P-NOVA-88",
+            "P-NOVA-79",
+            "P-NOVA-87",
+            "P-NOVA-80",
+            "P-NOVA-81",
+            "OSM-11916287616",
+            "P-NOVA-51",
+            "P-NOVA-82",
+            "P-NOVA-83",
+            "OSM-13668094998",
+            "P-NOVA-84",
+            "P-NOVA-85",
+            "P-NOVA-86",
+            "P-NOVA-93",
+            "OSM-9457010517",
+            "P-NOVA-15",
+            "P-NOVA-92",
+            "OSM-9457010519",
+            "P-NOVA-16",
+            "OSM-7021976585",
+            "P-NOVA-10",
+            "OSM-9457010530",
+            "P-NOVA-17",
+            "P-NOVA-73",
+            "P-NOVA-69",
+            "OSM-9457010533",
+            "P-NOVA-18",
+            "P-NOVA-72",
+            "VIRT-0647",
+            "OSM-9457010546",
+            "P-NOVA-19",
+            "VIRT-0376",
+            "OSM-9457010548",
+            "P-NOVA-20",
+            "VIRT-0377",
+            "OSM-7612955705",
+            "P-NOVA-13",
+            "VIRT-0546",
+            "OSM-502851393",
+            "P-NOVA-5",
+            "VIRT-0108",
+            "OSM-7022444672",
+            "P-NOVA-12",
+            "P-NOVA-71",
+            "OSM-7022444650",
+            "P-NOVA-11",
+            "P-NOVA-59",
+            "P-NOVA-68",
+            "OSM-9457010549",
+            "P-NOVA-21",
+            "OSM-503486285",
+            "P-NOVA-6",
+            "P-NOVA-67",
+            "OSM-502851376",
+            "P-NOVA-4",
+            "P-NOVA-53",
+            "OSM-11914548478",
+            "P-NOVA-50",
+            "OSM-11914548477",
+            "P-NOVA-49",
+            "VIRT-0110",
+            "VIRT-0284",
+            "VIRT-0286",
+            "VIRT-0287",
+            "P-NOVA-54",
+            "VIRT-0115",
+            "P-NOVA-70",
+            "OSM-11914548474",
+            "P-NOVA-48",
+            "P-NOVA-55",
+            "P-NOVA-58",
+            "OSM-2137900851",
+            "P-NOVA-7",
+            "P-NOVA-56",
+            "VIRT-0295",
+            "VIRT-0122",
+            "OSM-9515359326",
+            "P-NOVA-36",
+            "OSM-9515359336",
+            "P-NOVA-37",
+            "OSM-9515359365",
+            "P-NOVA-38",
+            "OSM-9515359377",
+            "P-NOVA-39",
+            "OSM-9515359386",
+            "P-NOVA-40",
+            "OSM-9515359401",
+            "P-NOVA-41",
+            "OSM-9515359420",
+            "P-NOVA-42",
+            "P-NOVA-60",
+            "P-NOVA-61",
+            "P-NOVA-66",
+            "OSM-9515359478",
+            "P-NOVA-44",
+            "OSM-9515359477",
+            "P-NOVA-43",
+            "P-NOVA-65",
+            "P-NOVA-62",
+            "OSM-9515359512",
+            "P-NOVA-45",
+            "OSM-9515359520",
+            "P-NOVA-46",
+            "OSM-9516583716",
+            "P-NOVA-47",
+            "P-NOVA-64",
+            "OSM-6027753258",
+            "P-NOVA-9",
+            "P-NOVA-63",
+            "VIRT-2286",
+            "VIRT-0358",
+            "VIRT-0178",
+            "VIRT-0361",
+            "P-NOVA-57",
+            "OSM-2137904011",
+            "P-NOVA-8",
+            "VIRT-0252",
+            "VIRT-0186",
+            "VIRT-0189",
+            "VIRT-0257",
+            "VIRT-0261",
+            "OSM-9456960615",
+            "P-NOVA-14",
+            "OSM-9483420484",
+            "P-NOVA-24",
+            "OSM-9483420485",
+            "P-NOVA-25",
+            "OSM-9482447591",
+            "P-NOVA-90",
+            "MAN-37248",
+            "P-NOVA-52",
+            "P-NOVA-91"
+          ],
           "integracoes": [],
           "itinerario_ruas": {
-            "ida": [],
-            "volta": []
-          }
+            "ida": [
+              {
+                "ordem": 1,
+                "logradouro": "Avenida Pirassununga",
+                "bairro": "Natal",
+                "lat": -5.723599,
+                "lng": -35.249953
+              },
+              {
+                "ordem": 2,
+                "logradouro": "Rua Riversul",
+                "bairro": "Natal",
+                "lat": -5.723299,
+                "lng": -35.250606
+              },
+              {
+                "ordem": 3,
+                "logradouro": "Avenida Piratininga",
+                "bairro": "Natal",
+                "lat": -5.726218,
+                "lng": -35.251908
+              },
+              {
+                "ordem": 4,
+                "logradouro": "Rua Atibaia",
+                "bairro": "Natal",
+                "lat": -5.726757,
+                "lng": -35.250825
+              },
+              {
+                "ordem": 5,
+                "logradouro": "Rua Eldorado",
+                "bairro": "Natal",
+                "lat": -5.729451,
+                "lng": -35.252402
+              },
+              {
+                "ordem": 6,
+                "logradouro": "Avenida Guararapes",
+                "bairro": "Natal",
+                "lat": -5.73197,
+                "lng": -35.254341
+              },
+              {
+                "ordem": 7,
+                "logradouro": "Avenida Tocantínea",
+                "bairro": "Natal",
+                "lat": -5.734311,
+                "lng": -35.251308
+              },
+              {
+                "ordem": 8,
+                "logradouro": "Rua Flor do Paraíso",
+                "bairro": "Natal",
+                "lat": -5.733792,
+                "lng": -35.250986
+              },
+              {
+                "ordem": 9,
+                "logradouro": "Rua São Rufino",
+                "bairro": "Natal",
+                "lat": -5.735153,
+                "lng": -35.247743
+              },
+              {
+                "ordem": 10,
+                "logradouro": "Rua Ulisses Guimarães",
+                "bairro": "Natal",
+                "lat": -5.73558,
+                "lng": -35.24825
+              },
+              {
+                "ordem": 11,
+                "logradouro": "Rua São Marcos",
+                "bairro": "Natal",
+                "lat": -5.736019,
+                "lng": -35.247771
+              },
+              {
+                "ordem": 12,
+                "logradouro": "Avenida Governardor Antônio de Melo e Souza",
+                "bairro": "Natal",
+                "lat": -5.737436,
+                "lng": -35.249663
+              },
+              {
+                "ordem": 13,
+                "logradouro": "Avenida Doutor João Medeiros Filho",
+                "bairro": "Natal",
+                "lat": -5.753423,
+                "lng": -35.237249
+              },
+              {
+                "ordem": 14,
+                "logradouro": "Complexo Viário Ulisses de Góis - Túnel Avenida Doutor João Medeiros Filho",
+                "bairro": "Natal",
+                "lat": -5.774527,
+                "lng": -35.25442
+              },
+              {
+                "ordem": 15,
+                "logradouro": "Avenida Bacharel Tomaz Landim",
+                "bairro": "Natal",
+                "lat": -5.776195,
+                "lng": -35.252578
+              },
+              {
+                "ordem": 16,
+                "logradouro": "Ponte Presidente Costa e Silva",
+                "bairro": "Natal",
+                "lat": -5.779377,
+                "lng": -35.248628
+              },
+              {
+                "ordem": 17,
+                "logradouro": "Avenida Felizardo Firmino Moura",
+                "bairro": "Natal",
+                "lat": -5.784611,
+                "lng": -35.246574
+              },
+              {
+                "ordem": 18,
+                "logradouro": "Rua Jandira",
+                "bairro": "Natal",
+                "lat": -5.797409,
+                "lng": -35.239392
+              },
+              {
+                "ordem": 19,
+                "logradouro": "Viaduto Governadora Wilma de Faria",
+                "bairro": "Natal",
+                "lat": -5.799534,
+                "lng": -35.238272
+              },
+              {
+                "ordem": 20,
+                "logradouro": "Avenida Nevaldo Rocha",
+                "bairro": "Natal",
+                "lat": -5.800816,
+                "lng": -35.237535
+              },
+              {
+                "ordem": 21,
+                "logradouro": "Avenida Rui Barbosa",
+                "bairro": "Natal",
+                "lat": -5.813844,
+                "lng": -35.2024
+              },
+              {
+                "ordem": 22,
+                "logradouro": "Avenida Almirante Alexandrino de Alencar",
+                "bairro": "Natal",
+                "lat": -5.808626,
+                "lng": -35.200304
+              }
+            ],
+            "volta": [
+              {
+                "ordem": 1,
+                "logradouro": "Avenida Almirante Alexandrino de Alencar",
+                "bairro": "Natal",
+                "lat": -5.810307,
+                "lng": -35.195686
+              },
+              {
+                "ordem": 2,
+                "logradouro": "Avenida Rui Barbosa",
+                "bairro": "Natal",
+                "lat": -5.808502,
+                "lng": -35.200249
+              },
+              {
+                "ordem": 3,
+                "logradouro": "Avenida Nevaldo Rocha",
+                "bairro": "Natal",
+                "lat": -5.813733,
+                "lng": -35.202361
+              },
+              {
+                "ordem": 4,
+                "logradouro": "Viaduto Governadora Wilma de Faria",
+                "bairro": "Natal",
+                "lat": -5.800874,
+                "lng": -35.237281
+              },
+              {
+                "ordem": 5,
+                "logradouro": "Rua Doutor Mário Negócio",
+                "bairro": "Natal",
+                "lat": -5.799552,
+                "lng": -35.238198
+              },
+              {
+                "ordem": 6,
+                "logradouro": "Avenida Felizardo Firmino Moura",
+                "bairro": "Natal",
+                "lat": -5.797838,
+                "lng": -35.238044
+              },
+              {
+                "ordem": 7,
+                "logradouro": "Ponte Presidente Costa e Silva",
+                "bairro": "Natal",
+                "lat": -5.784566,
+                "lng": -35.2465
+              },
+              {
+                "ordem": 8,
+                "logradouro": "Avenida Bacharel Tomaz Landim",
+                "bairro": "Natal",
+                "lat": -5.779345,
+                "lng": -35.248533
+              },
+              {
+                "ordem": 9,
+                "logradouro": "Avenida Doutor João Medeiros Filho",
+                "bairro": "Natal",
+                "lat": -5.775762,
+                "lng": -35.253035
+              },
+              {
+                "ordem": 10,
+                "logradouro": "Praça Presidente Juscelino Kubitschek",
+                "bairro": "Natal",
+                "lat": -5.751922,
+                "lng": -35.23568
+              },
+              {
+                "ordem": 11,
+                "logradouro": "Rua do Catetinho",
+                "bairro": "Natal",
+                "lat": -5.750902,
+                "lng": -35.236451
+              },
+              {
+                "ordem": 12,
+                "logradouro": "Avenida Governardor Antônio de Melo e Souza",
+                "bairro": "Natal",
+                "lat": -5.752073,
+                "lng": -35.238308
+              },
+              {
+                "ordem": 13,
+                "logradouro": "Rua São Rufino",
+                "bairro": "Natal",
+                "lat": -5.736961,
+                "lng": -35.25004
+              },
+              {
+                "ordem": 14,
+                "logradouro": "Rua Flor do Paraíso",
+                "bairro": "Natal",
+                "lat": -5.735153,
+                "lng": -35.247743
+              },
+              {
+                "ordem": 15,
+                "logradouro": "Avenida Tocantínea",
+                "bairro": "Natal",
+                "lat": -5.733792,
+                "lng": -35.250986
+              },
+              {
+                "ordem": 16,
+                "logradouro": "Avenida Guararapes",
+                "bairro": "Natal",
+                "lat": -5.734311,
+                "lng": -35.251308
+              },
+              {
+                "ordem": 17,
+                "logradouro": "Rua Eldorado",
+                "bairro": "Natal",
+                "lat": -5.73197,
+                "lng": -35.254341
+              },
+              {
+                "ordem": 18,
+                "logradouro": "Rua Atibaia",
+                "bairro": "Natal",
+                "lat": -5.729388,
+                "lng": -35.252063
+              },
+              {
+                "ordem": 19,
+                "logradouro": "Avenida Piratininga",
+                "bairro": "Natal",
+                "lat": -5.726757,
+                "lng": -35.250825
+              },
+              {
+                "ordem": 20,
+                "logradouro": "Rua Penápolis",
+                "bairro": "Natal",
+                "lat": -5.727064,
+                "lng": -35.250122
+              },
+              {
+                "ordem": 21,
+                "logradouro": "Avenida Pirassununga",
+                "bairro": "Natal",
+                "lat": -5.724183,
+                "lng": -35.248751
+              }
+            ]
+          },
+          "bbox": [
+            -35.254931,
+            -5.813863,
+            -35.195605,
+            -5.723299
+          ]
         }
       },
       "bbox": [
@@ -12451,7 +12925,7 @@
         -5.723299
       ],
       "rede": "transicao",
-      "situacao_rota": "indisponivel",
+      "situacao_rota": "disponivel",
       "operacao": {
         "veiculo": "Convencional",
         "extensao_ida_volta_km": 35.1,
