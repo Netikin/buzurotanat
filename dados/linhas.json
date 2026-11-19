@@ -12400,11 +12400,11 @@
       "numero": "N-02",
       "nome": "Gramoré/CRI, via Midway Mall",
       "lote": "1",
-      "empresa": null,
+      "empresa": "Via Metro",
       "tipo": "atual",
-      "categoria_edital": "Linha Atual (mantida)",
+      "categoria_edital": "Linha de Bairro",
       "sentido": "ambos",
-      "cor": "#B45309",
+      "cor": "#b45309",
       "acessivel": true,
       "tarifa": "Tarifa Social / Sistema Natal (conforme edital)",
       "frequencia_pico": "A cada 13 min (pico, dias úteis)",
@@ -12806,8 +12806,8 @@
           "dia_semana": "dias_uteis_sabados",
           "dia_rotulo": "Dias úteis e sábados",
           "nome": "Gramoré/CRI, via Midway Mall",
-          "extensao_km": 32.587,
-          "cor": "#B45309",
+          "extensao_km": 32.637,
+          "cor": "#b45309",
           "sentido": "ambos",
           "paradas_atendidas": [
             "DA-02788",
@@ -13183,7 +13183,7 @@
             ]
           },
           "bbox": [
-            -35.254931,
+            -35.254923,
             -5.813863,
             -35.202269,
             -5.723299
@@ -13191,7 +13191,7 @@
         }
       },
       "bbox": [
-        -35.254931,
+        -35.254923,
         -5.813863,
         -35.202269,
         -5.723299
@@ -13228,7 +13228,8 @@
         "dia": "Domingos e feriados",
         "extensao_oso_km": 35.1,
         "metodo": "Traçado gerado a partir da sequência oficial de ruas da OSO sobre o mapa viário do OpenStreetMap"
-      }
+      },
+      "horario_operacao": "05:00 às 23:00"
     },
     {
       "id": "N-05",

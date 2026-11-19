@@ -11812,7 +11812,8 @@
         "sentidos_atendidos": "AMBOS",
         "rotas": [
           "C1",
-          "C8"
+          "C8",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -15855,7 +15856,8 @@
         "acessivel": "sim",
         "sentidos_atendidos": "IDA",
         "rotas": [
-          "R1"
+          "R1",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -18318,7 +18320,8 @@
         "acessivel": "sim",
         "sentidos_atendidos": "IDA",
         "rotas": [
-          "R7"
+          "R7",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -18384,7 +18387,8 @@
           "D6A",
           "D6B",
           "E6",
-          "E7"
+          "E7",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -18474,7 +18478,8 @@
           "C2",
           "C7",
           "D6A",
-          "D6B"
+          "D6B",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -18645,7 +18650,8 @@
           "C7",
           "D6A",
           "D6B",
-          "E6"
+          "E6",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -19786,7 +19792,8 @@
         "rotas": [
           "D6A",
           "D7",
-          "E6"
+          "E6",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -19927,7 +19934,8 @@
         "sentidos_atendidos": "VOLTA",
         "rotas": [
           "E6",
-          "E7"
+          "E7",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -19961,7 +19969,8 @@
         "rotas": [
           "D6A",
           "E6",
-          "E7"
+          "E7",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -21453,7 +21462,8 @@
         "sentidos_atendidos": "VOLTA",
         "rotas": [
           "E6",
-          "E7"
+          "E7",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -21567,7 +21577,8 @@
         "sentidos_atendidos": "VOLTA",
         "rotas": [
           "C1",
-          "C7"
+          "C7",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -21684,7 +21695,8 @@
         "sentidos_atendidos": "VOLTA",
         "rotas": [
           "E6",
-          "E7"
+          "E7",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -22142,7 +22154,8 @@
         "acessivel": "sim",
         "sentidos_atendidos": "IDA",
         "rotas": [
-          "C1"
+          "C1",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -22174,7 +22187,8 @@
         "acessivel": "sim",
         "sentidos_atendidos": "IDA",
         "rotas": [
-          "E6"
+          "E6",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -22210,7 +22224,8 @@
           "C2",
           "C7",
           "D6A",
-          "D6B"
+          "D6B",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -22405,7 +22420,8 @@
         "sentidos_atendidos": "IDA",
         "rotas": [
           "D7",
-          "E7"
+          "E7",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -23726,7 +23742,8 @@
         "acessivel": "sim",
         "sentidos_atendidos": "VOLTA",
         "rotas": [
-          "C9"
+          "C9",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -23816,7 +23833,8 @@
           "C1",
           "C2",
           "C7",
-          "D6B"
+          "D6B",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados",
@@ -24146,7 +24164,8 @@
         "acessivel": "sim",
         "sentidos_atendidos": "IDA",
         "rotas": [
-          "B9"
+          "B9",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados"
@@ -24177,7 +24196,8 @@
         "acessivel": "sim",
         "sentidos_atendidos": "IDA",
         "rotas": [
-          "R8"
+          "R8",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -27481,7 +27501,8 @@
           "C1",
           "C7",
           "D6B",
-          "R7"
+          "R7",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -28915,7 +28936,8 @@
         "acessivel": "sim",
         "sentidos_atendidos": "IDA",
         "rotas": [
-          "R7"
+          "R7",
+          "N-02"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -70670,7 +70692,6 @@
           "D6B",
           "E6",
           "E7",
-          "N-02",
           "N-05",
           "N-07",
           "N-15",
@@ -70719,7 +70740,6 @@
           "D6B",
           "E6",
           "E7",
-          "N-02",
           "N-05",
           "N-07",
           "N-15",
@@ -70768,7 +70788,6 @@
           "D6B",
           "E6",
           "E7",
-          "N-02",
           "N-05",
           "N-07",
           "N-15",
@@ -70817,7 +70836,6 @@
           "D6B",
           "E6",
           "E7",
-          "N-02",
           "N-05",
           "N-07",
           "N-15",
@@ -71890,7 +71908,6 @@
           "D6B",
           "E6",
           "E7",
-          "N-02",
           "N-05",
           "N-07",
           "N-15",
@@ -71940,7 +71957,6 @@
           "D6B",
           "E6",
           "E7",
-          "N-02",
           "N-05",
           "N-07",
           "N-15",
@@ -73522,7 +73538,6 @@
           "D6A",
           "E6",
           "E7",
-          "N-02",
           "N-07",
           "N-15",
           "N-27",
@@ -73563,7 +73578,6 @@
           "C7",
           "C9",
           "E6",
-          "N-02",
           "N-07",
           "N-60",
           "N-72",
@@ -73605,7 +73619,6 @@
           "C7",
           "C9",
           "E6",
-          "N-02",
           "N-07",
           "N-60",
           "N-72",
@@ -73647,7 +73660,6 @@
           "C7",
           "C9",
           "E6",
-          "N-02",
           "N-07",
           "N-60",
           "N-72",
@@ -74061,7 +74073,6 @@
           "E6",
           "L-52",
           "L-54",
-          "N-02",
           "N-07",
           "N-60",
           "N-72",
@@ -74105,7 +74116,6 @@
           "E6",
           "L-52",
           "L-54",
-          "N-02",
           "N-07",
           "N-60",
           "N-72",
@@ -74148,7 +74158,6 @@
           "C7",
           "C9",
           "E6",
-          "N-02",
           "N-07",
           "N-60",
           "N-72",
@@ -74190,7 +74199,6 @@
           "C7",
           "C9",
           "E6",
-          "N-02",
           "N-07",
           "N-60",
           "N-72",
@@ -74235,7 +74243,6 @@
           "D6B",
           "E6",
           "E7",
-          "N-02",
           "N-07",
           "N-15",
           "N-27",
@@ -74280,7 +74287,6 @@
           "D6B",
           "E6",
           "E7",
-          "N-02",
           "N-07",
           "N-15",
           "N-27",
@@ -80348,7 +80354,6 @@
           "E3",
           "E4",
           "E5",
-          "N-02",
           "N-15",
           "N-60",
           "R1",
@@ -80395,7 +80400,6 @@
           "D6B",
           "E6",
           "E7",
-          "N-02",
           "N-05",
           "N-07",
           "N-15",
@@ -80495,7 +80499,6 @@
           "D6B",
           "E6",
           "E7",
-          "N-02",
           "N-07",
           "N-15",
           "N-27",
@@ -80540,7 +80543,6 @@
           "E3",
           "E4",
           "E5",
-          "N-02",
           "N-15",
           "N-60",
           "N-75",
@@ -80588,7 +80590,6 @@
           "E3",
           "E4",
           "E5",
-          "N-02",
           "N-15",
           "N-60",
           "N-75",
@@ -87355,8 +87356,7 @@
         "sentidos_atendidos": "AUTO",
         "rotas": [
           "C1",
-          "C8",
-          "N-02"
+          "C8"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -87391,8 +87391,7 @@
         "sentidos_atendidos": "AUTO",
         "rotas": [
           "C1",
-          "C8",
-          "N-02"
+          "C8"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -87427,8 +87426,7 @@
         "sentidos_atendidos": "AUTO",
         "rotas": [
           "C1",
-          "C8",
-          "N-02"
+          "C8"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -87464,8 +87462,7 @@
         "sentidos_atendidos": "AUTO",
         "rotas": [
           "C1",
-          "C8",
-          "N-02"
+          "C8"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -87500,8 +87497,7 @@
         "sentidos_atendidos": "AUTO",
         "rotas": [
           "C1",
-          "C8",
-          "N-02"
+          "C8"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -87536,8 +87532,7 @@
         "sentidos_atendidos": "AUTO",
         "rotas": [
           "C1",
-          "C8",
-          "N-02"
+          "C8"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -87572,8 +87567,7 @@
         "sentidos_atendidos": "AUTO",
         "rotas": [
           "C1",
-          "C8",
-          "N-02"
+          "C8"
         ],
         "dias_semana": [
           "domingos_feriados",
@@ -87609,7 +87603,6 @@
         "rotas": [
           "C1",
           "C8",
-          "N-02",
           "R2"
         ],
         "dias_semana": [
@@ -87646,7 +87639,6 @@
         "rotas": [
           "C1",
           "C8",
-          "N-02",
           "R2"
         ],
         "dias_semana": [
@@ -87683,7 +87675,6 @@
         "rotas": [
           "C1",
           "C8",
-          "N-02",
           "R2"
         ],
         "dias_semana": [
@@ -87720,7 +87711,6 @@
         "rotas": [
           "C1",
           "C8",
-          "N-02",
           "R1",
           "R2"
         ],
@@ -87758,7 +87748,6 @@
         "rotas": [
           "C1",
           "C8",
-          "N-02",
           "R1",
           "R2"
         ],
@@ -87796,7 +87785,6 @@
         "rotas": [
           "C1",
           "C8",
-          "N-02",
           "R1",
           "R2",
           "R9"
@@ -87863,9 +87851,7 @@
         "ativo": true,
         "acessivel": "sim",
         "sentidos_atendidos": "AUTO",
-        "rotas": [
-          "N-02"
-        ],
+        "rotas": [],
         "dias_semana": [
           "domingos_feriados",
           "dias_uteis_sabados"
@@ -87897,9 +87883,7 @@
         "ativo": true,
         "acessivel": "sim",
         "sentidos_atendidos": "AUTO",
-        "rotas": [
-          "N-02"
-        ],
+        "rotas": [],
         "dias_semana": [
           "domingos_feriados",
           "dias_uteis_sabados"
@@ -87931,9 +87915,7 @@
         "ativo": true,
         "acessivel": "sim",
         "sentidos_atendidos": "AUTO",
-        "rotas": [
-          "N-02"
-        ],
+        "rotas": [],
         "dias_semana": [
           "domingos_feriados",
           "dias_uteis_sabados"
@@ -87965,9 +87947,7 @@
         "ativo": true,
         "acessivel": "sim",
         "sentidos_atendidos": "AUTO",
-        "rotas": [
-          "N-02"
-        ],
+        "rotas": [],
         "dias_semana": [
           "domingos_feriados",
           "dias_uteis_sabados"
@@ -88000,7 +87980,6 @@
         "acessivel": "sim",
         "sentidos_atendidos": "AUTO",
         "rotas": [
-          "N-02",
           "N-60"
         ],
         "dias_semana": [
@@ -88353,7 +88332,6 @@
           "E3",
           "E4",
           "E5",
-          "N-02",
           "N-75",
           "R10",
           "R2",
@@ -88397,7 +88375,6 @@
           "E3",
           "E4",
           "E5",
-          "N-02",
           "R10",
           "R2"
         ],
@@ -97545,7 +97522,8 @@
         "tipo": "terminal",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97570,7 +97548,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97595,7 +97574,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97620,7 +97600,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97645,7 +97626,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97670,7 +97652,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97695,7 +97678,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97720,7 +97704,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97745,7 +97730,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97770,7 +97756,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97795,7 +97782,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97820,7 +97808,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97845,7 +97834,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97870,7 +97860,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97895,7 +97886,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97920,7 +97912,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97945,7 +97938,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97970,7 +97964,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -97995,7 +97990,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98020,7 +98016,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98045,7 +98042,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98070,7 +98068,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98095,7 +98094,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98120,7 +98120,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98145,7 +98146,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98170,7 +98172,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98195,7 +98198,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98220,7 +98224,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98245,7 +98250,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98270,7 +98276,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98295,7 +98302,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98320,7 +98328,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98345,7 +98354,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98370,7 +98380,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98395,7 +98406,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98420,7 +98432,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98445,7 +98458,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98470,7 +98484,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98495,7 +98510,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98520,7 +98536,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98545,7 +98562,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98570,7 +98588,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98595,7 +98614,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98620,7 +98640,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98645,7 +98666,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98670,7 +98692,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98695,7 +98718,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98720,7 +98744,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98745,7 +98770,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98770,7 +98796,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98795,7 +98822,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98820,7 +98848,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98845,7 +98874,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98870,7 +98900,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98895,7 +98926,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98920,7 +98952,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98945,7 +98978,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98970,7 +99004,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -98995,7 +99030,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99020,7 +99056,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99045,7 +99082,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99070,7 +99108,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99095,7 +99134,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99120,7 +99160,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99145,7 +99186,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99170,7 +99212,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99195,7 +99238,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99220,7 +99264,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99245,7 +99290,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99270,7 +99316,8 @@
         "tipo": "ponto de integração",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99295,7 +99342,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99320,7 +99368,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99345,7 +99394,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99370,7 +99420,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99395,7 +99446,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99420,7 +99472,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99445,7 +99498,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99470,7 +99524,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99495,7 +99550,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99520,7 +99576,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99545,7 +99602,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99570,7 +99628,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99595,7 +99654,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99620,7 +99680,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99645,7 +99706,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99670,7 +99732,8 @@
         "tipo": "ponto de integração",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99695,7 +99758,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99720,7 +99784,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99745,7 +99810,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99770,7 +99836,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"
@@ -99795,7 +99862,8 @@
         "tipo": "parada",
         "acessivel": "sim",
         "rotas": [
-          "NOVA"
+          "NOVA",
+          "N-02"
         ],
         "dias_semana": [
           "dias_uteis_sabados"

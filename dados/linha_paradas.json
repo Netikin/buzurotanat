@@ -90659,744 +90659,2248 @@
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02788",
-    "ordem_sequencial": 1,
-    "distancia_acumulada_metros": 171
+    "parada_id": "P-NOVA-74",
+    "distancia_acumulada_metros": 172,
+    "ordem_sequencial": 1
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9512450802",
-    "ordem_sequencial": 2,
-    "distancia_acumulada_metros": 407
+    "distancia_acumulada_metros": 408,
+    "ordem_sequencial": 2
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-27",
+    "distancia_acumulada_metros": 408,
+    "ordem_sequencial": 3
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9512450803",
-    "ordem_sequencial": 3,
-    "distancia_acumulada_metros": 526
+    "distancia_acumulada_metros": 526,
+    "ordem_sequencial": 4
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-28",
+    "distancia_acumulada_metros": 526,
+    "ordem_sequencial": 5
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-89",
+    "distancia_acumulada_metros": 681,
+    "ordem_sequencial": 6
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9512450806",
-    "ordem_sequencial": 4,
-    "distancia_acumulada_metros": 761
+    "distancia_acumulada_metros": 763,
+    "ordem_sequencial": 7
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02789",
-    "ordem_sequencial": 5,
-    "distancia_acumulada_metros": 906
+    "parada_id": "P-NOVA-29",
+    "distancia_acumulada_metros": 763,
+    "ordem_sequencial": 8
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-9512450808",
+    "distancia_acumulada_metros": 888,
+    "ordem_sequencial": 9
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-31",
+    "distancia_acumulada_metros": 888,
+    "ordem_sequencial": 10
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-75",
+    "distancia_acumulada_metros": 909,
+    "ordem_sequencial": 11
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9512450807",
-    "ordem_sequencial": 6,
-    "distancia_acumulada_metros": 935
+    "distancia_acumulada_metros": 938,
+    "ordem_sequencial": 12
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-30",
+    "distancia_acumulada_metros": 938,
+    "ordem_sequencial": 13
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9512450809",
-    "ordem_sequencial": 7,
-    "distancia_acumulada_metros": 1134
+    "distancia_acumulada_metros": 1137,
+    "ordem_sequencial": 14
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-32",
+    "distancia_acumulada_metros": 1137,
+    "ordem_sequencial": 15
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9512450814",
-    "ordem_sequencial": 8,
-    "distancia_acumulada_metros": 1301
+    "distancia_acumulada_metros": 1304,
+    "ordem_sequencial": 16
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02790",
-    "ordem_sequencial": 9,
-    "distancia_acumulada_metros": 1564
+    "parada_id": "P-NOVA-35",
+    "distancia_acumulada_metros": 1304,
+    "ordem_sequencial": 17
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-9512450812",
+    "distancia_acumulada_metros": 1537,
+    "ordem_sequencial": 18
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-34",
+    "distancia_acumulada_metros": 1537,
+    "ordem_sequencial": 19
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-76",
+    "distancia_acumulada_metros": 1568,
+    "ordem_sequencial": 20
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9512450811",
-    "ordem_sequencial": 10,
-    "distancia_acumulada_metros": 1587
+    "distancia_acumulada_metros": 1590,
+    "ordem_sequencial": 21
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-33",
+    "distancia_acumulada_metros": 1590,
+    "ordem_sequencial": 22
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-9512450798",
+    "distancia_acumulada_metros": 1664,
+    "ordem_sequencial": 23
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-26",
+    "distancia_acumulada_metros": 1664,
+    "ordem_sequencial": 24
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9482447597",
-    "ordem_sequencial": 11,
-    "distancia_acumulada_metros": 1760
+    "distancia_acumulada_metros": 1764,
+    "ordem_sequencial": 25
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02791",
-    "ordem_sequencial": 12,
-    "distancia_acumulada_metros": 1957
+    "parada_id": "P-NOVA-23",
+    "distancia_acumulada_metros": 1764,
+    "ordem_sequencial": 26
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-77",
+    "distancia_acumulada_metros": 1961,
+    "ordem_sequencial": 27
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9482447593",
-    "ordem_sequencial": 13,
-    "distancia_acumulada_metros": 2126
+    "distancia_acumulada_metros": 2130,
+    "ordem_sequencial": 28
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02792",
-    "ordem_sequencial": 14,
-    "distancia_acumulada_metros": 2607
+    "parada_id": "P-NOVA-22",
+    "distancia_acumulada_metros": 2130,
+    "ordem_sequencial": 29
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02793",
-    "ordem_sequencial": 15,
-    "distancia_acumulada_metros": 2843
+    "parada_id": "P-NOVA-78",
+    "distancia_acumulada_metros": 2610,
+    "ordem_sequencial": 30
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02794",
-    "ordem_sequencial": 16,
-    "distancia_acumulada_metros": 3095
+    "parada_id": "P-NOVA-88",
+    "distancia_acumulada_metros": 2786,
+    "ordem_sequencial": 31
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02795",
-    "ordem_sequencial": 17,
-    "distancia_acumulada_metros": 3251
+    "parada_id": "P-NOVA-79",
+    "distancia_acumulada_metros": 2848,
+    "ordem_sequencial": 32
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02796",
-    "ordem_sequencial": 18,
-    "distancia_acumulada_metros": 3473
+    "parada_id": "P-NOVA-87",
+    "distancia_acumulada_metros": 3064,
+    "ordem_sequencial": 33
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02797",
-    "ordem_sequencial": 19,
-    "distancia_acumulada_metros": 3686
+    "parada_id": "P-NOVA-80",
+    "distancia_acumulada_metros": 3101,
+    "ordem_sequencial": 34
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02798",
-    "ordem_sequencial": 20,
-    "distancia_acumulada_metros": 3899
+    "parada_id": "P-NOVA-81",
+    "distancia_acumulada_metros": 3256,
+    "ordem_sequencial": 35
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02799",
-    "ordem_sequencial": 21,
-    "distancia_acumulada_metros": 4158
+    "parada_id": "OSM-11916287616",
+    "distancia_acumulada_metros": 3282,
+    "ordem_sequencial": 36
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02800",
-    "ordem_sequencial": 22,
-    "distancia_acumulada_metros": 4623
+    "parada_id": "P-NOVA-51",
+    "distancia_acumulada_metros": 3282,
+    "ordem_sequencial": 37
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-82",
+    "distancia_acumulada_metros": 3480,
+    "ordem_sequencial": 38
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-83",
+    "distancia_acumulada_metros": 3693,
+    "ordem_sequencial": 39
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-13668094998",
+    "distancia_acumulada_metros": 3711,
+    "ordem_sequencial": 40
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-84",
+    "distancia_acumulada_metros": 3907,
+    "ordem_sequencial": 41
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-85",
+    "distancia_acumulada_metros": 4166,
+    "ordem_sequencial": 42
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-86",
+    "distancia_acumulada_metros": 4633,
+    "ordem_sequencial": 43
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-93",
+    "distancia_acumulada_metros": 4856,
+    "ordem_sequencial": 44
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9457010517",
-    "ordem_sequencial": 23,
-    "distancia_acumulada_metros": 4886
+    "distancia_acumulada_metros": 4897,
+    "ordem_sequencial": 45
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-15",
+    "distancia_acumulada_metros": 4897,
+    "ordem_sequencial": 46
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-92",
+    "distancia_acumulada_metros": 5093,
+    "ordem_sequencial": 47
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9457010519",
-    "ordem_sequencial": 24,
-    "distancia_acumulada_metros": 5098
+    "distancia_acumulada_metros": 5109,
+    "ordem_sequencial": 48
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-16",
+    "distancia_acumulada_metros": 5109,
+    "ordem_sequencial": 49
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-7021976585",
+    "distancia_acumulada_metros": 5432,
+    "ordem_sequencial": 50
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-10",
+    "distancia_acumulada_metros": 5432,
+    "ordem_sequencial": 51
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9457010530",
-    "ordem_sequencial": 25,
-    "distancia_acumulada_metros": 5498
+    "distancia_acumulada_metros": 5509,
+    "ordem_sequencial": 52
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02599",
-    "ordem_sequencial": 26,
-    "distancia_acumulada_metros": 5877
+    "parada_id": "P-NOVA-17",
+    "distancia_acumulada_metros": 5509,
+    "ordem_sequencial": 53
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-73",
+    "distancia_acumulada_metros": 5650,
+    "ordem_sequencial": 54
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-69",
+    "distancia_acumulada_metros": 5888,
+    "ordem_sequencial": 55
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9457010533",
-    "ordem_sequencial": 27,
-    "distancia_acumulada_metros": 5966
+    "distancia_acumulada_metros": 5977,
+    "ordem_sequencial": 56
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-18",
+    "distancia_acumulada_metros": 5977,
+    "ordem_sequencial": 57
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-72",
+    "distancia_acumulada_metros": 5986,
+    "ordem_sequencial": 58
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0647",
+    "distancia_acumulada_metros": 6086,
+    "ordem_sequencial": 59
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9457010546",
-    "ordem_sequencial": 28,
-    "distancia_acumulada_metros": 6168
+    "distancia_acumulada_metros": 6179,
+    "ordem_sequencial": 60
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-19",
+    "distancia_acumulada_metros": 6179,
+    "ordem_sequencial": 61
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0376",
+    "distancia_acumulada_metros": 6269,
+    "ordem_sequencial": 62
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9457010548",
-    "ordem_sequencial": 29,
-    "distancia_acumulada_metros": 6372
+    "distancia_acumulada_metros": 6383,
+    "ordem_sequencial": 63
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-20",
+    "distancia_acumulada_metros": 6383,
+    "ordem_sequencial": 64
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0377",
+    "distancia_acumulada_metros": 6489,
+    "ordem_sequencial": 65
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-7612955705",
-    "ordem_sequencial": 30,
-    "distancia_acumulada_metros": 6665
+    "distancia_acumulada_metros": 6676,
+    "ordem_sequencial": 66
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-13",
+    "distancia_acumulada_metros": 6676,
+    "ordem_sequencial": 67
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0546",
+    "distancia_acumulada_metros": 6766,
+    "ordem_sequencial": 68
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-502851393",
-    "ordem_sequencial": 31,
-    "distancia_acumulada_metros": 6935
+    "distancia_acumulada_metros": 6945,
+    "ordem_sequencial": 69
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-5",
+    "distancia_acumulada_metros": 6945,
+    "ordem_sequencial": 70
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0108",
+    "distancia_acumulada_metros": 7188,
+    "ordem_sequencial": 71
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-7022444672",
-    "ordem_sequencial": 32,
-    "distancia_acumulada_metros": 7260
+    "distancia_acumulada_metros": 7272,
+    "ordem_sequencial": 72
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-12",
+    "distancia_acumulada_metros": 7272,
+    "ordem_sequencial": 73
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-71",
+    "distancia_acumulada_metros": 7321,
+    "ordem_sequencial": 74
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-7022444650",
-    "ordem_sequencial": 33,
-    "distancia_acumulada_metros": 7329
+    "distancia_acumulada_metros": 7341,
+    "ordem_sequencial": 75
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02420",
-    "ordem_sequencial": 34,
-    "distancia_acumulada_metros": 7538
+    "parada_id": "P-NOVA-11",
+    "distancia_acumulada_metros": 7341,
+    "ordem_sequencial": 76
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-59",
+    "distancia_acumulada_metros": 7552,
+    "ordem_sequencial": 77
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-68",
+    "distancia_acumulada_metros": 7738,
+    "ordem_sequencial": 78
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9457010549",
-    "ordem_sequencial": 35,
-    "distancia_acumulada_metros": 7827
+    "distancia_acumulada_metros": 7842,
+    "ordem_sequencial": 79
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-21",
+    "distancia_acumulada_metros": 7842,
+    "ordem_sequencial": 80
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-503486285",
-    "ordem_sequencial": 36,
-    "distancia_acumulada_metros": 8109
+    "distancia_acumulada_metros": 8126,
+    "ordem_sequencial": 81
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02349",
-    "ordem_sequencial": 37,
-    "distancia_acumulada_metros": 8361
+    "parada_id": "P-NOVA-6",
+    "distancia_acumulada_metros": 8126,
+    "ordem_sequencial": 82
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-67",
+    "distancia_acumulada_metros": 8271,
+    "ordem_sequencial": 83
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-502851376",
+    "distancia_acumulada_metros": 8300,
+    "ordem_sequencial": 84
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-4",
+    "distancia_acumulada_metros": 8300,
+    "ordem_sequencial": 85
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-53",
+    "distancia_acumulada_metros": 8378,
+    "ordem_sequencial": 86
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-11914548478",
-    "ordem_sequencial": 38,
-    "distancia_acumulada_metros": 8537
+    "distancia_acumulada_metros": 8555,
+    "ordem_sequencial": 87
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02350",
-    "ordem_sequencial": 39,
-    "distancia_acumulada_metros": 9873
+    "parada_id": "P-NOVA-50",
+    "distancia_acumulada_metros": 8555,
+    "ordem_sequencial": 88
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02600",
-    "ordem_sequencial": 40,
-    "distancia_acumulada_metros": 10105
+    "parada_id": "OSM-11914548477",
+    "distancia_acumulada_metros": 8638,
+    "ordem_sequencial": 89
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02351",
-    "ordem_sequencial": 41,
-    "distancia_acumulada_metros": 10778
+    "parada_id": "P-NOVA-49",
+    "distancia_acumulada_metros": 8638,
+    "ordem_sequencial": 90
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0110",
+    "distancia_acumulada_metros": 8949,
+    "ordem_sequencial": 91
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0284",
+    "distancia_acumulada_metros": 9074,
+    "ordem_sequencial": 92
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0286",
+    "distancia_acumulada_metros": 9514,
+    "ordem_sequencial": 93
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0287",
+    "distancia_acumulada_metros": 9734,
+    "ordem_sequencial": 94
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-54",
+    "distancia_acumulada_metros": 9894,
+    "ordem_sequencial": 95
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0115",
+    "distancia_acumulada_metros": 10050,
+    "ordem_sequencial": 96
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-70",
+    "distancia_acumulada_metros": 10128,
+    "ordem_sequencial": 97
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-11914548474",
+    "distancia_acumulada_metros": 10534,
+    "ordem_sequencial": 98
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-48",
+    "distancia_acumulada_metros": 10534,
+    "ordem_sequencial": 99
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-55",
+    "distancia_acumulada_metros": 10804,
+    "ordem_sequencial": 100
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-58",
+    "distancia_acumulada_metros": 10994,
+    "ordem_sequencial": 101
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-2137900851",
-    "ordem_sequencial": 42,
-    "distancia_acumulada_metros": 11237
+    "distancia_acumulada_metros": 11264,
+    "ordem_sequencial": 102
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02352",
-    "ordem_sequencial": 43,
-    "distancia_acumulada_metros": 11333
+    "parada_id": "P-NOVA-7",
+    "distancia_acumulada_metros": 11264,
+    "ordem_sequencial": 103
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-56",
+    "distancia_acumulada_metros": 11360,
+    "ordem_sequencial": 104
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0295",
+    "distancia_acumulada_metros": 11707,
+    "ordem_sequencial": 105
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "VIRT-0122",
+    "distancia_acumulada_metros": 11817,
+    "ordem_sequencial": 106
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9515359326",
-    "ordem_sequencial": 44,
-    "distancia_acumulada_metros": 12110
+    "distancia_acumulada_metros": 12137,
+    "ordem_sequencial": 107
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-36",
+    "distancia_acumulada_metros": 12137,
+    "ordem_sequencial": 108
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-9515359336",
+    "distancia_acumulada_metros": 12193,
+    "ordem_sequencial": 109
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-37",
+    "distancia_acumulada_metros": 12193,
+    "ordem_sequencial": 110
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-9515359365",
+    "distancia_acumulada_metros": 12488,
+    "ordem_sequencial": 111
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-38",
+    "distancia_acumulada_metros": 12488,
+    "ordem_sequencial": 112
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9515359377",
-    "ordem_sequencial": 45,
-    "distancia_acumulada_metros": 12558
+    "distancia_acumulada_metros": 12585,
+    "ordem_sequencial": 113
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-39",
+    "distancia_acumulada_metros": 12585,
+    "ordem_sequencial": 114
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-9515359386",
+    "distancia_acumulada_metros": 12764,
+    "ordem_sequencial": 115
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-40",
+    "distancia_acumulada_metros": 12764,
+    "ordem_sequencial": 116
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9515359401",
-    "ordem_sequencial": 46,
-    "distancia_acumulada_metros": 12860
+    "distancia_acumulada_metros": 12886,
+    "ordem_sequencial": 117
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02421",
-    "ordem_sequencial": 47,
-    "distancia_acumulada_metros": 13488
+    "parada_id": "P-NOVA-41",
+    "distancia_acumulada_metros": 12886,
+    "ordem_sequencial": 118
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02422",
-    "ordem_sequencial": 48,
-    "distancia_acumulada_metros": 13776
+    "parada_id": "OSM-9515359420",
+    "distancia_acumulada_metros": 13358,
+    "ordem_sequencial": 119
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-42",
+    "distancia_acumulada_metros": 13358,
+    "ordem_sequencial": 120
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-60",
+    "distancia_acumulada_metros": 13514,
+    "ordem_sequencial": 121
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-61",
+    "distancia_acumulada_metros": 13802,
+    "ordem_sequencial": 122
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-66",
+    "distancia_acumulada_metros": 13868,
+    "ordem_sequencial": 123
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9515359478",
-    "ordem_sequencial": 49,
-    "distancia_acumulada_metros": 14223
+    "distancia_acumulada_metros": 14249,
+    "ordem_sequencial": 124
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
-    "parada_id": "DA-02423",
-    "ordem_sequencial": 50,
-    "distancia_acumulada_metros": 14786
+    "parada_id": "P-NOVA-44",
+    "distancia_acumulada_metros": 14249,
+    "ordem_sequencial": 125
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-9515359477",
+    "distancia_acumulada_metros": 14306,
+    "ordem_sequencial": 126
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-43",
+    "distancia_acumulada_metros": 14306,
+    "ordem_sequencial": 127
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-65",
+    "distancia_acumulada_metros": 14692,
+    "ordem_sequencial": 128
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-62",
+    "distancia_acumulada_metros": 14812,
+    "ordem_sequencial": 129
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-9515359512",
+    "distancia_acumulada_metros": 15124,
+    "ordem_sequencial": 130
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-45",
+    "distancia_acumulada_metros": 15124,
+    "ordem_sequencial": 131
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-9515359520",
-    "ordem_sequencial": 51,
-    "distancia_acumulada_metros": 15235
+    "distancia_acumulada_metros": 15260,
+    "ordem_sequencial": 132
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-46",
+    "distancia_acumulada_metros": 15260,
+    "ordem_sequencial": 133
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "OSM-9516583716",
+    "distancia_acumulada_metros": 15454,
+    "ordem_sequencial": 134
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-47",
+    "distancia_acumulada_metros": 15454,
+    "ordem_sequencial": 135
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-64",
+    "distancia_acumulada_metros": 15480,
+    "ordem_sequencial": 136
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "IDA",
     "parada_id": "OSM-6027753258",
-    "ordem_sequencial": 52,
-    "distancia_acumulada_metros": 15536
+    "distancia_acumulada_metros": 15561,
+    "ordem_sequencial": 137
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-9",
+    "distancia_acumulada_metros": 15561,
+    "ordem_sequencial": 138
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "IDA",
+    "parada_id": "P-NOVA-63",
+    "distancia_acumulada_metros": 15870,
+    "ordem_sequencial": 139
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02431",
-    "ordem_sequencial": 1,
-    "distancia_acumulada_metros": 109
+    "parada_id": "P-NOVA-63",
+    "distancia_acumulada_metros": 16097,
+    "ordem_sequencial": 1
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02432",
-    "ordem_sequencial": 2,
-    "distancia_acumulada_metros": 499
+    "parada_id": "OSM-6027753258",
+    "distancia_acumulada_metros": 16406,
+    "ordem_sequencial": 2
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-9",
+    "distancia_acumulada_metros": 16406,
+    "ordem_sequencial": 3
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-64",
+    "distancia_acumulada_metros": 16487,
+    "ordem_sequencial": 4
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9516583716",
-    "ordem_sequencial": 3,
-    "distancia_acumulada_metros": 525
+    "distancia_acumulada_metros": 16513,
+    "ordem_sequencial": 5
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-47",
+    "distancia_acumulada_metros": 16513,
+    "ordem_sequencial": 6
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9515359520",
+    "distancia_acumulada_metros": 16707,
+    "ordem_sequencial": 7
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-46",
+    "distancia_acumulada_metros": 16707,
+    "ordem_sequencial": 8
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9515359512",
-    "ordem_sequencial": 4,
-    "distancia_acumulada_metros": 855
+    "distancia_acumulada_metros": 16843,
+    "ordem_sequencial": 9
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02433",
-    "ordem_sequencial": 5,
-    "distancia_acumulada_metros": 1287
+    "parada_id": "P-NOVA-45",
+    "distancia_acumulada_metros": 16843,
+    "ordem_sequencial": 10
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-62",
+    "distancia_acumulada_metros": 17155,
+    "ordem_sequencial": 11
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-65",
+    "distancia_acumulada_metros": 17275,
+    "ordem_sequencial": 12
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9515359477",
-    "ordem_sequencial": 6,
-    "distancia_acumulada_metros": 1673
+    "distancia_acumulada_metros": 17661,
+    "ordem_sequencial": 13
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02434",
-    "ordem_sequencial": 7,
-    "distancia_acumulada_metros": 2112
+    "parada_id": "P-NOVA-43",
+    "distancia_acumulada_metros": 17661,
+    "ordem_sequencial": 14
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9515359478",
+    "distancia_acumulada_metros": 17719,
+    "ordem_sequencial": 15
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-44",
+    "distancia_acumulada_metros": 17719,
+    "ordem_sequencial": 16
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-66",
+    "distancia_acumulada_metros": 18100,
+    "ordem_sequencial": 17
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-61",
+    "distancia_acumulada_metros": 18165,
+    "ordem_sequencial": 18
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-60",
+    "distancia_acumulada_metros": 18453,
+    "ordem_sequencial": 19
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9515359420",
-    "ordem_sequencial": 8,
-    "distancia_acumulada_metros": 2622
+    "distancia_acumulada_metros": 18610,
+    "ordem_sequencial": 20
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-42",
+    "distancia_acumulada_metros": 18610,
+    "ordem_sequencial": 21
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "VIRT-0358",
+    "distancia_acumulada_metros": 18970,
+    "ordem_sequencial": 22
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9515359401",
+    "distancia_acumulada_metros": 19081,
+    "ordem_sequencial": 23
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-41",
+    "distancia_acumulada_metros": 19081,
+    "ordem_sequencial": 24
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9515359386",
-    "ordem_sequencial": 9,
-    "distancia_acumulada_metros": 3216
+    "distancia_acumulada_metros": 19203,
+    "ordem_sequencial": 25
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-40",
+    "distancia_acumulada_metros": 19203,
+    "ordem_sequencial": 26
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9515359377",
+    "distancia_acumulada_metros": 19382,
+    "ordem_sequencial": 27
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-39",
+    "distancia_acumulada_metros": 19382,
+    "ordem_sequencial": 28
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9515359365",
-    "ordem_sequencial": 10,
-    "distancia_acumulada_metros": 3492
+    "distancia_acumulada_metros": 19479,
+    "ordem_sequencial": 29
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-38",
+    "distancia_acumulada_metros": 19479,
+    "ordem_sequencial": 30
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9515359336",
-    "ordem_sequencial": 11,
-    "distancia_acumulada_metros": 3788
+    "distancia_acumulada_metros": 19775,
+    "ordem_sequencial": 31
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02376",
-    "ordem_sequencial": 12,
-    "distancia_acumulada_metros": 4760
+    "parada_id": "P-NOVA-37",
+    "distancia_acumulada_metros": 19775,
+    "ordem_sequencial": 32
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9515359326",
+    "distancia_acumulada_metros": 19831,
+    "ordem_sequencial": 33
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-36",
+    "distancia_acumulada_metros": 19831,
+    "ordem_sequencial": 34
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "VIRT-0178",
+    "distancia_acumulada_metros": 20181,
+    "ordem_sequencial": 35
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "VIRT-0361",
+    "distancia_acumulada_metros": 20290,
+    "ordem_sequencial": 36
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-57",
+    "distancia_acumulada_metros": 20745,
+    "ordem_sequencial": 37
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-2137904011",
-    "ordem_sequencial": 13,
-    "distancia_acumulada_metros": 4799
+    "distancia_acumulada_metros": 20785,
+    "ordem_sequencial": 38
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02377",
-    "ordem_sequencial": 14,
-    "distancia_acumulada_metros": 5044
+    "parada_id": "P-NOVA-8",
+    "distancia_acumulada_metros": 20785,
+    "ordem_sequencial": 39
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-58",
+    "distancia_acumulada_metros": 21030,
+    "ordem_sequencial": 40
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-55",
+    "distancia_acumulada_metros": 21220,
+    "ordem_sequencial": 41
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-11914548474",
-    "ordem_sequencial": 15,
-    "distancia_acumulada_metros": 5501
+    "distancia_acumulada_metros": 21488,
+    "ordem_sequencial": 42
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-48",
+    "distancia_acumulada_metros": 21488,
+    "ordem_sequencial": 43
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-70",
+    "distancia_acumulada_metros": 21892,
+    "ordem_sequencial": 44
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "VIRT-0252",
+    "distancia_acumulada_metros": 22070,
+    "ordem_sequencial": 45
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-54",
+    "distancia_acumulada_metros": 22127,
+    "ordem_sequencial": 46
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "VIRT-0186",
+    "distancia_acumulada_metros": 22384,
+    "ordem_sequencial": 47
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "VIRT-0189",
+    "distancia_acumulada_metros": 23044,
+    "ordem_sequencial": 48
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "VIRT-0257",
+    "distancia_acumulada_metros": 23168,
+    "ordem_sequencial": 49
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-11914548477",
-    "ordem_sequencial": 16,
-    "distancia_acumulada_metros": 7396
+    "distancia_acumulada_metros": 23390,
+    "ordem_sequencial": 50
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-49",
+    "distancia_acumulada_metros": 23390,
+    "ordem_sequencial": 51
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-11914548478",
+    "distancia_acumulada_metros": 23472,
+    "ordem_sequencial": 52
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-50",
+    "distancia_acumulada_metros": 23472,
+    "ordem_sequencial": 53
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-502851376",
-    "ordem_sequencial": 17,
-    "distancia_acumulada_metros": 7722
+    "distancia_acumulada_metros": 23717,
+    "ordem_sequencial": 54
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02435",
-    "ordem_sequencial": 18,
-    "distancia_acumulada_metros": 7745
+    "parada_id": "P-NOVA-4",
+    "distancia_acumulada_metros": 23717,
+    "ordem_sequencial": 55
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02436",
-    "ordem_sequencial": 19,
-    "distancia_acumulada_metros": 8273
+    "parada_id": "P-NOVA-67",
+    "distancia_acumulada_metros": 23739,
+    "ordem_sequencial": 56
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02602",
-    "ordem_sequencial": 20,
-    "distancia_acumulada_metros": 8687
+    "parada_id": "OSM-503486285",
+    "distancia_acumulada_metros": 23882,
+    "ordem_sequencial": 57
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02603",
-    "ordem_sequencial": 21,
-    "distancia_acumulada_metros": 10005
+    "parada_id": "P-NOVA-6",
+    "distancia_acumulada_metros": 23882,
+    "ordem_sequencial": 58
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02604",
-    "ordem_sequencial": 22,
-    "distancia_acumulada_metros": 10340
+    "parada_id": "OSM-9457010549",
+    "distancia_acumulada_metros": 24164,
+    "ordem_sequencial": 59
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-21",
+    "distancia_acumulada_metros": 24164,
+    "ordem_sequencial": 60
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-68",
+    "distancia_acumulada_metros": 24268,
+    "ordem_sequencial": 61
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-59",
+    "distancia_acumulada_metros": 24454,
+    "ordem_sequencial": 62
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-7022444650",
+    "distancia_acumulada_metros": 24665,
+    "ordem_sequencial": 63
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-11",
+    "distancia_acumulada_metros": 24665,
+    "ordem_sequencial": 64
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-71",
+    "distancia_acumulada_metros": 24685,
+    "ordem_sequencial": 65
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-7022444672",
+    "distancia_acumulada_metros": 24734,
+    "ordem_sequencial": 66
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-12",
+    "distancia_acumulada_metros": 24734,
+    "ordem_sequencial": 67
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-502851393",
+    "distancia_acumulada_metros": 25052,
+    "ordem_sequencial": 68
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-5",
+    "distancia_acumulada_metros": 25052,
+    "ordem_sequencial": 69
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "VIRT-0261",
+    "distancia_acumulada_metros": 25149,
+    "ordem_sequencial": 70
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-7612955705",
+    "distancia_acumulada_metros": 25316,
+    "ordem_sequencial": 71
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-13",
+    "distancia_acumulada_metros": 25316,
+    "ordem_sequencial": 72
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9457010548",
+    "distancia_acumulada_metros": 25607,
+    "ordem_sequencial": 73
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-20",
+    "distancia_acumulada_metros": 25607,
+    "ordem_sequencial": 74
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9457010546",
+    "distancia_acumulada_metros": 25812,
+    "ordem_sequencial": 75
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-19",
+    "distancia_acumulada_metros": 25812,
+    "ordem_sequencial": 76
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-72",
+    "distancia_acumulada_metros": 26005,
+    "ordem_sequencial": 77
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9457010533",
+    "distancia_acumulada_metros": 26013,
+    "ordem_sequencial": 78
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-18",
+    "distancia_acumulada_metros": 26013,
+    "ordem_sequencial": 79
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-69",
+    "distancia_acumulada_metros": 26102,
+    "ordem_sequencial": 80
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-73",
+    "distancia_acumulada_metros": 26340,
+    "ordem_sequencial": 81
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9457010530",
+    "distancia_acumulada_metros": 26481,
+    "ordem_sequencial": 82
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-17",
+    "distancia_acumulada_metros": 26481,
+    "ordem_sequencial": 83
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-7021976585",
-    "ordem_sequencial": 23,
-    "distancia_acumulada_metros": 10558
+    "distancia_acumulada_metros": 26559,
+    "ordem_sequencial": 84
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02816",
-    "ordem_sequencial": 24,
-    "distancia_acumulada_metros": 10897
+    "parada_id": "P-NOVA-10",
+    "distancia_acumulada_metros": 26559,
+    "ordem_sequencial": 85
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02817",
-    "ordem_sequencial": 25,
-    "distancia_acumulada_metros": 11134
+    "parada_id": "OSM-9457010519",
+    "distancia_acumulada_metros": 26882,
+    "ordem_sequencial": 86
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-16",
+    "distancia_acumulada_metros": 26882,
+    "ordem_sequencial": 87
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-92",
+    "distancia_acumulada_metros": 26898,
+    "ordem_sequencial": 88
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9457010517",
+    "distancia_acumulada_metros": 27094,
+    "ordem_sequencial": 89
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-15",
+    "distancia_acumulada_metros": 27094,
+    "ordem_sequencial": 90
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-93",
+    "distancia_acumulada_metros": 27134,
+    "ordem_sequencial": 91
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9456960615",
-    "ordem_sequencial": 26,
-    "distancia_acumulada_metros": 11437
+    "distancia_acumulada_metros": 27438,
+    "ordem_sequencial": 92
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-14",
+    "distancia_acumulada_metros": 27438,
+    "ordem_sequencial": 93
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9483420484",
-    "ordem_sequencial": 27,
-    "distancia_acumulada_metros": 11526
+    "distancia_acumulada_metros": 27526,
+    "ordem_sequencial": 94
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-24",
+    "distancia_acumulada_metros": 27526,
+    "ordem_sequencial": 95
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9483420485",
-    "ordem_sequencial": 28,
-    "distancia_acumulada_metros": 11678
+    "distancia_acumulada_metros": 27679,
+    "ordem_sequencial": 96
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-25",
+    "distancia_acumulada_metros": 27679,
+    "ordem_sequencial": 97
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-85",
+    "distancia_acumulada_metros": 28313,
+    "ordem_sequencial": 98
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-84",
+    "distancia_acumulada_metros": 28573,
+    "ordem_sequencial": 99
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-83",
+    "distancia_acumulada_metros": 28786,
+    "ordem_sequencial": 100
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-82",
+    "distancia_acumulada_metros": 29000,
+    "ordem_sequencial": 101
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-11916287616",
-    "ordem_sequencial": 29,
-    "distancia_acumulada_metros": 13192
+    "distancia_acumulada_metros": 29197,
+    "ordem_sequencial": 102
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02802",
-    "ordem_sequencial": 30,
-    "distancia_acumulada_metros": 13411
+    "parada_id": "P-NOVA-51",
+    "distancia_acumulada_metros": 29197,
+    "ordem_sequencial": 103
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02803",
-    "ordem_sequencial": 31,
-    "distancia_acumulada_metros": 13687
+    "parada_id": "P-NOVA-81",
+    "distancia_acumulada_metros": 29224,
+    "ordem_sequencial": 104
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-80",
+    "distancia_acumulada_metros": 29379,
+    "ordem_sequencial": 105
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-87",
+    "distancia_acumulada_metros": 29416,
+    "ordem_sequencial": 106
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-79",
+    "distancia_acumulada_metros": 29632,
+    "ordem_sequencial": 107
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-88",
+    "distancia_acumulada_metros": 29693,
+    "ordem_sequencial": 108
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-78",
+    "distancia_acumulada_metros": 29869,
+    "ordem_sequencial": 109
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9482447591",
+    "distancia_acumulada_metros": 30108,
+    "ordem_sequencial": 110
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9482447593",
+    "distancia_acumulada_metros": 30333,
+    "ordem_sequencial": 111
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-22",
+    "distancia_acumulada_metros": 30333,
+    "ordem_sequencial": 112
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-77",
+    "distancia_acumulada_metros": 30502,
+    "ordem_sequencial": 113
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9482447597",
+    "distancia_acumulada_metros": 30698,
+    "ordem_sequencial": 114
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-23",
+    "distancia_acumulada_metros": 30698,
+    "ordem_sequencial": 115
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9512450798",
-    "ordem_sequencial": 32,
-    "distancia_acumulada_metros": 14790
+    "distancia_acumulada_metros": 30798,
+    "ordem_sequencial": 116
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-26",
+    "distancia_acumulada_metros": 30798,
+    "ordem_sequencial": 117
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9512450811",
-    "ordem_sequencial": 33,
-    "distancia_acumulada_metros": 14864
+    "distancia_acumulada_metros": 30872,
+    "ordem_sequencial": 118
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-33",
+    "distancia_acumulada_metros": 30872,
+    "ordem_sequencial": 119
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-76",
+    "distancia_acumulada_metros": 30895,
+    "ordem_sequencial": 120
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9512450812",
-    "ordem_sequencial": 34,
-    "distancia_acumulada_metros": 14917
+    "distancia_acumulada_metros": 30926,
+    "ordem_sequencial": 121
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-34",
+    "distancia_acumulada_metros": 30926,
+    "ordem_sequencial": 122
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9512450814",
+    "distancia_acumulada_metros": 31158,
+    "ordem_sequencial": 123
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-35",
+    "distancia_acumulada_metros": 31158,
+    "ordem_sequencial": 124
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9512450809",
+    "distancia_acumulada_metros": 31325,
+    "ordem_sequencial": 125
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-32",
+    "distancia_acumulada_metros": 31325,
+    "ordem_sequencial": 126
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9512450807",
-    "ordem_sequencial": 35,
-    "distancia_acumulada_metros": 15516
+    "distancia_acumulada_metros": 31525,
+    "ordem_sequencial": 127
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-30",
+    "distancia_acumulada_metros": 31525,
+    "ordem_sequencial": 128
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-75",
+    "distancia_acumulada_metros": 31554,
+    "ordem_sequencial": 129
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "OSM-9512450808",
-    "ordem_sequencial": 36,
-    "distancia_acumulada_metros": 15565
+    "distancia_acumulada_metros": 31574,
+    "ordem_sequencial": 130
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02804",
-    "ordem_sequencial": 37,
-    "distancia_acumulada_metros": 15772
+    "parada_id": "P-NOVA-31",
+    "distancia_acumulada_metros": 31574,
+    "ordem_sequencial": 131
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02805",
-    "ordem_sequencial": 38,
-    "distancia_acumulada_metros": 16119
+    "parada_id": "OSM-9512450806",
+    "distancia_acumulada_metros": 31700,
+    "ordem_sequencial": 132
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-29",
+    "distancia_acumulada_metros": 31700,
+    "ordem_sequencial": 133
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-89",
+    "distancia_acumulada_metros": 31782,
+    "ordem_sequencial": 134
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "OSM-9512450803",
+    "distancia_acumulada_metros": 31936,
+    "ordem_sequencial": 135
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-28",
+    "distancia_acumulada_metros": 31936,
+    "ordem_sequencial": 136
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-90",
+    "distancia_acumulada_metros": 32130,
+    "ordem_sequencial": 137
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "MAN-37248",
-    "ordem_sequencial": 39,
-    "distancia_acumulada_metros": 16196
+    "distancia_acumulada_metros": 32208,
+    "ordem_sequencial": 138
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
-    "parada_id": "DA-02806",
-    "ordem_sequencial": 40,
-    "distancia_acumulada_metros": 16383
+    "parada_id": "P-NOVA-52",
+    "distancia_acumulada_metros": 32208,
+    "ordem_sequencial": 139
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-91",
+    "distancia_acumulada_metros": 32396,
+    "ordem_sequencial": 140
   },
   {
     "linha_id": "N-02",
     "dia_semana": "dias_uteis_sabados",
     "sentido": "VOLTA",
     "parada_id": "P-009",
-    "ordem_sequencial": 41,
-    "distancia_acumulada_metros": 16529
+    "distancia_acumulada_metros": 32541,
+    "ordem_sequencial": 141
+  },
+  {
+    "linha_id": "N-02",
+    "dia_semana": "dias_uteis_sabados",
+    "sentido": "VOLTA",
+    "parada_id": "P-NOVA-3",
+    "distancia_acumulada_metros": 32541,
+    "ordem_sequencial": 142
   }
 ]

@@ -64115,12 +64115,12 @@
         "nome": "Gramoré/CRI, via Midway Mall",
         "lote": "1",
         "tipo": "atual",
-        "categoria_edital": "Linha Atual (mantida)",
+        "categoria_edital": "Linha de Bairro",
         "sentido": "ambos",
         "dia_semana": "dias_uteis_sabados",
         "dia_rotulo": "Dias úteis e sábados",
-        "extensao_km": 32.587,
-        "cor": "#B45309",
+        "extensao_km": 32.637,
+        "cor": "#b45309",
         "fonte": "OSO STTU",
         "indice_retorno": 52,
         "rede": "transicao",
@@ -64940,7 +64940,8 @@
             -35.250606,
             -5.723299
           ]
-        ]
+        ],
+        "empresa": "Via Metro"
       },
       "geometry": {
         "type": "LineString",
