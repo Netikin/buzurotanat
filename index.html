@@ -429,6 +429,35 @@
             </div>
           </div>
 
+          <!-- Barra Flutuante do Novo Desenhador DE -> PARA pelas Ruas (Ida + Volta -> Linha Única) -->
+          <div id="barra-desenhador-rota" class="barra-editor-mapa" hidden>
+            <div class="barra-editor-mapa__status">
+              <i class="bi bi-signpost-2-fill"></i>
+              <strong id="titulo-barra-desenhador">Desenhador DE → PARA (OSRM)</strong>
+              <span id="info-barra-desenhador">Clique no mapa para marcar DE, pontos de passagem e PARA</span>
+            </div>
+            <div class="barra-editor-mapa__acoes">
+              <button type="button" id="btn-desenhador-aba-ida" class="btn-rumo-primary" style="height:34px;font-size:0.8rem;">
+                1. IDA
+              </button>
+              <button type="button" id="btn-desenhador-aba-volta" class="btn-rumo-secondary" style="height:34px;font-size:0.8rem;">
+                2. VOLTA
+              </button>
+              <button type="button" id="btn-desenhador-inverter" class="btn-rumo-secondary" style="height:34px;font-size:0.8rem;" title="Copia os pontos da Ida ao contrário para começar a Volta">
+                ↻ Gerar Volta
+              </button>
+              <button type="button" id="btn-desenhador-desfazer" class="btn-rumo-secondary" style="height:34px;font-size:0.8rem;">
+                ↶ Desfazer
+              </button>
+              <button type="button" id="btn-desenhador-salvar" class="btn-rumo-primary" style="height:34px;font-size:0.8rem;background:#15803d;">
+                <i class="bi bi-check2-circle"></i> Unificar e Salvar
+              </button>
+              <button type="button" id="btn-desenhador-sair" class="btn-rumo-secondary" style="height:34px;font-size:0.8rem;color:#b91c1c;border-color:#fca5a5;">
+                Sair
+              </button>
+            </div>
+          </div>
+
           <div id="mapa" role="application" aria-label="Mapa interativo das rotas de Natal"></div>
 
           <!-- Etiqueta Flutuante da Linha Selecionada/Destacada no Mapa -->
@@ -560,9 +589,14 @@
                 <option value="domingos_feriados">Domingos</option>
               </select>
             </div>
-            <button type="button" id="btn-ativar-editor-rota" class="btn-rumo-primary" style="width:100%;background:#e0621f;">
-              <i class="bi bi-pencil-square"></i> Editar Traçado no Mapa
-            </button>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <button type="button" id="btn-ativar-desenhador-rota" class="btn-rumo-primary" style="width:100%;">
+                <i class="bi bi-signpost-2"></i> Desenhar Ida e Volta pelas Ruas (DE → PARA)
+              </button>
+              <button type="button" id="btn-ativar-editor-rota" class="btn-rumo-secondary" style="width:100%;color:#e0621f;border-color:#fdba74;">
+                <i class="bi bi-pencil-square"></i> Ajustar Vértices Existentes no Mapa
+              </button>
+            </div>
           </div>
         </div>
 

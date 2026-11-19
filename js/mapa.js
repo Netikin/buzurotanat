@@ -175,7 +175,8 @@ window.BuzuMapa = (function () {
     aoClicarParada: null,
     aoArrastarParada: null,
     aoClicarMapaEditor: null,
-    aoAtualizarRotaEditor: null
+    aoAtualizarRotaEditor: null,
+    aoAtualizarDesenhador: null
   };
 
   let modoEditorAtivo = false;
@@ -185,6 +186,23 @@ window.BuzuMapa = (function () {
   let coordsEdicaoRota = [];
   let corEdicaoRota = '#162652';
   let historicoEdicaoRota = [];
+
+  let camadaDesenhadorRota = null;
+  const desenhador = {
+    ativo: false,
+    sentidoAtivo: 'IDA',
+    inserirNoMeio: false,
+    waypointsIda: [],
+    waypointsVolta: [],
+    coordsIda: [],
+    coordsVolta: [],
+    ruasIda: [],
+    ruasVolta: [],
+    distIdaKm: 0,
+    distVoltaKm: 0,
+    carregando: false,
+    erroRoteamento: ''
+  };
 
   function inicializar(idElemento = 'mapa', opcoesCallbacks = {}) {
     callbacks = { ...callbacks, ...opcoesCallbacks };
@@ -234,6 +252,7 @@ window.BuzuMapa = (function () {
     camadaRotasPropostas = L.layerGroup().addTo(mapa);
     camadaViagem = L.layerGroup().addTo(mapa);
     camadaEdicaoRota = L.layerGroup().addTo(mapa);
+    camadaDesenhadorRota = L.layerGroup().addTo(mapa);
 
     if (typeof L.markerClusterGroup === 'function') {
       clusterParadas = L.markerClusterGroup({
@@ -284,6 +303,35 @@ window.BuzuMapa = (function () {
         coordsEdicaoRota.push([Number(e.latlng.lng.toFixed(6)), Number(e.latlng.lat.toFixed(6))]);
         desenharEditorRota();
         notificarAtualizacaoRotaEditor();
+        return;
+      }
+      if (desenhador.ativo) {
+        const lista =
+          desenhador.sentidoAtivo === 'VOLTA' ? desenhador.waypointsVolta : desenhador.waypointsIda;
+        const novoWp = {
+          lat: Number(e.latlng.lat.toFixed(6)),
+          lng: Number(e.latlng.lng.toFixed(6))
+        };
+        if (desenhador.inserirNoMeio && lista.length >= 2) {
+          let melhorPos = lista.length;
+          let menorDesvio = Infinity;
+          for (let i = 0; i < lista.length - 1; i++) {
+            const a = lista[i];
+            const b = lista[i + 1];
+            const dAB = window.BuzuUtils.calcularDistanciaGeodesica(a.lat, a.lng, b.lat, b.lng);
+            const dAN = window.BuzuUtils.calcularDistanciaGeodesica(a.lat, a.lng, novoWp.lat, novoWp.lng);
+            const dNB = window.BuzuUtils.calcularDistanciaGeodesica(novoWp.lat, novoWp.lng, b.lat, b.lng);
+            const desvio = dAN + dNB - dAB;
+            if (desvio < menorDesvio) {
+              menorDesvio = desvio;
+              melhorPos = i + 1;
+            }
+          }
+          lista.splice(melhorPos, 0, novoWp);
+        } else {
+          lista.push(novoWp);
+        }
+        void recalcularSentidoDesenhador(desenhador.sentidoAtivo);
       }
     });
 
@@ -405,26 +453,33 @@ window.BuzuMapa = (function () {
         const volta = coords.slice(corte);
         const corVolta = temaEscuro ? misturarCor(corLinha, 'branco', 0.45) : misturarCor(corLinha, 'branco', 0.5);
         const registro = { ida, volta, cor: corLinha, corVolta, numero: props.numero };
-        const estiloComum = { renderer: canvasRenderer, lineCap: 'round', lineJoin: 'round', dashArray: tracadoDesatualizado ? '10, 8' : null };
+        const movel =
+          (typeof window.matchMedia === 'function' &&
+            (window.matchMedia('(max-width: 760px)').matches ||
+              window.matchMedia('(pointer: coarse)').matches)) ||
+          window.innerWidth <= 760;
+        const estiloComum = { renderer: canvasRenderer, lineCap: 'round', lineJoin: 'round', dashArray: tracadoDesatualizado ? '10, 8' : null, interactive: !movel };
         registro.casVolta = L.polyline([], { ...estiloComum, color: corContornoRota(), weight: 9, opacity: 0.9, interactive: false, dashArray: null }).addTo(camadaRotasPropostas);
         registro.casIda = L.polyline([], { ...estiloComum, color: corContornoRota(), weight: 9, opacity: 0.9, interactive: false, dashArray: null }).addTo(camadaRotasPropostas);
         registro.polVolta = L.polyline([], { ...estiloComum, color: corVolta, weight: 5, opacity: 1 }).addTo(camadaRotasPropostas);
         registro.polIda = L.polyline([], { ...estiloComum, color: corLinha, weight: 5, opacity: 1 }).addTo(camadaRotasPropostas);
         const titulo = `<strong>${window.BuzuUtils.escaparHtml(props.numero)} — ${window.BuzuUtils.escaparHtml(props.nome)}</strong>`;
-        registro.polIda.bindTooltip(`${titulo}<br><span class="tooltip-sentido">➜ Ida</span> do terminal até o ponto de retorno`, { sticky: true, className: 'tooltip-linha' });
-        registro.polVolta.bindTooltip(`${titulo}<br><span class="tooltip-sentido tooltip-sentido--volta">➜ Volta</span> do ponto de retorno até o terminal`, { sticky: true, className: 'tooltip-linha' });
-        registro.polIda.on('click', e => {
-          L.popup({ maxWidth: 280 })
-            .setLatLng(e.latlng)
-            .setContent(`${titulo}<br><small>Sentido IDA • ${window.BuzuUtils.escaparHtml(props.dia_rotulo || '')}</small>`)
-            .openOn(mapa);
-        });
-        registro.polVolta.on('click', e => {
-          L.popup({ maxWidth: 280 })
-            .setLatLng(e.latlng)
-            .setContent(`${titulo}<br><small>Sentido VOLTA • ${window.BuzuUtils.escaparHtml(props.dia_rotulo || '')}</small>`)
-            .openOn(mapa);
-        });
+        if (!movel) {
+          registro.polIda.bindTooltip(`${titulo}<br><span class="tooltip-sentido">➜ Ida</span> do terminal até o ponto de retorno`, { sticky: true, className: 'tooltip-linha' });
+          registro.polVolta.bindTooltip(`${titulo}<br><span class="tooltip-sentido tooltip-sentido--volta">➜ Volta</span> do ponto de retorno até o terminal`, { sticky: true, className: 'tooltip-linha' });
+          registro.polIda.on('click', e => {
+            L.popup({ maxWidth: 280 })
+              .setLatLng(e.latlng)
+              .setContent(`${titulo}<br><small>Sentido IDA • ${window.BuzuUtils.escaparHtml(props.dia_rotulo || '')}</small>`)
+              .openOn(mapa);
+          });
+          registro.polVolta.on('click', e => {
+            L.popup({ maxWidth: 280 })
+              .setLatLng(e.latlng)
+              .setContent(`${titulo}<br><small>Sentido VOLTA • ${window.BuzuUtils.escaparHtml(props.dia_rotulo || '')}</small>`)
+              .openOn(mapa);
+          });
+        }
         linhasComSentido.push(registro);
         boundsParaEnquadrar.push(...coords.map(c => [c[1], c[0]]));
         return;
@@ -453,6 +508,12 @@ window.BuzuMapa = (function () {
         boundsParaEnquadrar.push(...latLngs);
       }
 
+      const ehMovel =
+        (typeof window.matchMedia === 'function' &&
+          (window.matchMedia('(max-width: 760px)').matches ||
+            window.matchMedia('(pointer: coarse)').matches)) ||
+        window.innerWidth <= 760;
+
       const polyline = L.polyline(latLngs, {
         renderer: canvasRenderer,
         color: corLinha,
@@ -460,37 +521,40 @@ window.BuzuMapa = (function () {
         opacity: estiloBase.opacity,
         dashArray: tracadoDesatualizado ? '10, 8' : null,
         lineCap: 'round',
-        lineJoin: 'round'
+        lineJoin: 'round',
+        interactive: !ehMovel
       });
 
-      polyline.bindTooltip(
-        `<strong>${window.BuzuUtils.escaparHtml(props.numero)} — ${window.BuzuUtils.escaparHtml(
-          props.nome
-        )}</strong><br>` +
-          `${window.BuzuUtils.escaparHtml(props.dia_rotulo || 'Dias úteis e sábados')} • Lote ${window.BuzuUtils.escaparHtml(
-            props.lote || '1'
-          )}` +
-          (tracadoDesatualizado ? '<br><em>Traçado em atualização (edital 2026)</em>' : '') +
-          '<br><small>Clique para ver o itinerário</small>',
-        { sticky: true, className: 'tooltip-linha' }
-      );
+      if (!ehMovel) {
+        polyline.bindTooltip(
+          `<strong>${window.BuzuUtils.escaparHtml(props.numero)} — ${window.BuzuUtils.escaparHtml(
+            props.nome
+          )}</strong><br>` +
+            `${window.BuzuUtils.escaparHtml(props.dia_rotulo || 'Dias úteis e sábados')} • Lote ${window.BuzuUtils.escaparHtml(
+              props.lote || '1'
+            )}` +
+            (tracadoDesatualizado ? '<br><em>Traçado em atualização (edital 2026)</em>' : '') +
+            '<br><small>Clique para ver o itinerário</small>',
+          { sticky: true, className: 'tooltip-linha' }
+        );
 
-      polyline.on('click', e => {
-        L.popup({ maxWidth: 280 })
-          .setLatLng(e.latlng)
-          .setContent(
-            `<strong>${window.BuzuUtils.escaparHtml(props.numero)} — ${window.BuzuUtils.escaparHtml(
-              props.nome
-            )}</strong><br><small>${window.BuzuUtils.escaparHtml(
-              props.dia_rotulo || 'Dias úteis e sábados'
-            )} • Lote ${window.BuzuUtils.escaparHtml(props.lote || '1')}</small>`
-          )
-          .openOn(mapa);
+        polyline.on('click', e => {
+          L.popup({ maxWidth: 280 })
+            .setLatLng(e.latlng)
+            .setContent(
+              `<strong>${window.BuzuUtils.escaparHtml(props.numero)} — ${window.BuzuUtils.escaparHtml(
+                props.nome
+              )}</strong><br><small>${window.BuzuUtils.escaparHtml(
+                props.dia_rotulo || 'Dias úteis e sábados'
+              )} • Lote ${window.BuzuUtils.escaparHtml(props.lote || '1')}</small>`
+            )
+            .openOn(mapa);
 
-        if (typeof callbacks.aoClicarLinha === 'function') {
-          callbacks.aoClicarLinha(props.linha_id || props.numero, props.dia_semana);
-        }
-      });
+          if (typeof callbacks.aoClicarLinha === 'function') {
+            callbacks.aoClicarLinha(props.linha_id || props.numero, props.dia_semana);
+          }
+        });
+      }
 
       polyline.addTo(camadaRotasPropostas);
       camadasHover.push(polyline);
@@ -807,6 +871,355 @@ window.BuzuMapa = (function () {
     return coordsEdicaoRota.map(c => [c[0], c[1]]);
   }
 
+  // =========================================================================
+  // Desenhador Interativo DE -> PARA pelas Ruas (OSRM) — IDA e VOLTA -> Linha Única
+  // =========================================================================
+  function extrairRuasOSRM(route) {
+    const ruas = [];
+    for (const leg of route?.legs || []) {
+      for (const step of leg?.steps || []) {
+        const nome = String(step?.name || '').trim();
+        if (!nome) continue;
+        const loc = step?.maneuver?.location || [];
+        const ant = ruas[ruas.length - 1];
+        if (!ant || ant.logradouro.toUpperCase() !== nome.toUpperCase()) {
+          ruas.push({
+            ordem: ruas.length + 1,
+            logradouro: nome,
+            bairro: 'Natal',
+            lat: Number((loc[1] || 0).toFixed(6)),
+            lng: Number((loc[0] || 0).toFixed(6))
+          });
+        }
+      }
+    }
+    return ruas;
+  }
+
+  function notificarDesenhador() {
+    if (typeof callbacks.aoAtualizarDesenhador === 'function') {
+      callbacks.aoAtualizarDesenhador({
+        ativo: desenhador.ativo,
+        sentidoAtivo: desenhador.sentidoAtivo,
+        inserirNoMeio: desenhador.inserirNoMeio,
+        qtdWaypointsIda: desenhador.waypointsIda.length,
+        qtdWaypointsVolta: desenhador.waypointsVolta.length,
+        qtdCoordsIda: desenhador.coordsIda.length,
+        qtdCoordsVolta: desenhador.coordsVolta.length,
+        distIdaKm: desenhador.distIdaKm,
+        distVoltaKm: desenhador.distVoltaKm,
+        carregando: desenhador.carregando,
+        erroRoteamento: desenhador.erroRoteamento
+      });
+    }
+  }
+
+  async function recalcularSentidoDesenhador(sentido) {
+    const ehVolta = sentido === 'VOLTA';
+    const waypoints = ehVolta ? desenhador.waypointsVolta : desenhador.waypointsIda;
+
+    if (waypoints.length === 0) {
+      if (ehVolta) {
+        desenhador.coordsVolta = [];
+        desenhador.ruasVolta = [];
+        desenhador.distVoltaKm = 0;
+      } else {
+        desenhador.coordsIda = [];
+        desenhador.ruasIda = [];
+        desenhador.distIdaKm = 0;
+      }
+      renderizarCamadaDesenhador();
+      notificarDesenhador();
+      return;
+    }
+
+    if (waypoints.length === 1) {
+      const unico = [[waypoints[0].lng, waypoints[0].lat]];
+      if (ehVolta) {
+        desenhador.coordsVolta = unico;
+        desenhador.ruasVolta = [];
+        desenhador.distVoltaKm = 0;
+      } else {
+        desenhador.coordsIda = unico;
+        desenhador.ruasIda = [];
+        desenhador.distIdaKm = 0;
+      }
+      renderizarCamadaDesenhador();
+      notificarDesenhador();
+      return;
+    }
+
+    desenhador.carregando = true;
+    desenhador.erroRoteamento = '';
+    notificarDesenhador();
+
+    try {
+      const coordsStr = waypoints.map(w => `${w.lng},${w.lat}`).join(';');
+      const url = `https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson&steps=true`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.code !== 'Ok' || !json.routes?.[0]) {
+        throw new Error(json.message || 'OSRM não encontrou caminho');
+      }
+      const rota = json.routes[0];
+      const coordsLimpas = (rota.geometry?.coordinates || []).map(c => [
+        Number(c[0].toFixed(6)),
+        Number(c[1].toFixed(6))
+      ]);
+      const km = Number(((rota.distance || 0) / 1000).toFixed(3));
+      const ruas = extrairRuasOSRM(rota);
+
+      if (ehVolta) {
+        desenhador.coordsVolta = coordsLimpas;
+        desenhador.distVoltaKm = km;
+        desenhador.ruasVolta = ruas;
+      } else {
+        desenhador.coordsIda = coordsLimpas;
+        desenhador.distIdaKm = km;
+        desenhador.ruasIda = ruas;
+      }
+    } catch (err) {
+      // Fallback reto caso OSRM falhe
+      const fallback = waypoints.map(w => [w.lng, w.lat]);
+      const acum = window.BuzuUtils.calcularComprimentoAcumulado(fallback);
+      const km = Number(((acum[acum.length - 1] || 0) / 1000).toFixed(3));
+      if (ehVolta) {
+        desenhador.coordsVolta = fallback;
+        desenhador.distVoltaKm = km;
+      } else {
+        desenhador.coordsIda = fallback;
+        desenhador.distIdaKm = km;
+      }
+      desenhador.erroRoteamento = `OSRM indisponível (${err.message}); usando linha reta nos trechos.`;
+    } finally {
+      desenhador.carregando = false;
+      renderizarCamadaDesenhador();
+      notificarDesenhador();
+    }
+  }
+
+  function renderizarCamadaDesenhador() {
+    if (!camadaDesenhadorRota) return;
+    camadaDesenhadorRota.clearLayers();
+    if (!desenhador.ativo) return;
+
+    const ehIdaAtiva = desenhador.sentidoAtivo === 'IDA';
+
+    // Desenha traçado IDA (#162652)
+    if (desenhador.coordsIda.length >= 2) {
+      L.polyline(
+        desenhador.coordsIda.map(c => [c[1], c[0]]),
+        {
+          color: '#162652',
+          weight: ehIdaAtiva ? 6 : 4,
+          opacity: ehIdaAtiva ? 0.95 : 0.42,
+          dashArray: ehIdaAtiva ? null : '8, 6'
+        }
+      ).addTo(camadaDesenhadorRota);
+    }
+
+    // Desenha traçado VOLTA (#e0621f)
+    if (desenhador.coordsVolta.length >= 2) {
+      L.polyline(
+        desenhador.coordsVolta.map(c => [c[1], c[0]]),
+        {
+          color: '#e0621f',
+          weight: !ehIdaAtiva ? 6 : 4,
+          opacity: !ehIdaAtiva ? 0.95 : 0.42,
+          dashArray: !ehIdaAtiva ? null : '8, 6'
+        }
+      ).addTo(camadaDesenhadorRota);
+    }
+
+    // Marcadores numerados arrastáveis para o sentido ativo
+    const listaAtiva = ehIdaAtiva ? desenhador.waypointsIda : desenhador.waypointsVolta;
+    const classeCor = ehIdaAtiva ? 'ida' : 'volta';
+
+    listaAtiva.forEach((wp, idx) => {
+      const ehInicio = idx === 0;
+      const ehFim = idx === listaAtiva.length - 1 && listaAtiva.length > 1;
+      const rotulo = ehInicio
+        ? ehIdaAtiva
+          ? 'DE'
+          : 'RET'
+        : ehFim
+        ? ehIdaAtiva
+          ? 'PARA'
+          : 'TERM'
+        : String(idx + 1);
+
+      const icone = L.divIcon({
+        className: '',
+        html: `<div class="waypoint-desenhador-rota waypoint-desenhador-rota--${classeCor} ${
+          ehInicio || ehFim ? 'extremo' : ''
+        }" title="Ponto ${idx + 1} (arraste para ajustar a rua; botão direito remove)">${rotulo}</div>`,
+        iconSize: [ehInicio || ehFim ? 36 : 24, 24],
+        iconAnchor: [ehInicio || ehFim ? 18 : 12, 12]
+      });
+
+      const mk = L.marker([wp.lat, wp.lng], {
+        icon: icone,
+        draggable: true,
+        zIndexOffset: 900
+      });
+
+      mk.on('dragend', e => {
+        const pos = e.target.getLatLng();
+        listaAtiva[idx] = {
+          lat: Number(pos.lat.toFixed(6)),
+          lng: Number(pos.lng.toFixed(6))
+        };
+        void recalcularSentidoDesenhador(desenhador.sentidoAtivo);
+      });
+
+      mk.on('contextmenu', e => {
+        L.DomEvent.stopPropagation(e);
+        listaAtiva.splice(idx, 1);
+        void recalcularSentidoDesenhador(desenhador.sentidoAtivo);
+      });
+
+      mk.addTo(camadaDesenhadorRota);
+    });
+  }
+
+  function extrairAncorasDePolilinha(coords, maxAncoras = 9) {
+    if (!Array.isArray(coords) || coords.length === 0) return [];
+    if (coords.length === 1) return [{ lat: Number(coords[0][1].toFixed(6)), lng: Number(coords[0][0].toFixed(6)) }];
+    const acum = window.BuzuUtils.calcularComprimentoAcumulado(coords);
+    const total = acum[acum.length - 1] || 0;
+    const qtd = Math.min(maxAncoras, Math.max(2, Math.round(total / 1800) + 1));
+    const ancoras = [{ lat: Number(coords[0][1].toFixed(6)), lng: Number(coords[0][0].toFixed(6)) }];
+
+    for (let k = 1; k < qtd - 1; k++) {
+      const alvo = (total * k) / (qtd - 1);
+      let idx = 1;
+      while (idx < acum.length - 1 && acum[idx] < alvo) idx++;
+      ancoras.push({
+        lat: Number(coords[idx][1].toFixed(6)),
+        lng: Number(coords[idx][0].toFixed(6))
+      });
+    }
+    const ult = coords[coords.length - 1];
+    ancoras.push({ lat: Number(ult[1].toFixed(6)), lng: Number(ult[0].toFixed(6)) });
+    return ancoras;
+  }
+
+  function definirModoDesenhadorRota(ativo, opcoes = {}) {
+    desenhador.ativo = Boolean(ativo);
+    if (desenhador.ativo) {
+      desenhador.sentidoAtivo = 'IDA';
+      desenhador.erroRoteamento = '';
+      const coordsOrig = Array.isArray(opcoes.coordenadasExistentes)
+        ? opcoes.coordenadasExistentes.map(c => [Number(c[0]), Number(c[1])])
+        : [];
+
+      if (coordsOrig.length >= 4) {
+        const corte =
+          Number.isInteger(opcoes.indiceRetorno) &&
+          opcoes.indiceRetorno > 0 &&
+          opcoes.indiceRetorno < coordsOrig.length - 1
+            ? opcoes.indiceRetorno
+            : indiceRetorno(coordsOrig, {});
+        const ida = coordsOrig.slice(0, corte + 1);
+        const volta = coordsOrig.slice(corte);
+
+        desenhador.coordsIda = ida;
+        desenhador.coordsVolta = volta;
+        desenhador.waypointsIda = extrairAncorasDePolilinha(ida, 9);
+        desenhador.waypointsVolta = extrairAncorasDePolilinha(volta, 9);
+
+        const acumIda = window.BuzuUtils.calcularComprimentoAcumulado(ida);
+        const acumVolta = window.BuzuUtils.calcularComprimentoAcumulado(volta);
+        desenhador.distIdaKm = Number(((acumIda[acumIda.length - 1] || 0) / 1000).toFixed(3));
+        desenhador.distVoltaKm = Number(((acumVolta[acumVolta.length - 1] || 0) / 1000).toFixed(3));
+        desenhador.ruasIda = opcoes.itinerarioRuas?.ida || [];
+        desenhador.ruasVolta = opcoes.itinerarioRuas?.volta || [];
+        desenhador.inserirNoMeio = true;
+
+        mapa.fitBounds(
+          coordsOrig.map(c => [c[1], c[0]]),
+          { padding: [45, 45], maxZoom: 16 }
+        );
+      } else {
+        desenhador.waypointsIda = [];
+        desenhador.waypointsVolta = [];
+        desenhador.coordsIda = [];
+        desenhador.coordsVolta = [];
+        desenhador.ruasIda = [];
+        desenhador.ruasVolta = [];
+        desenhador.distIdaKm = 0;
+        desenhador.distVoltaKm = 0;
+        desenhador.inserirNoMeio = false;
+      }
+    }
+    renderizarCamadaDesenhador();
+    const elMapa = document.getElementById('mapa');
+    if (elMapa) {
+      elMapa.style.cursor = desenhador.ativo ? 'crosshair' : '';
+    }
+    notificarDesenhador();
+  }
+
+  function alternarModoInsercaoDesenhador() {
+    desenhador.inserirNoMeio = !desenhador.inserirNoMeio;
+    notificarDesenhador();
+    return desenhador.inserirNoMeio;
+  }
+
+  function definirSentidoDesenhador(sentido) {
+    desenhador.sentidoAtivo = sentido === 'VOLTA' ? 'VOLTA' : 'IDA';
+    renderizarCamadaDesenhador();
+    notificarDesenhador();
+  }
+
+  function desfazerPontoDesenhador() {
+    const lista =
+      desenhador.sentidoAtivo === 'VOLTA' ? desenhador.waypointsVolta : desenhador.waypointsIda;
+    if (lista.length === 0) return;
+    lista.pop();
+    void recalcularSentidoDesenhador(desenhador.sentidoAtivo);
+  }
+
+  function limparSentidoDesenhador() {
+    if (desenhador.sentidoAtivo === 'VOLTA') desenhador.waypointsVolta = [];
+    else desenhador.waypointsIda = [];
+    void recalcularSentidoDesenhador(desenhador.sentidoAtivo);
+  }
+
+  async function gerarVoltaInvertidaDesenhador() {
+    if (desenhador.waypointsIda.length < 2) return false;
+    desenhador.waypointsVolta = desenhador.waypointsIda
+      .slice()
+      .reverse()
+      .map(w => ({ lat: w.lat, lng: w.lng }));
+    desenhador.sentidoAtivo = 'VOLTA';
+    await recalcularSentidoDesenhador('VOLTA');
+    return true;
+  }
+
+  function obterDadosDesenhadorRota() {
+    const ida = desenhador.coordsIda || [];
+    const volta = desenhador.coordsVolta || [];
+    const coordsUnificadas =
+      ida.length >= 2 && volta.length >= 2
+        ? [...ida, ...volta.slice(1)]
+        : ida.length >= 2
+        ? [...ida]
+        : [...volta];
+    const indiceRetorno = ida.length >= 2 && volta.length >= 2 ? ida.length - 1 : null;
+
+    return {
+      coordsIda: ida,
+      coordsVolta: volta,
+      coordsUnificadas,
+      indiceRetorno,
+      ruasIda: desenhador.ruasIda || [],
+      ruasVolta: desenhador.ruasVolta || [],
+      distIdaKm: desenhador.distIdaKm,
+      distVoltaKm: desenhador.distVoltaKm
+    };
+  }
+
   function enquadrarBbox(bbox) {
     if (!mapa || !Array.isArray(bbox) || bbox.length < 4) return;
     const [minLng, minLat, maxLng, maxLat] = bbox;
@@ -1089,6 +1502,13 @@ style="width:30px;height:30px;font-size:13px;">${sigla}</div>`,
     definirAdicionarVerticeCliqueRota,
     desfazerEdicaoRota,
     obterCoordenadasEdicaoRota,
+    definirModoDesenhadorRota,
+    definirSentidoDesenhador,
+    alternarModoInsercaoDesenhador,
+    desfazerPontoDesenhador,
+    limparSentidoDesenhador,
+    gerarVoltaInvertidaDesenhador,
+    obterDadosDesenhadorRota,
     solicitarEnquadramentoNaProximaRenderizacao,
     invalidarTamanho,
     definirTemaMapa,

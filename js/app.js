@@ -38,7 +38,10 @@
     modoEditorRota: false,
     editorRotaLinha: null,
     editorRotaDia: 'dias_uteis_sabados',
-    estenderRotaCliqueAtivo: false
+    estenderRotaCliqueAtivo: false,
+    modoDesenhadorRota: false,
+    desenhadorLinha: null,
+    desenhadorDia: 'dias_uteis_sabados'
   };
 
   document.addEventListener('DOMContentLoaded', async () => {
@@ -106,6 +109,44 @@
         }
         if (btnDesfazer && info) {
           btnDesfazer.disabled = !info.podeDesfazer;
+        }
+      },
+      aoAtualizarDesenhador: info => {
+        if (!info || !info.ativo) return;
+        const elInfo = document.getElementById('info-barra-desenhador');
+        const btnIda = document.getElementById('btn-desenhador-aba-ida');
+        const btnVolta = document.getElementById('btn-desenhador-aba-volta');
+        const elResumo = document.getElementById('resumo-desenhador-lateral');
+        const btnPainelIda = document.getElementById('btn-painel-desenhador-ida');
+        const btnPainelVolta = document.getElementById('btn-painel-desenhador-volta');
+        const btnInsercao = document.getElementById('btn-painel-desenhador-insercao');
+
+        const ehIda = info.sentidoAtivo !== 'VOLTA';
+        if (btnIda) btnIda.className = ehIda ? 'btn-rumo-primary' : 'btn-rumo-secondary';
+        if (btnVolta) btnVolta.className = !ehIda ? 'btn-rumo-primary' : 'btn-rumo-secondary';
+        if (btnPainelIda) btnPainelIda.className = ehIda ? 'btn-rumo-primary' : 'btn-rumo-secondary';
+        if (btnPainelVolta) btnPainelVolta.className = !ehIda ? 'btn-rumo-primary' : 'btn-rumo-secondary';
+        if (btnInsercao) {
+          btnInsercao.textContent = info.inserirNoMeio
+            ? 'Clique no mapa: Inserir no trecho'
+            : 'Clique no mapa: Adicionar no final';
+        }
+
+        if (elInfo) {
+          if (info.carregando) {
+            elInfo.textContent = 'Calculando trajeto pelas ruas (OSRM)...';
+          } else if (info.erroRoteamento) {
+            elInfo.textContent = info.erroRoteamento;
+          } else {
+            elInfo.textContent = `Modo ${info.sentidoAtivo}: Ida ${info.distIdaKm.toFixed(2).replace('.', ',')} km (${info.qtdWaypointsIda} pts) • Volta ${info.distVoltaKm.toFixed(2).replace('.', ',')} km (${info.qtdWaypointsVolta} pts)`;
+          }
+        }
+
+        if (elResumo) {
+          elResumo.innerHTML =
+            `<strong>IDA:</strong> ${info.qtdWaypointsIda} pontos • ${info.distIdaKm.toFixed(2).replace('.', ',')} km<br>` +
+            `<strong>VOLTA:</strong> ${info.qtdWaypointsVolta} pontos • ${info.distVoltaKm.toFixed(2).replace('.', ',')} km` +
+            (info.carregando ? '<br><em>Roteando ruas via OSRM...</em>' : '');
         }
       }
     });
@@ -2607,6 +2648,257 @@
 
     btnRotaSair?.addEventListener('click', () => {
       void sairModoEditorRota(true);
+    });
+
+    // Novo Desenhador Interativo DE -> PARA pelas Ruas (Ida + Volta -> Linha Única)
+    const btnAtivarDesenhador = document.getElementById('btn-ativar-desenhador-rota');
+    const barraDesenhador = document.getElementById('barra-desenhador-rota');
+
+    async function abrirDesenhadorRota(numeroLinha, diaSemana) {
+      if (estadoUI.modoEditorRota) await sairModoEditorRota(false);
+      if (estadoUI.modoEditorParadas) {
+        estadoUI.modoEditorParadas = false;
+        estadoUI.criarParadaCliqueAtivo = false;
+        if (barraEditorMapa) barraEditorMapa.hidden = true;
+        window.BuzuMapa.definirModoEditorParadas(false, false);
+      }
+
+      estadoUI.modoDesenhadorRota = true;
+      estadoUI.desenhadorLinha = numeroLinha;
+      estadoUI.desenhadorDia = diaSemana || 'dias_uteis_sabados';
+      estadoUI.linhaSelecionadaId = numeroLinha;
+      estadoUI.paradaSelecionadaId = null;
+
+      if (modal) modal.hidden = true;
+      if (barraDesenhador) barraDesenhador.hidden = false;
+
+      const tituloBar = document.getElementById('titulo-barra-desenhador');
+      if (tituloBar) {
+        tituloBar.textContent = `Desenhar ${numeroLinha} (${
+          estadoUI.desenhadorDia === 'domingos_feriados' ? 'Domingos' : 'Úteis/Sáb'
+        })`;
+      }
+
+      const dadosExistentes = await window.BuzuDados.obterCoordenadasRota(
+        numeroLinha,
+        estadoUI.desenhadorDia
+      );
+      const linhaMeta = window.BuzuDados.obterLinhaPorId(numeroLinha, estadoUI.desenhadorDia);
+
+      window.BuzuMapa.solicitarEnquadramentoNaProximaRenderizacao();
+      await atualizarMapaEListagens();
+      renderizarPainelDesenhadorRota(numeroLinha, estadoUI.desenhadorDia);
+      window.BuzuMapa.definirModoDesenhadorRota(true, {
+        coordenadasExistentes: dadosExistentes?.coordenadas || [],
+        indiceRetorno: dadosExistentes?.feature?.properties?.indice_retorno,
+        itinerarioRuas: linhaMeta?.itinerario_ruas || null
+      });
+    }
+
+    async function sairModoDesenhadorRota(voltarParaLinha = true) {
+      estadoUI.modoDesenhadorRota = false;
+      if (barraDesenhador) barraDesenhador.hidden = true;
+      window.BuzuMapa.definirModoDesenhadorRota(false);
+      if (voltarParaLinha && estadoUI.desenhadorLinha) {
+        window.location.hash = `#/linha/${encodeURIComponent(estadoUI.desenhadorLinha)}`;
+      }
+      await atualizarMapaEListagens();
+    }
+
+    function renderizarPainelDesenhadorRota(numeroLinha, diaReal) {
+      const containerDetalhe = document.getElementById('visao-detalhe');
+      const containerExploracao = document.getElementById('visao-exploracao');
+      const linha = window.BuzuDados.obterLinhaPorId(numeroLinha, diaReal);
+      if (!containerDetalhe || !linha) return;
+
+      if (containerExploracao) containerExploracao.hidden = true;
+      containerDetalhe.hidden = false;
+
+      containerDetalhe.innerHTML = `
+        <div class="bloco-secao bloco-secao-destaque">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
+            <strong style="font-size:1.05rem;color:#162652;">
+              <i class="bi bi-signpost-2"></i> Desenhar ${window.BuzuUtils.escaparHtml(linha.numero)} pelas ruas
+            </strong>
+            <span class="badge-tipo">${
+              diaReal === 'domingos_feriados' ? 'Domingos e feriados' : 'Dias úteis e sábados'
+            }</span>
+          </div>
+
+          <div class="alerta-edital" style="font-size:0.82rem;margin-bottom:12px;">
+            <strong>Passo a passo (OSRM automático nas ruas):</strong><br>
+            1. Na aba <strong>IDA</strong>, clique no mapa em <strong>DE</strong> (terminal), nos pontos intermediários das ruas e em <strong>PARA</strong> (retorno).<br>
+            2. Clique em <strong>↻ Gerar Volta invertendo a Ida</strong> (ou clique na aba <strong>VOLTA</strong>) e ajuste os pontos caso a volta passe por ruas diferentes.<br>
+            3. Arraste qualquer marcador para ajustar ou clique com o botão direito para remover.<br>
+            4. Ao salvar, junta tudo numa <strong>única linha</strong> e <strong>vincula as paradas existentes</strong>.
+          </div>
+
+          <div class="desenhador-abas">
+            <button type="button" id="btn-painel-desenhador-ida" class="btn-rumo-primary">
+              1. Desenhar IDA (DE → PARA)
+            </button>
+            <button type="button" id="btn-painel-desenhador-volta" class="btn-rumo-secondary">
+              2. Desenhar VOLTA (PARA → DE)
+            </button>
+          </div>
+
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+            <button type="button" id="btn-painel-desenhador-inverter" class="btn-rumo-secondary" style="flex:1;">
+              ↻ Gerar Volta invertendo a Ida
+            </button>
+            <button type="button" id="btn-painel-desenhador-insercao" class="btn-rumo-secondary" title="Alterna se o próximo clique insere no trecho mais próximo ou ao final da linha">
+              Clique no mapa: Inserir no trecho
+            </button>
+          </div>
+
+          <div id="resumo-desenhador-lateral" class="alerta-edital" style="margin-bottom:10px;font-size:0.85rem;">
+            <strong>IDA:</strong> 0 pontos • 0,00 km<br>
+            <strong>VOLTA:</strong> 0 pontos • 0,00 km
+          </div>
+
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+            <button type="button" id="btn-painel-desenhador-desfazer" class="btn-rumo-secondary">
+              ↶ Desfazer ponto
+            </button>
+            <button type="button" id="btn-painel-desenhador-limpar" class="btn-rumo-secondary">
+              Limpar sentido atual
+            </button>
+          </div>
+
+          <div id="feedback-desenhador" hidden style="margin-bottom:10px;"></div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" id="btn-painel-desenhador-salvar" class="btn-rumo-primary" style="flex:1;background:#15803d;">
+              <i class="bi bi-check2-circle"></i> Unificar IDA + VOLTA e Vincular Paradas
+            </button>
+            <button type="button" id="btn-painel-desenhador-sair" class="btn-rumo-secondary">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('btn-painel-desenhador-ida')?.addEventListener('click', () => {
+        window.BuzuMapa.definirSentidoDesenhador('IDA');
+      });
+      document.getElementById('btn-painel-desenhador-volta')?.addEventListener('click', () => {
+        window.BuzuMapa.definirSentidoDesenhador('VOLTA');
+      });
+      document.getElementById('btn-painel-desenhador-inverter')?.addEventListener('click', () => {
+        void executarGerarVoltaInvertida();
+      });
+      document.getElementById('btn-painel-desenhador-insercao')?.addEventListener('click', () => {
+        window.BuzuMapa.alternarModoInsercaoDesenhador();
+      });
+      document.getElementById('btn-painel-desenhador-desfazer')?.addEventListener('click', () => {
+        window.BuzuMapa.desfazerPontoDesenhador();
+      });
+      document.getElementById('btn-painel-desenhador-limpar')?.addEventListener('click', () => {
+        window.BuzuMapa.limparSentidoDesenhador();
+      });
+      document.getElementById('btn-painel-desenhador-salvar')?.addEventListener('click', () => {
+        void salvarDesenhadorRota();
+      });
+      document.getElementById('btn-painel-desenhador-sair')?.addEventListener('click', () => {
+        void sairModoDesenhadorRota(true);
+      });
+    }
+
+    async function executarGerarVoltaInvertida() {
+      const box = document.getElementById('feedback-desenhador');
+      const ok = await window.BuzuMapa.gerarVoltaInvertidaDesenhador();
+      if (!ok && box) {
+        box.hidden = false;
+        box.className = 'alerta-erro';
+        box.textContent = 'Marque pelo menos 2 pontos na IDA (DE e PARA) antes de gerar a VOLTA.';
+      } else if (ok && box) {
+        box.hidden = false;
+        box.className = 'alerta-sucesso';
+        box.textContent = 'VOLTA gerada invertendo a IDA! Arraste ou adicione pontos no mapa se a volta passar por ruas diferentes.';
+      }
+    }
+
+    async function salvarDesenhadorRota() {
+      if (!estadoUI.modoDesenhadorRota || !estadoUI.desenhadorLinha) return;
+      const box = document.getElementById('feedback-desenhador');
+      const dados = window.BuzuMapa.obterDadosDesenhadorRota();
+
+      if (!dados.coordsIda || dados.coordsIda.length < 2) {
+        if (box) {
+          box.hidden = false;
+          box.className = 'alerta-erro';
+          box.textContent = 'Desenhe pelo menos a IDA (mínimo 2 pontos: DE e PARA) antes de salvar.';
+        }
+        return;
+      }
+
+      if (!dados.coordsVolta || dados.coordsVolta.length < 2) {
+        const confirmarSoIda = window.confirm(
+          'Você ainda não gerou a VOLTA. Deseja gerar automaticamente a VOLTA invertendo a IDA agora antes de unificar?'
+        );
+        if (confirmarSoIda) {
+          await window.BuzuMapa.gerarVoltaInvertidaDesenhador();
+        } else {
+          return;
+        }
+      }
+
+      const dadosFinais = window.BuzuMapa.obterDadosDesenhadorRota();
+      try {
+        const res = await window.BuzuDados.atualizarRotaNoMapa(
+          estadoUI.desenhadorLinha,
+          estadoUI.desenhadorDia,
+          dadosFinais.coordsUnificadas,
+          {
+            indice_retorno: dadosFinais.indiceRetorno,
+            itinerario_ruas: {
+              ida: dadosFinais.ruasIda,
+              volta: dadosFinais.ruasVolta
+            }
+          }
+        );
+
+        await atualizarMapaEListagens();
+        if (box) {
+          box.hidden = false;
+          box.className = 'alerta-sucesso';
+          box.textContent =
+            `Unificado numa linha só e salvo no rascunho! ` +
+            `${res.extensao_km.toFixed(2).replace('.', ',')} km • ` +
+            `${res.paradasVinculadas} paradas existentes vinculadas (${res.paradasIda} IDA, ${res.paradasVolta} VOLTA).`;
+        }
+      } catch (err) {
+        if (box) {
+          box.hidden = false;
+          box.className = 'alerta-erro';
+          box.textContent = `Erro ao unificar e salvar: ${err.message}`;
+        }
+      }
+    }
+
+    btnAtivarDesenhador?.addEventListener('click', () => {
+      const num = selectLinhaVisual?.value;
+      const dia = selectDiaVisual?.value || 'dias_uteis_sabados';
+      if (num) void abrirDesenhadorRota(num, dia);
+    });
+
+    document.getElementById('btn-desenhador-aba-ida')?.addEventListener('click', () => {
+      window.BuzuMapa.definirSentidoDesenhador('IDA');
+    });
+    document.getElementById('btn-desenhador-aba-volta')?.addEventListener('click', () => {
+      window.BuzuMapa.definirSentidoDesenhador('VOLTA');
+    });
+    document.getElementById('btn-desenhador-inverter')?.addEventListener('click', () => {
+      void executarGerarVoltaInvertida();
+    });
+    document.getElementById('btn-desenhador-desfazer')?.addEventListener('click', () => {
+      window.BuzuMapa.desfazerPontoDesenhador();
+    });
+    document.getElementById('btn-desenhador-salvar')?.addEventListener('click', () => {
+      void salvarDesenhadorRota();
+    });
+    document.getElementById('btn-desenhador-sair')?.addEventListener('click', () => {
+      void sairModoDesenhadorRota(true);
     });
 
     btnEditorCriarClique?.addEventListener('click', () => {

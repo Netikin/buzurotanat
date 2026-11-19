@@ -2321,6 +2321,15 @@ window.BuzuDados = (function () {
     feature.properties.cor = novaCor;
     feature.properties.categoria_edital = novaCat;
     feature.properties.extensao_km = extensaoKm;
+    if (
+      Number.isInteger(novosMetadados.indice_retorno) &&
+      novosMetadados.indice_retorno > 0 &&
+      novosMetadados.indice_retorno < coordsLimpas.length - 1
+    ) {
+      feature.properties.indice_retorno = novosMetadados.indice_retorno;
+    } else {
+      delete feature.properties.indice_retorno;
+    }
 
     // Se mudou de lote, move a feature entre lote-1 e lote-2
     if (novoLote !== loteAntigo) {
@@ -2357,11 +2366,19 @@ window.BuzuDados = (function () {
         linhaIdx.variantes_dia[diaReal].cor = novaCor;
         linhaIdx.variantes_dia[diaReal].extensao_km = extensaoKm;
         linhaIdx.variantes_dia[diaReal].bbox = bbox;
+        if (novosMetadados.itinerario_ruas) {
+          linhaIdx.variantes_dia[diaReal].itinerario_ruas = novosMetadados.itinerario_ruas;
+        }
       }
     }
 
     // Recalcula vínculos linha_paradas num raio de 40m para esta linha neste dia
-    const meioIdx = Math.max(1, Math.floor(coordsLimpas.length / 2));
+    const meioIdx =
+      Number.isInteger(feature.properties.indice_retorno) &&
+      feature.properties.indice_retorno > 0 &&
+      feature.properties.indice_retorno < coordsLimpas.length - 1
+        ? feature.properties.indice_retorno
+        : Math.max(1, Math.floor(coordsLimpas.length / 2));
     const outrosVinculos = (estado.linhaParadas || []).filter(
       lp =>
         !(
@@ -2422,13 +2439,20 @@ window.BuzuDados = (function () {
     novosVinculosVolta.forEach((v, idx) => (v.ordem_sequencial = idx + 1));
 
     estado.linhaParadas = [...outrosVinculos, ...novosVinculosIda, ...novosVinculosVolta];
+    if (linhaIdx?.variantes_dia?.[diaReal]) {
+      linhaIdx.variantes_dia[diaReal].paradas_atendidas = Array.from(
+        new Set([...novosVinculosIda, ...novosVinculosVolta].map(v => v.parada_id))
+      );
+    }
     estado.grafoMemoria = {};
     await salvarOverrideAdmin({ publicar: false, resumoAcao: `Rota ${numUpper} (${diaReal}) editada` });
 
     return {
       extensao_km: extensaoKm,
       vertices: coordsLimpas.length,
-      paradasVinculadas: novosVinculosIda.length + novosVinculosVolta.length
+      paradasVinculadas: novosVinculosIda.length + novosVinculosVolta.length,
+      paradasIda: novosVinculosIda.length,
+      paradasVolta: novosVinculosVolta.length
     };
   }
 

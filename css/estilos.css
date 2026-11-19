@@ -2610,3 +2610,43 @@ body.alto-contraste .btn-menu.active {
     font-weight: 700;
   }
 }
+
+/* ==========================================================================
+   Desenhador Interativo DE -> PARA pelas Ruas (Waypoints IDA / VOLTA)
+   ========================================================================== */
+.waypoint-desenhador-rota {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 5px;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.4);
+  cursor: grab;
+  white-space: nowrap;
+}
+
+.waypoint-desenhador-rota--ida {
+  background: #162652;
+}
+
+.waypoint-desenhador-rota--volta {
+  background: #e0621f;
+}
+
+.waypoint-desenhador-rota.extremo {
+  border-width: 2.5px;
+  font-size: 10px;
+}
+
+.desenhador-abas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
