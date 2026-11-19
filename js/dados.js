@@ -321,7 +321,8 @@ window.BuzuDados = (function () {
     const promessaLocais = buscarDados('dados/locais-natal.json')
       .then(r => (r.ok ? r.json() : FALLBACK_INICIAL.locaisNatal))
       .catch(() => FALLBACK_INICIAL.locaisNatal);
-    const promessaRedeAtual = estado.redeAtualGeoJson
+    const promessaRedeAtual =
+      estado.redeAtualGeoJson || window.BuzuPrecarga?.podeExistir('dados/rede-atual.geojson') === false
       ? Promise.resolve(null)
       : fetch('dados/rede-atual.geojson')
           .then(r => (r.ok ? r.json() : null))

@@ -2181,6 +2181,28 @@ body.alto-contraste .btn-menu.active {
   background: currentColor;
 }
 
+.btn-pausa-ponto {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 4px 10px;
+  background: var(--c-fundo-translucido);
+  color: var(--c-texto);
+  border: 1px solid var(--c-borda);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-pausa-ponto:focus-visible {
+  outline: 3px solid #1a73e8;
+  outline-offset: 2px;
+}
+
 /* Ponto em movimento ao longo do percurso, no estilo "localização GPS" */
 .ponto-gps {
   position: relative;

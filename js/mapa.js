@@ -251,11 +251,56 @@ window.BuzuMapa = (function () {
     percorrido: 0,
     chave: '',
     ultimoInstante: 0,
-    duracaoMs: 15000
+    duracaoMs: 15000,
+    pausado: false, // pausado pelo botão (acessibilidade: conteúdo em movimento precisa poder parar)
+    controle: null
   };
   const VELOCIDADE_PONTO_M_POR_MS = 0.8; // 800 m de mapa por segundo
-  const reduzirMovimento =
-    typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Estilo inline: o ponto aparece mesmo se o navegador ainda tiver um estilos.css antigo em cache
+  const HTML_PONTO_GPS =
+    '<div class="ponto-gps" aria-hidden="true" style="position:relative;width:22px;height:22px">' +
+    '<span class="ponto-gps-pulso" style="position:absolute;inset:0;border-radius:50%;background:rgba(26,115,232,.35)"></span>' +
+    '<span class="ponto-gps-centro" style="position:absolute;inset:5px;border-radius:50%;background:#1a73e8;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45)"></span>' +
+    '</div>';
+
+  function criarControlePausa() {
+    const Controle = L.Control.extend({
+      options: { position: 'bottomleft' },
+      onAdd() {
+        const btn = L.DomUtil.create('button', 'btn-pausa-ponto');
+        btn.type = 'button';
+        L.DomEvent.disableClickPropagation(btn);
+        btn.addEventListener('click', () => {
+          animacao.pausado = !animacao.pausado;
+          atualizarBotaoPausa();
+          if (animacao.pausado) {
+            if (animacao.quadro) cancelAnimationFrame(animacao.quadro);
+            animacao.quadro = null;
+          } else {
+            iniciarQuadros();
+          }
+        });
+        return btn;
+      }
+    });
+    return new Controle();
+  }
+
+  function atualizarBotaoPausa() {
+    const btn = animacao.controle?.getContainer();
+    if (!btn) return;
+    btn.innerHTML = animacao.pausado
+      ? '<i class="bi bi-play-fill" aria-hidden="true"></i> Animar percurso'
+      : '<i class="bi bi-pause-fill" aria-hidden="true"></i> Pausar percurso';
+    btn.setAttribute('aria-pressed', String(animacao.pausado));
+  }
+
+  function iniciarQuadros() {
+    if (animacao.quadro || animacao.pausado || !animacao.total) return;
+    animacao.ultimoInstante = performance.now();
+    animacao.quadro = requestAnimationFrame(passoAnimacao);
+  }
 
   function distanciaMetros(a, b) {
     const kx = 111320 * Math.cos((a[0] * Math.PI) / 180);
@@ -292,7 +337,10 @@ window.BuzuMapa = (function () {
     animacao.quadro = null;
     animacao.marcador?.remove();
     animacao.marcador = null;
+    animacao.controle?.remove();
+    animacao.controle = null;
     animacao.trechos = [];
+    animacao.total = 0;
     animacao.chave = '';
   }
 
@@ -323,7 +371,7 @@ window.BuzuMapa = (function () {
       animacao.marcador = L.marker(posicaoNoPercurso(animacao.percorrido), {
         icon: L.divIcon({
           className: '',
-          html: '<div class="ponto-gps" aria-hidden="true"><span class="ponto-gps-pulso"></span><span class="ponto-gps-centro"></span></div>',
+          html: HTML_PONTO_GPS,
           iconSize: [22, 22],
           iconAnchor: [11, 11]
         }),
@@ -334,15 +382,17 @@ window.BuzuMapa = (function () {
     }
     animacao.marcador.setLatLng(posicaoNoPercurso(animacao.percorrido));
 
-    if (!animacao.quadro && !reduzirMovimento) {
-      animacao.ultimoInstante = performance.now();
-      animacao.quadro = requestAnimationFrame(passoAnimacao);
+    if (!animacao.controle) {
+      animacao.controle = criarControlePausa().addTo(mapa);
+      atualizarBotaoPausa();
+      ajustarCantoInferiorEsquerdo();
     }
+    iniciarQuadros();
   }
 
   function passoAnimacao(agora) {
-    // limita o salto quando a aba volta do segundo plano
-    const dt = Math.min(100, agora - animacao.ultimoInstante);
+    // limita o salto quando a aba volta do segundo plano (e ignora o 1º quadro com tempo "no passado")
+    const dt = Math.max(0, Math.min(100, agora - animacao.ultimoInstante));
     animacao.ultimoInstante = agora;
     animacao.percorrido = (animacao.percorrido + (animacao.total * dt) / animacao.duracaoMs) % animacao.total;
     animacao.marcador?.setLatLng(posicaoNoPercurso(animacao.percorrido));
