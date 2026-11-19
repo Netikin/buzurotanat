@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const { execFile } = require('child_process');
 
 const PORTA_INICIAL = Number(process.env.PORT) || 8080;
@@ -494,17 +495,87 @@ const servidor = http.createServer(async (req, res) => {
     const ext = path.extname(caminhoSeguro).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-    const cacheControl =
-      ext === '.json' || ext === '.geojson' ? 'no-cache, no-store, must-revalidate' : 'public, max-age=60';
-
-    res.writeHead(200, {
+    // Dados (.json/.geojson): o navegador guarda uma cópia, mas confere a versão a cada visita
+    // (ETag → 304 sem corpo); assim uma publicação do admin aparece na hora.
+    const ehDados = ext === '.json' || ext === '.geojson';
+    const cacheControl = ehDados ? 'no-cache' : 'public, max-age=60';
+    const etag = `W/"${stats.size.toString(16)}-${Math.floor(stats.mtimeMs).toString(16)}"`;
+    const cabecalhos = {
       'Content-Type': contentType,
-      'Cache-Control': cacheControl
-    });
+      'Cache-Control': cacheControl,
+      ETag: etag,
+      'Last-Modified': stats.mtime.toUTCString(),
+      Vary: 'Accept-Encoding'
+    };
 
-    fs.createReadStream(caminhoSeguro).pipe(res);
+    if (req.headers['if-none-match'] === etag) {
+      res.writeHead(304, cabecalhos);
+      res.end();
+      return;
+    }
+
+    const codificacao = escolherCodificacao(req.headers['accept-encoding'], ext, stats.size);
+    if (!codificacao) {
+      res.writeHead(200, { ...cabecalhos, 'Content-Length': stats.size });
+      if (req.method === 'HEAD') return res.end();
+      fs.createReadStream(caminhoSeguro).pipe(res);
+      return;
+    }
+
+    obterComprimido(caminhoSeguro, stats, codificacao, (errZip, corpo) => {
+      if (errZip) {
+        res.writeHead(200, cabecalhos);
+        fs.createReadStream(caminhoSeguro).pipe(res);
+        return;
+      }
+      res.writeHead(200, { ...cabecalhos, 'Content-Encoding': codificacao, 'Content-Length': corpo.length });
+      res.end(req.method === 'HEAD' ? undefined : corpo);
+    });
   });
 });
+
+// ---------- Compressão (brotli/gzip) com cache em memória ----------
+// Os arquivos de dados somam ~10 MB; comprimidos ficam ~10x menores. A versão comprimida é guardada
+// em memória e refeita só quando o arquivo muda (tamanho ou data de modificação).
+const EXT_COMPRIMIVEIS = new Set(['.json', '.geojson', '.js', '.css', '.html', '.svg', '.txt', '.md', '.xml']);
+const cacheComprimidos = new Map(); // caminho|codificação -> { chave, corpo }
+
+function escolherCodificacao(aceita, ext, tamanho) {
+  if (!EXT_COMPRIMIVEIS.has(ext) || tamanho < 1024) return null;
+  const a = String(aceita || '');
+  if (/\bbr\b/.test(a)) return 'br';
+  if (/\bgzip\b/.test(a)) return 'gzip';
+  return null;
+}
+
+function obterComprimido(caminho, stats, codificacao, cb) {
+  const chaveCache = `${caminho}|${codificacao}`;
+  const versao = `${stats.size}-${stats.mtimeMs}`;
+  const salvo = cacheComprimidos.get(chaveCache);
+  if (salvo && salvo.versao === versao) return cb(null, salvo.corpo);
+  fs.readFile(caminho, (err, bruto) => {
+    if (err) return cb(err);
+    const pronto = (errZip, corpo) => {
+      if (errZip) return cb(errZip);
+      cacheComprimidos.set(chaveCache, { versao, corpo });
+      cb(null, corpo);
+    };
+    if (codificacao === 'br') {
+      zlib.brotliCompress(
+        bruto,
+        {
+          params: {
+            [zlib.constants.BROTLI_PARAM_QUALITY]: 6,
+            [zlib.constants.BROTLI_PARAM_SIZE_HINT]: bruto.length
+          }
+        },
+        pronto
+      );
+    } else {
+      zlib.gzip(bruto, { level: 6 }, pronto);
+    }
+  });
+}
 
 function iniciarServidor(porta) {
   servidor.once('error', err => {
