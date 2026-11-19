@@ -50,6 +50,7 @@
     configurarBuscaViagem();
     configurarBuscaDiretaLinhaEFiltros();
     configurarModalAdmin();
+    configurarGestaoRascunhoEBeforeUnload();
 
     const dadosEstado = await window.BuzuDados.inicializar();
 
@@ -260,6 +261,45 @@
         ajustarBottomSheetMobile(alvo);
       });
     });
+
+    // Gestos de arrastar (touch swipe) na alça do bottom sheet mobile
+    const alcaSheet = document.getElementById('alca-sheet-mobile');
+    if (alcaSheet) {
+      let inicioY = 0;
+      let arrastando = false;
+      const ordemEstados = ['minimo', 'meio', 'cheio'];
+
+      alcaSheet.addEventListener(
+        'touchstart',
+        e => {
+          if (!e.touches || e.touches.length === 0) return;
+          inicioY = e.touches[0].clientY;
+          arrastando = true;
+        },
+        { passive: true }
+      );
+
+      alcaSheet.addEventListener(
+        'touchend',
+        e => {
+          if (!arrastando) return;
+          arrastando = false;
+          const fimY = e.changedTouches?.[0]?.clientY ?? inicioY;
+          const deltaY = fimY - inicioY;
+          if (Math.abs(deltaY) < 28) return;
+
+          const layout = document.getElementById('layout-principal');
+          const atual = layout?.getAttribute('data-sheet') || 'meio';
+          const idxAtual = Math.max(0, ordemEstados.indexOf(atual));
+          const proxIdx =
+            deltaY < 0
+              ? Math.min(ordemEstados.length - 1, idxAtual + 1)
+              : Math.max(0, idxAtual - 1);
+          ajustarBottomSheetMobile(ordemEstados[proxIdx]);
+        },
+        { passive: true }
+      );
+    }
 
     // Botão de recolher/expandir a legenda do mapa no celular
     const btnLegenda = document.getElementById('btn-toggle-legenda');
@@ -1531,10 +1571,17 @@
     return '';
   }
 
+  let observadorListaLinhas = null;
+
   function renderizarListaLinhasTextual(linhas) {
     const listaEl = document.getElementById('lista-linhas-propostas');
     const contadorEl = document.getElementById('contador-linhas');
     if (!listaEl) return;
+
+    if (observadorListaLinhas) {
+      observadorListaLinhas.disconnect();
+      observadorListaLinhas = null;
+    }
 
     if (contadorEl) {
       contadorEl.textContent = `${linhas.length} ${linhas.length === 1 ? 'LINHA' : 'LINHAS'}`;
@@ -1549,16 +1596,15 @@
       return;
     }
 
-    listaEl.innerHTML = linhas
-      .map(linha => {
-        const varUtil = linha.variantes_dia?.dias_uteis_sabados;
-        const varDom = linha.variantes_dia?.domingos_feriados;
-        const temVariacaoDomingo =
-          varUtil &&
-          varDom &&
-          (varUtil.nome !== varDom.nome || varUtil.extensao_km !== varDom.extensao_km);
+    const montarHtmlCartao = linha => {
+      const varUtil = linha.variantes_dia?.dias_uteis_sabados;
+      const varDom = linha.variantes_dia?.domingos_feriados;
+      const temVariacaoDomingo =
+        varUtil &&
+        varDom &&
+        (varUtil.nome !== varDom.nome || varUtil.extensao_km !== varDom.extensao_km);
 
-        return `
+      return `
         <li class="cartao-item">
           <div class="cabecalho-cartao">
             <div style="display:flex;align-items:flex-start;gap:10px;">
@@ -1607,8 +1653,49 @@
           </div>
         </li>
       `;
-      })
-      .join('');
+    };
+
+    // Renderização incremental / virtualizada em lotes de 20 itens para manter fluidez no celular
+    const TAM_LOTE = 20;
+    let renderizados = 0;
+    listaEl.innerHTML = '';
+
+    const renderizarProximoLote = () => {
+      const sentinelaAntiga = listaEl.querySelector('.sentinela-lista-linhas');
+      if (sentinelaAntiga) sentinelaAntiga.remove();
+
+      const fatia = linhas.slice(renderizados, renderizados + TAM_LOTE);
+      if (fatia.length === 0) return;
+
+      listaEl.insertAdjacentHTML('beforeend', fatia.map(montarHtmlCartao).join(''));
+      renderizados += fatia.length;
+
+      if (renderizados < linhas.length) {
+        const liSentinela = document.createElement('li');
+        liSentinela.className = 'sentinela-lista-linhas';
+        liSentinela.style.listStyle = 'none';
+        liSentinela.style.textAlign = 'center';
+        liSentinela.style.padding = '8px 0';
+        liSentinela.innerHTML = `<button type="button" class="btn-rumo-secondary">Mostrar mais linhas (${renderizados} de ${linhas.length})</button>`;
+        liSentinela.querySelector('button')?.addEventListener('click', renderizarProximoLote);
+        listaEl.appendChild(liSentinela);
+
+        if (typeof IntersectionObserver !== 'undefined') {
+          observadorListaLinhas = new IntersectionObserver(
+            entries => {
+              if (entries.some(en => en.isIntersecting)) {
+                observadorListaLinhas?.disconnect();
+                renderizarProximoLote();
+              }
+            },
+            { rootMargin: '180px' }
+          );
+          observadorListaLinhas.observe(liSentinela);
+        }
+      }
+    };
+
+    renderizarProximoLote();
   }
 
   /**
@@ -2259,6 +2346,10 @@
     });
 
     document.getElementById('btn-excluir-parada')?.addEventListener('click', async () => {
+      const ok = window.confirm(
+        `Tem certeza que deseja excluir a parada "${props.nome}"? Ela será removida do rascunho local e do roteador.`
+      );
+      if (!ok) return;
       await window.BuzuDados.excluirParadaNoMapa(props.id);
       window.location.hash = '#/';
     });
@@ -2708,12 +2799,99 @@
     });
 
     btnRestaurar?.addEventListener('click', async () => {
-      window.BuzuDados.restaurarDadosPadrao();
-      await window.BuzuDados.inicializar();
+      const ok = window.confirm(
+        'Tem certeza que deseja descartar o rascunho local e restaurar os arquivos atuais do servidor (./dados/)?'
+      );
+      if (!ok) return;
+      await window.BuzuDados.restaurarDadosPadrao();
       await atualizarMapaEListagens(true);
       preencherEditorComDadosAtuais();
       mostrarFeedbackAdmin('Base restaurada para os arquivos originais da pasta ./dados/.', 'sucesso');
     });
+
+    // Versionamento (Backups) e Log de Auditoria no Modal Admin
+    async function carregarVersoesAdmin() {
+      const lista = document.getElementById('lista-versoes-servidor');
+      if (!lista) return;
+      lista.innerHTML = '<li class="cartao-item">Carregando versões...</li>';
+      try {
+        const versoes = await window.BuzuDados.listarVersoesServidor();
+        if (!versoes.length) {
+          lista.innerHTML = '<li class="cartao-item">Nenhum backup criado ainda (será gerado na primeira publicação).</li>';
+          return;
+        }
+        lista.innerHTML = versoes
+          .map(
+            v => `
+            <li class="cartao-item" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;">
+              <div style="font-size:0.82rem;">
+                <strong>${window.BuzuUtils.escaparHtml(v.versao)}</strong><br>
+                <span style="color:var(--c-texto-suave,#475569);">${window.BuzuUtils.escaparHtml(v.motivo || 'Backup automático')}</span>
+              </div>
+              <button type="button" class="btn-rumo-secondary btn-restaurar-versao" data-versao="${window.BuzuUtils.escaparHtml(v.versao)}" style="height:32px;font-size:0.78rem;">
+                Restaurar
+              </button>
+            </li>`
+          )
+          .join('');
+
+        lista.querySelectorAll('.btn-restaurar-versao').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const ver = btn.getAttribute('data-versao');
+            if (!window.confirm(`Restaurar a versão "${ver}" no servidor? Um backup do estado atual será criado antes.`)) {
+              return;
+            }
+            try {
+              const r = await window.BuzuDados.restaurarVersaoServidor(ver);
+              await atualizarMapaEListagens(true);
+              preencherEditorComDadosAtuais();
+              mostrarFeedbackAdmin(r.mensagem || `Versão ${ver} restaurada!`, 'sucesso');
+              void carregarVersoesAdmin();
+              void carregarAuditoriaAdmin();
+            } catch (err) {
+              mostrarFeedbackAdmin(`Erro ao restaurar versão: ${err.message}`, 'erro');
+            }
+          });
+        });
+      } catch (err) {
+        lista.innerHTML = `<li class="cartao-item">Erro ao carregar versões: ${window.BuzuUtils.escaparHtml(err.message)}</li>`;
+      }
+    }
+
+    async function carregarAuditoriaAdmin() {
+      const lista = document.getElementById('lista-auditoria-servidor');
+      if (!lista) return;
+      lista.innerHTML = '<li class="cartao-item">Carregando log de auditoria...</li>';
+      try {
+        const regs = await window.BuzuDados.listarAuditoriaServidor();
+        if (!regs.length) {
+          lista.innerHTML = '<li class="cartao-item">Nenhuma ação registrada ainda.</li>';
+          return;
+        }
+        lista.innerHTML = regs
+          .map(r => {
+            const dt = r.dataHora ? new Date(r.dataHora).toLocaleString('pt-BR') : '';
+            return `
+              <li class="cartao-item" style="padding:8px 10px;font-size:0.8rem;">
+                <strong>${window.BuzuUtils.escaparHtml(r.acao)}</strong> • <span>${window.BuzuUtils.escaparHtml(dt)}</span>
+                <div style="color:var(--c-texto-suave,#475569);margin-top:2px;">${window.BuzuUtils.escaparHtml(r.detalhes || '')}</div>
+              </li>`;
+          })
+          .join('');
+      } catch (err) {
+        lista.innerHTML = `<li class="cartao-item">Erro ao carregar auditoria: ${window.BuzuUtils.escaparHtml(err.message)}</li>`;
+      }
+    }
+
+    document.getElementById('detalhes-versoes-admin')?.addEventListener('toggle', e => {
+      if (e.target.open) void carregarVersoesAdmin();
+    });
+    document.getElementById('btn-recarregar-versoes')?.addEventListener('click', () => void carregarVersoesAdmin());
+
+    document.getElementById('detalhes-auditoria-admin')?.addEventListener('toggle', e => {
+      if (e.target.open) void carregarAuditoriaAdmin();
+    });
+    document.getElementById('btn-recarregar-auditoria')?.addEventListener('click', () => void carregarAuditoriaAdmin());
 
     function mostrarFeedbackAdmin(msg, tipo) {
       if (!feedbackAdmin) return;
@@ -2721,6 +2899,101 @@
       feedbackAdmin.className = tipo === 'erro' ? 'alerta-erro' : 'alerta-sucesso';
       feedbackAdmin.textContent = msg;
     }
+  }
+
+  /**
+   * Barra de Rascunho Local -> Publicar no Servidor + Undo Multinível + beforeunload
+   */
+  function configurarGestaoRascunhoEBeforeUnload() {
+    const barra = document.getElementById('barra-rascunho-admin');
+    const badge = document.getElementById('badge-status-salvamento');
+    const texto = document.getElementById('texto-status-rascunho');
+    const btnUndo = document.getElementById('btn-desfazer-global-admin');
+    const btnPublicar = document.getElementById('btn-publicar-rascunho');
+    const btnDescartar = document.getElementById('btn-descartar-rascunho');
+
+    function atualizarBarra(status) {
+      if (!barra) return;
+      const mostrar = status.pendente || (status.ultimoStatus && status.ultimoStatus.tipo !== 'neutro');
+      barra.hidden = !mostrar;
+
+      if (badge) {
+        badge.className = 'badge-status-salvamento';
+        if (status.ultimoStatus?.tipo === 'sucesso') {
+          badge.classList.add('badge-status-salvamento--sucesso');
+          badge.textContent = 'Salvo no servidor';
+        } else if (status.ultimoStatus?.tipo === 'erro') {
+          badge.classList.add('badge-status-salvamento--erro');
+          badge.textContent = 'Falhou';
+        } else if (status.ultimoStatus?.tipo === 'alerta') {
+          badge.classList.add('badge-status-salvamento--alerta');
+          badge.textContent = 'Salvo só local';
+        } else {
+          badge.textContent = status.qtdAcoes
+            ? `Rascunho local (${status.qtdAcoes})`
+            : 'Rascunho local';
+        }
+      }
+
+      if (texto) {
+        texto.textContent =
+          status.ultimoStatus?.texto ||
+          'Alterações salvas localmente no IndexedDB. Clique em "Publicar no servidor" quando concluir.';
+      }
+
+      if (btnUndo) {
+        btnUndo.disabled = !status.qtdUndo;
+        const span = btnUndo.querySelector('span');
+        if (span) span.textContent = status.qtdUndo ? `Desfazer (${status.qtdUndo})` : 'Desfazer';
+      }
+      if (btnPublicar) btnPublicar.hidden = !status.pendente;
+      if (btnDescartar) btnDescartar.hidden = !status.pendente;
+    }
+
+    window.BuzuDados.inscreverStatusRascunho(atualizarBarra);
+    atualizarBarra(window.BuzuDados.obterStatusRascunho());
+
+    window.addEventListener('beforeunload', e => {
+      if (window.BuzuDados.obterStatusRascunho().pendente) {
+        e.preventDefault();
+        e.returnValue = 'Há alterações não publicadas no rascunho. Deseja realmente sair?';
+      }
+    });
+
+    btnUndo?.addEventListener('click', async () => {
+      const r = await window.BuzuDados.desfazerUltimaAlteracaoAdmin();
+      if (r.ok) {
+        await atualizarMapaEListagens();
+        if (estadoUI.paradaSelecionadaId) renderizarVisaoDetalheParada(estadoUI.paradaSelecionadaId);
+        else if (estadoUI.linhaSelecionadaId && !estadoUI.modoEditorRota) renderizarVisaoDetalheLinha(estadoUI.linhaSelecionadaId);
+      }
+    });
+
+    btnPublicar?.addEventListener('click', async () => {
+      if (!estadoUI.adminDesbloqueado) {
+        alert('Faça login no botão Admin antes de publicar no servidor.');
+        document.getElementById('btn-acesso-restrito')?.click();
+        return;
+      }
+      btnPublicar.disabled = true;
+      try {
+        const res = await window.BuzuDados.publicarRascunhoNoServidor();
+        if (res.status === 'erro_validacao') {
+          alert(`Publicação bloqueada pela validação:\n- ${(res.errosValidacao || []).join('\n- ')}`);
+        } else if (res.avisosValidacao && res.avisosValidacao.length > 0) {
+          console.info('Avisos de validação:', res.avisosValidacao);
+        }
+      } finally {
+        btnPublicar.disabled = false;
+      }
+    });
+
+    btnDescartar?.addEventListener('click', async () => {
+      const ok = window.confirm('Descartar todas as alterações do rascunho local e recarregar a base do servidor?');
+      if (!ok) return;
+      await window.BuzuDados.descartarRascunhoLocal();
+      await atualizarMapaEListagens(true);
+    });
   }
 
   async function autenticarAdminNoServidor(chave) {

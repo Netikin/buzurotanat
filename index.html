@@ -128,6 +128,25 @@
       </span>
     </div>
 
+    <!-- Barra de Rascunho e Publicação do Administrador (IndexedDB -> Servidor) -->
+    <div id="barra-rascunho-admin" class="barra-rascunho-admin" hidden role="status" aria-live="polite">
+      <div class="barra-rascunho-admin__info">
+        <span id="badge-status-salvamento" class="badge-status-salvamento">Rascunho local</span>
+        <span id="texto-status-rascunho">Há alterações pendentes (não publicadas no servidor).</span>
+      </div>
+      <div class="barra-rascunho-admin__acoes">
+        <button type="button" id="btn-desfazer-global-admin" class="btn-rumo-secondary" disabled>
+          <i class="bi bi-arrow-counterclockwise"></i> <span>Desfazer</span>
+        </button>
+        <button type="button" id="btn-publicar-rascunho" class="btn-rumo-primary">
+          <i class="bi bi-cloud-upload"></i> <span>Publicar no servidor</span>
+        </button>
+        <button type="button" id="btn-descartar-rascunho" class="btn-rumo-secondary" style="color:#b91c1c;border-color:#fca5a5;">
+          <i class="bi bi-trash"></i> <span>Descartar rascunho</span>
+        </button>
+      </div>
+    </div>
+
     <!-- 3.1. Cabeçalho de Consulta (.consulta-page > .consulta-header do RUMO) -->
     <section id="secao-busca-linha" class="consulta-page">
 
@@ -300,6 +319,9 @@
 
       <!-- COLUNA 1 (Esquerda: Circulação, Dados da Linha, Funcionamento Seg-Sex/Sáb/Dom e Tabela de Itinerário/Paradas) -->
       <div class="coluna-1 painel-controle" id="painel-controle">
+        <div id="alca-sheet-mobile" class="alca-sheet-mobile" aria-label="Arraste para expandir ou recolher o painel">
+          <span class="alca-sheet-mobile__barra" aria-hidden="true"></span>
+        </div>
 
         <!-- Seletor de Circulação (Dia da Semana) e Atendimento Igual ao Topo da Coluna 1 do RUMO -->
         <div class="linha-dia-atendimento">
@@ -543,6 +565,34 @@
             </button>
           </div>
         </div>
+
+        <details class="admin-avancado" id="detalhes-versoes-admin" style="margin-bottom:10px;">
+          <summary>
+            <i class="bi bi-clock-history"></i>
+            <span>Versões Anteriores (Backup Automático do Servidor)</span>
+          </summary>
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:0.82rem;color:var(--c-texto-suave,#475569);">A cada publicação, um snapshot completo é guardado em <code>dados/backups/</code>.</span>
+              <button type="button" id="btn-recarregar-versoes" class="btn-rumo-secondary" style="height:32px;font-size:0.78rem;">Atualizar</button>
+            </div>
+            <ul id="lista-versoes-servidor" class="lista-cartoes" style="max-height:200px;overflow-y:auto;"></ul>
+          </div>
+        </details>
+
+        <details class="admin-avancado" id="detalhes-auditoria-admin" style="margin-bottom:10px;">
+          <summary>
+            <i class="bi bi-journal-text"></i>
+            <span>Log de Auditoria (Histórico de Alterações)</span>
+          </summary>
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:0.82rem;color:var(--c-texto-suave,#475569);">Últimas ações administrativas registradas no servidor.</span>
+              <button type="button" id="btn-recarregar-auditoria" class="btn-rumo-secondary" style="height:32px;font-size:0.78rem;">Atualizar</button>
+            </div>
+            <ul id="lista-auditoria-servidor" class="lista-cartoes" style="max-height:200px;overflow-y:auto;"></ul>
+          </div>
+        </details>
 
         <details class="admin-avancado">
           <summary>

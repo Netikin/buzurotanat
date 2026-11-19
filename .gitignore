@@ -3,8 +3,10 @@
 .env.*
 !.env.example
 
-# Cache local e arquivos temporários
+# Cache local, backups automáticos e logs de auditoria
 dados/osm-vias-cache.json
+dados/backups/
+dados/auditoria-admin.jsonl
 node_modules/
 .DS_Store
 Thumbs.db

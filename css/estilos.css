@@ -2446,3 +2446,167 @@ body.alto-contraste .btn-menu.active {
 :root[data-tema="escuro"] .pino-parada-viagem {
   border-color: #0b1220;
 }
+
+/* ==========================================================================
+   Barra de Rascunho / Publicação Admin & Mobile UX (Safe Area, 44px, Cards)
+   ========================================================================== */
+.barra-rascunho-admin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #f59e0b;
+  background: var(--c-fundo-suave, #fffbeb);
+  color: var(--c-texto, #1e293b);
+  font-size: 0.85rem;
+}
+
+.barra-rascunho-admin[hidden] {
+  display: none !important;
+}
+
+.barra-rascunho-admin__info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.barra-rascunho-admin__acoes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge-status-salvamento {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  background: #f59e0b;
+  color: #111827;
+}
+
+.badge-status-salvamento--sucesso {
+  background: #15803d;
+  color: #ffffff;
+}
+
+.badge-status-salvamento--alerta {
+  background: #d97706;
+  color: #ffffff;
+}
+
+.badge-status-salvamento--erro {
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+/* Alça de arrasto do bottom sheet (visível apenas no mobile) */
+.alca-sheet-mobile {
+  display: none;
+}
+
+/* Safe-area para notch / barra de gestos (iOS / Android) */
+.site-header {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.container-main {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 760px) {
+  .alca-sheet-mobile {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 36px;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .alca-sheet-mobile__barra {
+    width: 44px;
+    height: 5px;
+    border-radius: 999px;
+    background: var(--c-borda, #cbd5e1);
+  }
+
+  /* Alvos de toque mínimos >= 44px para acessibilidade mobile */
+  .btn-menu,
+  .btn-dia,
+  .btn-rumo-primary,
+  .btn-rumo-secondary,
+  .btn-rumo-voltar,
+  .btn-top-util,
+  .btn-primario,
+  .btn-secundario {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Tabelas de itinerário viram cards legíveis no celular */
+@media (max-width: 640px) {
+  .tabela-itinerario thead {
+    display: none;
+  }
+
+  .tabela-itinerario,
+  .tabela-itinerario tbody,
+  .tabela-itinerario tr,
+  .tabela-itinerario td {
+    display: block;
+    width: 100%;
+  }
+
+  .tabela-itinerario tbody tr {
+    border: 1px solid var(--c-borda-suave, #cbd5e1);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    background: var(--c-superficie, #ffffff) !important;
+  }
+
+  .tabela-itinerario td {
+    border-bottom: 0;
+    padding: 2px 0;
+  }
+
+  .tabela-itinerario td.col-num {
+    font-size: 0.74rem;
+    font-weight: 800;
+    color: var(--c-texto-suave, #64748b);
+  }
+
+  .tabela-itinerario td.col-num::before {
+    content: "Ordem #";
+  }
+
+  .tabela-itinerario td.col-logradouro {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--c-texto, #1e293b);
+  }
+
+  .tabela-itinerario td.col-bairro {
+    font-size: 0.78rem;
+    color: var(--c-texto-suave, #64748b);
+  }
+
+  .tabela-itinerario td.col-bairro::before {
+    content: "Bairro: ";
+    font-weight: 700;
+  }
+}

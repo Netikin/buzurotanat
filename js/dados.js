@@ -333,12 +333,15 @@ window.BuzuDados = (function () {
       carregouServidor = false;
     }
 
-    const adminSalvo = carregarOverrideAdmin();
+    const adminSalvo = await carregarOverrideAdminAsync();
 
     if (!carregouServidor) {
       if (adminSalvo && adminSalvo.indice && adminSalvo.paradas) {
         estado.indice = adminSalvo.indice;
         estado.paradas = adminSalvo.paradas;
+        if (Array.isArray(adminSalvo.linhaParadas)) {
+          estado.linhaParadas = adminSalvo.linhaParadas;
+        }
         if (adminSalvo.lotesGeoJson) {
           estado.cacheGeoJsonLotes = { ...adminSalvo.lotesGeoJson };
         }
@@ -348,15 +351,22 @@ window.BuzuDados = (function () {
         estado.cacheGeoJsonLotes['1'] = JSON.parse(JSON.stringify(FALLBACK_INICIAL.lote1));
         estado.cacheGeoJsonLotes['2'] = JSON.parse(JSON.stringify(FALLBACK_INICIAL.lote2));
       }
-    } else if (adminSalvo && adminSalvo.indice && Array.isArray(adminSalvo.indice.linhas)) {
-      // Se o servidor tem dados novos (ex: convertidos da pasta ./rotas/), garante que nenhuma
-      // linha salva apenas no navegador se perca, mas mantém todas as linhas novas do servidor!
-      const numerosNoServidor = new Set((estado.indice.linhas || []).map(l => l.numero));
-      for (const linhaLocal of adminSalvo.indice.linhas) {
-        if (!numerosNoServidor.has(linhaLocal.numero)) {
-          estado.indice.linhas.push(linhaLocal);
-        }
+    } else if (adminSalvo && adminSalvo.rascunhoPendente && adminSalvo.indice && adminSalvo.paradas) {
+      // Há um rascunho não publicado salvo no IndexedDB: aplica na pré-visualização local
+      estado.indice = adminSalvo.indice;
+      estado.paradas = adminSalvo.paradas;
+      if (Array.isArray(adminSalvo.linhaParadas)) {
+        estado.linhaParadas = adminSalvo.linhaParadas;
       }
+      if (adminSalvo.lotesGeoJson) {
+        estado.cacheGeoJsonLotes = { ...adminSalvo.lotesGeoJson };
+      }
+      estadoRascunho.pendente = true;
+      estadoRascunho.acoes = Array.isArray(adminSalvo.acoesPendentes) ? adminSalvo.acoesPendentes : ['Rascunho local pendente'];
+      estadoRascunho.ultimoStatus = {
+        tipo: 'rascunho',
+        texto: 'Rascunho local carregado (não publicado no servidor)'
+      };
     }
 
     // Carrega dicionário de locais de Natal para autocomplete instantâneo
@@ -2163,6 +2173,7 @@ window.BuzuDados = (function () {
    * Adiciona ou edita uma parada no Editor Visual do Mapa e aciona o Gatilho de Recálculo
    */
   async function criarOuEditarParadaNoMapa(dadosParada) {
+    registrarSnapshotUndoAdmin(`Parada ${dadosParada?.nome || dadosParada?.id || 'nova'}`);
     const id = dadosParada.id || `MAN-${Date.now().toString().slice(-5)}`;
     const lat = Number(Number(dadosParada.lat).toFixed(6));
     const lng = Number(Number(dadosParada.lng).toFixed(6));
@@ -2216,6 +2227,7 @@ window.BuzuDados = (function () {
   async function moverParadaNoMapa(idParada, novoLat, novoLng, autoDetectarSentido = true) {
     const feat = obterParadaPorId(idParada);
     if (!feat) return null;
+    registrarSnapshotUndoAdmin(`Mover parada ${feat.properties?.nome || idParada}`);
 
     const lat = Number(Number(novoLat).toFixed(6));
     const lng = Number(Number(novoLng).toFixed(6));
@@ -2234,12 +2246,13 @@ window.BuzuDados = (function () {
   async function excluirParadaNoMapa(idParada) {
     const feat = obterParadaPorId(idParada);
     if (!feat) return;
+    registrarSnapshotUndoAdmin(`Excluir parada ${feat.properties?.nome || idParada}`);
     feat.properties.ativo = false;
     await recalcularVinculosParadaEGrafo(idParada, false);
     estado.paradas.features = estado.paradas.features.filter(
       f => String(f.properties?.id) !== String(idParada)
     );
-    salvarOverrideAdmin();
+    await salvarOverrideAdmin({ publicar: false, resumoAcao: `Parada ${idParada} excluída` });
   }
 
   /**
@@ -2279,6 +2292,7 @@ window.BuzuDados = (function () {
   ) {
     const encontrado = await obterCoordenadasRota(numeroLinha, diaSemana);
     if (!encontrado) return null;
+    registrarSnapshotUndoAdmin(`Editar rota ${numeroLinha}`);
 
     const { feature, loteId: loteAntigo, diaReal } = encontrado;
     const coordsLimpas = (novasCoordenadas || [])
@@ -2409,7 +2423,7 @@ window.BuzuDados = (function () {
 
     estado.linhaParadas = [...outrosVinculos, ...novosVinculosIda, ...novosVinculosVolta];
     estado.grafoMemoria = {};
-    salvarOverrideAdmin();
+    await salvarOverrideAdmin({ publicar: false, resumoAcao: `Rota ${numUpper} (${diaReal}) editada` });
 
     return {
       extensao_km: extensaoKm,
@@ -2436,6 +2450,7 @@ window.BuzuDados = (function () {
     if (!objetoJson || typeof objetoJson !== 'object') {
       throw new Error('JSON inválido.');
     }
+    registrarSnapshotUndoAdmin(`Importar JSON (${modoMesclagem})`);
 
     // Caso 1: Pacote completo { indice, paradas, lotesGeoJson }
     if (objetoJson.indice && objetoJson.paradas) {
@@ -2490,7 +2505,7 @@ window.BuzuDados = (function () {
       );
     }
 
-    salvarOverrideAdmin();
+    void salvarOverrideAdmin({ publicar: false, resumoAcao: `JSON importado (${modoMesclagem})` });
     return exportarPacoteCompletoJson();
   }
 
@@ -2734,39 +2749,441 @@ window.BuzuDados = (function () {
   }
 
   let tokenAdminMemoria = '';
+  const IDB_NOME = 'buzu_natal_db';
+  const IDB_STORE = 'overrides';
+  const IDB_CHAVE = 'admin_override_v1';
+
+  const estadoRascunho = {
+    pendente: false,
+    acoes: [],
+    historicoUndo: [], // pilha multinível (até 20 snapshots)
+    ultimoStatus: { tipo: 'neutro', texto: '' },
+    observadores: []
+  };
 
   function definirTokenAdmin(token) {
     tokenAdminMemoria = token ? String(token) : '';
   }
 
-  function salvarOverrideAdmin() {
-    const pacote = exportarPacoteCompletoJson();
-    try {
-      localStorage.setItem(CHAVE_STORAGE_ADMIN, JSON.stringify(pacote));
-    } catch (_e) {
-      // Ignora erro de quota
-    }
+  function inscreverStatusRascunho(fn) {
+    if (typeof fn === 'function') estadoRascunho.observadores.push(fn);
+  }
 
-    // Se estiver rodando via servidor.js e autenticado, persiste os arquivos no disco do servidor
-    if (window.location.protocol.startsWith('http')) {
-      const headers = { 'Content-Type': 'application/json' };
-      if (tokenAdminMemoria) {
-        headers.Authorization = `Bearer ${tokenAdminMemoria}`;
-      }
-      fetch('/api/salvar-rotas', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers,
-        body: JSON.stringify(pacote)
-      }).catch(() => {
-        // Servidor estático ou sessão não autenticada
-      });
+  function notificarStatusRascunho() {
+    const snap = obterStatusRascunho();
+    for (const fn of estadoRascunho.observadores) {
+      try {
+        fn(snap);
+      } catch (_e) {}
     }
   }
 
-  function restaurarDadosPadrao() {
-    localStorage.removeItem(CHAVE_STORAGE_ADMIN);
+  function obterStatusRascunho() {
+    return {
+      pendente: estadoRascunho.pendente,
+      qtdAcoes: estadoRascunho.acoes.length,
+      acoes: [...estadoRascunho.acoes],
+      qtdUndo: estadoRascunho.historicoUndo.length,
+      ultimoStatus: { ...estadoRascunho.ultimoStatus }
+    };
+  }
+
+  function registrarSnapshotUndoAdmin(rotulo = 'Alteração') {
+    try {
+      const snap = JSON.parse(
+        JSON.stringify({
+          indice: estado.indice,
+          paradas: estado.paradas,
+          linhaParadas: estado.linhaParadas,
+          lotesGeoJson: estado.cacheGeoJsonLotes,
+          rotulo
+        })
+      );
+      estadoRascunho.historicoUndo.push(snap);
+      if (estadoRascunho.historicoUndo.length > 20) {
+        estadoRascunho.historicoUndo.shift();
+      }
+    } catch (_e) {}
+  }
+
+  async function desfazerUltimaAlteracaoAdmin() {
+    if (estadoRascunho.historicoUndo.length === 0) return { ok: false, mensagem: 'Nada para desfazer.' };
+    const anterior = estadoRascunho.historicoUndo.pop();
+    estado.indice = anterior.indice;
+    estado.paradas = anterior.paradas;
+    estado.linhaParadas = anterior.linhaParadas || [];
+    estado.cacheGeoJsonLotes = anterior.lotesGeoJson || {};
+    estado.grafoMemoria = {};
+    estadoRascunho.acoes.push(`Desfeito: ${anterior.rotulo || 'última ação'}`);
+    await salvarOverrideAdmin({ publicar: false, resumoAcao: `Desfeito: ${anterior.rotulo || ''}`, pularSnapshot: true });
+    return { ok: true, rotulo: anterior.rotulo, restante: estadoRascunho.historicoUndo.length };
+  }
+
+  function abrirIndexedDB() {
+    return new Promise((resolve, reject) => {
+      if (typeof indexedDB === 'undefined') {
+        reject(new Error('IndexedDB indisponível neste navegador.'));
+        return;
+      }
+      const req = indexedDB.open(IDB_NOME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error('Erro ao abrir IndexedDB'));
+    });
+  }
+
+  async function gravarOverrideIndexedDB(pacote) {
+    const db = await abrirIndexedDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(pacote, IDB_CHAVE);
+      tx.oncomplete = () => {
+        db.close();
+        resolve(true);
+      };
+      tx.onerror = () => {
+        db.close();
+        reject(tx.error || new Error('Erro ao gravar no IndexedDB'));
+      };
+    });
+  }
+
+  async function lerOverrideIndexedDB() {
+    const db = await abrirIndexedDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get(IDB_CHAVE);
+      req.onsuccess = () => {
+        db.close();
+        resolve(req.result || null);
+      };
+      req.onerror = () => {
+        db.close();
+        reject(req.error || new Error('Erro ao ler IndexedDB'));
+      };
+    });
+  }
+
+  async function limparOverrideIndexedDB() {
+    try {
+      const db = await abrirIndexedDB();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete(IDB_CHAVE);
+        tx.oncomplete = () => {
+          db.close();
+          resolve(true);
+        };
+        tx.onerror = () => {
+          db.close();
+          reject(tx.error);
+        };
+      });
+    } catch (_e) {}
+    try {
+      localStorage.removeItem(CHAVE_STORAGE_ADMIN);
+    } catch (_e) {}
+  }
+
+  async function carregarOverrideAdminAsync() {
+    try {
+      const doIdb = await lerOverrideIndexedDB();
+      if (doIdb) return doIdb;
+    } catch (_e) {}
+
+    // Migração silenciosa única de eventual localStorage antigo para IndexedDB
+    try {
+      const bruto = localStorage.getItem(CHAVE_STORAGE_ADMIN);
+      if (bruto) {
+        const legado = JSON.parse(bruto);
+        localStorage.removeItem(CHAVE_STORAGE_ADMIN);
+        if (legado && legado.indice && legado.paradas) {
+          await gravarOverrideIndexedDB(legado).catch(() => {});
+          return legado;
+        }
+      }
+    } catch (_e) {}
+    return null;
+  }
+
+  /**
+   * Validação pré-publicação:
+   * - IDs duplicados de linhas e paradas
+   * - Campos obrigatórios vazios (id, numero, nome)
+   * - Referências órfãs em linha_paradas
+   * - Geometria inválida (Point / LineString)
+   */
+  function validarPacoteAntesDeSalvar(pacote) {
+    const erros = [];
+    const avisos = [];
+
+    const linhas = pacote?.indice?.linhas || [];
+    const paradas = pacote?.paradas?.features || [];
+    const pivot = Array.isArray(pacote?.linhaParadas) ? pacote.linhaParadas : [];
+
+    if (linhas.length === 0) erros.push('Nenhuma linha encontrada em linhas.json.');
+
+    const idsLinhas = new Set();
+    for (const l of linhas) {
+      const num = String(l?.numero || '').trim().toUpperCase();
+      if (!num) {
+        erros.push('Há uma linha sem código/número preenchido.');
+      } else if (idsLinhas.has(num)) {
+        erros.push(`Código de linha duplicado: "${num}".`);
+      } else {
+        idsLinhas.add(num);
+      }
+      if (!String(l?.nome || '').trim()) {
+        erros.push(`Linha "${num || '?'}" está com o nome vazio.`);
+      }
+    }
+
+    const idsParadas = new Set();
+    for (const f of paradas) {
+      const p = f?.properties || {};
+      const pid = String(p.id || '').trim();
+      if (!pid) {
+        erros.push('Há uma parada sem ID definido.');
+      } else if (idsParadas.has(pid)) {
+        erros.push(`ID de parada duplicado: "${pid}".`);
+      } else {
+        idsParadas.add(pid);
+      }
+      if (!String(p.nome || '').trim()) {
+        erros.push(`Parada "${pid || '?'}" está com o nome vazio.`);
+      }
+      const c = f?.geometry?.coordinates;
+      if (
+        f?.geometry?.type !== 'Point' ||
+        !Array.isArray(c) ||
+        c.length < 2 ||
+        !Number.isFinite(Number(c[0])) ||
+        !Number.isFinite(Number(c[1]))
+      ) {
+        erros.push(`Parada "${pid || p.nome}" possui geometria Point inválida.`);
+      }
+    }
+
+    // Valida geometrias dos lotes GeoJSON carregados
+    for (const [idLote, fc] of Object.entries(pacote?.lotesGeoJson || {})) {
+      for (const feat of fc?.features || []) {
+        const g = feat?.geometry;
+        const fid = feat?.properties?.id || feat?.properties?.numero || '?';
+        if (g?.type !== 'LineString' || !Array.isArray(g.coordinates) || g.coordinates.length < 2) {
+          erros.push(`Traçado "${fid}" (Lote ${idLote}) possui menos de 2 vértices válidos.`);
+        } else {
+          const invalido = g.coordinates.some(
+            pt => !Array.isArray(pt) || pt.length < 2 || !Number.isFinite(Number(pt[0])) || !Number.isFinite(Number(pt[1]))
+          );
+          if (invalido) {
+            erros.push(`Traçado "${fid}" (Lote ${idLote}) contém coordenadas inválidas (NaN).`);
+          }
+        }
+      }
+    }
+
+    // Referências linha_paradas órfãs (remove órfãs automaticamente e gera aviso, ou reporta)
+    let orfasParada = 0;
+    let orfasLinha = 0;
+    const pivotLimpo = [];
+    for (const lp of pivot) {
+      const okP = idsParadas.has(String(lp.parada_id || ''));
+      const okL = idsLinhas.has(String(lp.linha_id || '').toUpperCase());
+      if (!okP) orfasParada++;
+      else if (!okL) orfasLinha++;
+      else pivotLimpo.push(lp);
+    }
+    if (orfasParada > 0 || orfasLinha > 0) {
+      avisos.push(
+        `Foram removidas ${orfasParada + orfasLinha} referências órfãs em linha_paradas (${orfasParada} paradas, ${orfasLinha} linhas).`
+      );
+      pacote.linhaParadas = pivotLimpo;
+    }
+
+    return { valido: erros.length === 0, erros, avisos };
+  }
+
+  /**
+   * Salva rascunho no IndexedDB (sem engolir erros) e, quando `publicar: true`,
+   * valida e publica no servidor via POST /api/salvar-rotas.
+   */
+  async function salvarOverrideAdmin(opcoes = {}) {
+    const { publicar = false, resumoAcao = '' } = opcoes;
+    const pacote = exportarPacoteCompletoJson();
+    pacote.rascunhoPendente = !publicar;
+    if (resumoAcao) {
+      estadoRascunho.acoes.push(`${new Date().toLocaleTimeString('pt-BR')} — ${resumoAcao}`);
+      if (estadoRascunho.acoes.length > 50) estadoRascunho.acoes.shift();
+    }
+    pacote.acoesPendentes = [...estadoRascunho.acoes];
+
+    let okLocal = false;
+    let erroLocal = '';
+    try {
+      await gravarOverrideIndexedDB(pacote);
+      okLocal = true;
+    } catch (e) {
+      erroLocal = e?.message || 'Falha ao gravar no IndexedDB';
+    }
+
+    if (!publicar) {
+      estadoRascunho.pendente = true;
+      estadoRascunho.ultimoStatus = okLocal
+        ? { tipo: 'rascunho', texto: 'Salvo só local (rascunho no IndexedDB — clique em Publicar)' }
+        : { tipo: 'erro', texto: `Falhou ao salvar localmente: ${erroLocal}` };
+      notificarStatusRascunho();
+      return {
+        okLocal,
+        okServidor: false,
+        status: okLocal ? 'salvo_local' : 'falhou',
+        erroLocal,
+        mensagem: estadoRascunho.ultimoStatus.texto
+      };
+    }
+
+    // Validação pré-save antes de publicar no servidor
+    const validacao = validarPacoteAntesDeSalvar(pacote);
+    if (!validacao.valido) {
+      estadoRascunho.ultimoStatus = {
+        tipo: 'erro',
+        texto: `Publicação bloqueada (${validacao.erros.length} erro(s) de validação)`
+      };
+      notificarStatusRascunho();
+      return {
+        okLocal,
+        okServidor: false,
+        status: 'erro_validacao',
+        errosValidacao: validacao.erros,
+        avisosValidacao: validacao.avisos,
+        mensagem: validacao.erros.join(' | ')
+      };
+    }
+
+    // Garante que ambos os lotes estejam carregados antes de publicar
+    pacote.resumoAuditoria =
+      estadoRascunho.acoes.slice(-5).join(' ; ') || resumoAcao || 'Publicação Admin';
+
+    let okServidor = false;
+    let erroServidor = '';
+    let versaoBackup = null;
+
+    if (window.location.protocol.startsWith('http')) {
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (tokenAdminMemoria) {
+          headers.Authorization = `Bearer ${tokenAdminMemoria}`;
+        }
+        const res = await fetch('/api/salvar-rotas', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers,
+          body: JSON.stringify(pacote)
+        });
+        const respJson = await res.json().catch(() => ({}));
+        if (res.ok && respJson.ok) {
+          okServidor = true;
+          versaoBackup = respJson.versaoBackup || null;
+          estadoRascunho.pendente = false;
+          estadoRascunho.acoes = [];
+          await limparOverrideIndexedDB();
+        } else {
+          erroServidor = respJson.erro || `HTTP ${res.status}`;
+        }
+      } catch (e) {
+        erroServidor = e?.message || 'Erro de conexão com o servidor';
+      }
+    } else {
+      erroServidor = 'Ambiente sem servidor HTTP (arquivo local).';
+    }
+
+    if (okServidor) {
+      estadoRascunho.ultimoStatus = {
+        tipo: 'sucesso',
+        texto: `Salvo no servidor${versaoBackup ? ` (backup ${versaoBackup})` : ''}`
+      };
+    } else if (okLocal) {
+      estadoRascunho.pendente = true;
+      estadoRascunho.ultimoStatus = {
+        tipo: 'alerta',
+        texto: `Salvo só local — servidor recusou: ${erroServidor}`
+      };
+    } else {
+      estadoRascunho.ultimoStatus = {
+        tipo: 'erro',
+        texto: `Falhou ao salvar: ${erroServidor || erroLocal}`
+      };
+    }
+
+    notificarStatusRascunho();
+    return {
+      okLocal,
+      okServidor,
+      status: okServidor ? 'salvo_servidor' : okLocal ? 'salvo_local' : 'falhou',
+      erroLocal,
+      erroServidor,
+      versaoBackup,
+      avisosValidacao: validacao.avisos,
+      mensagem: estadoRascunho.ultimoStatus.texto
+    };
+  }
+
+  async function publicarRascunhoNoServidor(resumo = '') {
+    await Promise.all([carregarGeoJsonLote('1'), carregarGeoJsonLote('2')]);
+    return salvarOverrideAdmin({ publicar: true, resumoAcao: resumo });
+  }
+
+  async function descartarRascunhoLocal() {
+    estadoRascunho.pendente = false;
+    estadoRascunho.acoes = [];
+    estadoRascunho.historicoUndo = [];
+    estadoRascunho.ultimoStatus = { tipo: 'neutro', texto: 'Rascunho descartado (base do servidor recarregada)' };
+    await limparOverrideIndexedDB();
     estado.cacheGeoJsonLotes = {};
+    estado.grafoMemoria = {};
+    await inicializar();
+    notificarStatusRascunho();
+  }
+
+  async function restaurarDadosPadrao() {
+    await descartarRascunhoLocal();
+  }
+
+  async function listarVersoesServidor() {
+    const headers = {};
+    if (tokenAdminMemoria) headers.Authorization = `Bearer ${tokenAdminMemoria}`;
+    const res = await fetch('/api/admin/versoes', { credentials: 'same-origin', headers });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.erro || `HTTP ${res.status}`);
+    return json.versoes || [];
+  }
+
+  async function restaurarVersaoServidor(versao) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (tokenAdminMemoria) headers.Authorization = `Bearer ${tokenAdminMemoria}`;
+    const res = await fetch('/api/admin/restaurar-versao', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers,
+      body: JSON.stringify({ versao })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.erro || `HTTP ${res.status}`);
+    await descartarRascunhoLocal();
+    return json;
+  }
+
+  async function listarAuditoriaServidor() {
+    const headers = {};
+    if (tokenAdminMemoria) headers.Authorization = `Bearer ${tokenAdminMemoria}`;
+    const res = await fetch('/api/admin/auditoria', { credentials: 'same-origin', headers });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.erro || `HTTP ${res.status}`);
+    return json.registros || [];
   }
 
   return {
@@ -2798,6 +3215,16 @@ window.BuzuDados = (function () {
     converterKmlTextoParaGeoJson,
     restaurarDadosPadrao,
     definirTokenAdmin,
+    inscreverStatusRascunho,
+    obterStatusRascunho,
+    registrarSnapshotUndoAdmin,
+    desfazerUltimaAlteracaoAdmin,
+    validarPacoteAntesDeSalvar,
+    publicarRascunhoNoServidor,
+    descartarRascunhoLocal,
+    listarVersoesServidor,
+    restaurarVersaoServidor,
+    listarAuditoriaServidor,
     obterEstado: () => estado
   };
 })();
