@@ -155,21 +155,222 @@ window.BuzuMapa = (function () {
     for (const e of etapasViagem) {
       if (e.tipo === 'onibus') desenharSetas(e.coords.map(c => [c[1], c[0]]), e.cor, `Linha ${e.numero}`, 70);
     }
+    const filtroAtivo = filtroSentidoVisivel();
+    const verIda = !filtroAtivo || sentidosVisiveis.ida;
+    const verVolta = !filtroAtivo || sentidosVisiveis.volta;
     for (const l of linhasComSentido) {
       const sufixo = varias ? ` ${window.BuzuUtils.escaparHtml(l.numero)}` : '';
       const idaPx = paraLadoDireito(l.ida, 4).map(c => [c[1], c[0]]);
       const voltaPx = paraLadoDireito(l.volta, 4).map(c => [c[1], c[0]]);
-      l.polIda?.setLatLngs(idaPx);
-      l.polVolta?.setLatLngs(voltaPx);
-      l.casIda?.setLatLngs(idaPx);
-      l.casVolta?.setLatLngs(voltaPx);
-      desenharSetas(idaPx, l.cor, 'Sentido ida');
-      desenharSetas(voltaPx, l.corVolta, 'Sentido volta');
+      l.idaPx = idaPx;
+      l.voltaPx = voltaPx;
+      l.polIda?.setLatLngs(verIda ? idaPx : []);
+      l.polVolta?.setLatLngs(verVolta ? voltaPx : []);
+      l.casIda?.setLatLngs(verIda ? idaPx : []);
+      l.casVolta?.setLatLngs(verVolta ? voltaPx : []);
+      if (verIda) desenharSetas(idaPx, l.cor, 'Sentido ida');
+      if (verVolta) desenharSetas(voltaPx, l.corVolta, 'Sentido volta');
       if (mostrarTerminalRetorno) {
         marcadorPonta(idaPx[0], `<i class="bi bi-flag-fill" aria-hidden="true"></i> Terminal${sufixo}`, 'pino-ponta--inicio');
         marcadorPonta(idaPx[idaPx.length - 1], `<i class="bi bi-arrow-return-left" aria-hidden="true"></i> Retorno${sufixo}`, 'pino-ponta--retorno');
       }
     }
+    atualizarControleSentido();
+    atualizarPercursoAnimado();
+  }
+
+  // ---------- Filtro Ida / Volta (aba "Itinerários") ----------
+  let permitirFiltroSentido = false;
+  let sentidosVisiveis = { ida: true, volta: true };
+  let linhaDoFiltro = null; // ao trocar de linha, volta a mostrar os dois sentidos
+  let controleSentido = null;
+  let ajustarCantoInferiorEsquerdo = () => {};
+
+  function filtroSentidoVisivel() {
+    return permitirFiltroSentido && linhasComSentido.length === 1;
+  }
+
+  function criarControleSentido() {
+    const Controle = L.Control.extend({
+      options: { position: 'bottomleft' },
+      onAdd() {
+        const div = L.DomUtil.create('div', 'filtro-sentido-mapa');
+        div.setAttribute('role', 'group');
+        div.setAttribute('aria-label', 'Sentidos exibidos no mapa');
+        div.innerHTML =
+          '<label class="filtro-sentido-item"><input type="checkbox" data-sentido="ida" checked><span class="filtro-sentido-cor" data-cor="ida"></span>Ida</label>' +
+          '<label class="filtro-sentido-item"><input type="checkbox" data-sentido="volta" checked><span class="filtro-sentido-cor" data-cor="volta"></span>Volta</label>';
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+        div.addEventListener('change', e => {
+          const chk = e.target.closest('input[data-sentido]');
+          if (!chk) return;
+          sentidosVisiveis[chk.dataset.sentido] = chk.checked;
+          atualizarSentidos();
+        });
+        return div;
+      }
+    });
+    return new Controle();
+  }
+
+  function atualizarControleSentido() {
+    if (!mapa) return;
+    if (!filtroSentidoVisivel()) {
+      if (controleSentido) {
+        controleSentido.remove();
+        controleSentido = null;
+      }
+      linhaDoFiltro = null;
+      sentidosVisiveis = { ida: true, volta: true };
+      return;
+    }
+    const l = linhasComSentido[0];
+    if (linhaDoFiltro !== l.numero) {
+      linhaDoFiltro = l.numero;
+      sentidosVisiveis = { ida: true, volta: true };
+    }
+    if (!controleSentido) controleSentido = criarControleSentido().addTo(mapa);
+    ajustarCantoInferiorEsquerdo();
+    const div = controleSentido.getContainer();
+    div.querySelectorAll('input[data-sentido]').forEach(chk => {
+      chk.checked = sentidosVisiveis[chk.dataset.sentido];
+    });
+    div.querySelector('[data-cor="ida"]').style.background = l.cor;
+    div.querySelector('[data-cor="volta"]').style.background = l.corVolta;
+  }
+
+  // ---------- Ponto em movimento ao longo do percurso (estilo "GPS") ----------
+  // Itinerários: percorre a linha selecionada (ida e depois volta, conforme o filtro).
+  // Como chegar: percorre o caminho do passageiro, etapa por etapa (a pé e de ônibus).
+  const animacao = {
+    marcador: null,
+    quadro: null,
+    trechos: [], // [{ pts: [[lat,lng],...], acum: [m...], total }]
+    total: 0,
+    percorrido: 0,
+    chave: '',
+    ultimoInstante: 0,
+    duracaoMs: 15000
+  };
+  const VELOCIDADE_PONTO_M_POR_MS = 0.8; // 800 m de mapa por segundo
+  const reduzirMovimento =
+    typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function distanciaMetros(a, b) {
+    const kx = 111320 * Math.cos((a[0] * Math.PI) / 180);
+    return Math.hypot((b[1] - a[1]) * kx, (b[0] - a[0]) * 110540);
+  }
+
+  function montarTrecho(pts) {
+    const acum = [0];
+    for (let i = 1; i < pts.length; i++) acum.push(acum[i - 1] + distanciaMetros(pts[i - 1], pts[i]));
+    return { pts, acum, total: acum[acum.length - 1] };
+  }
+
+  function caminhosParaAnimar() {
+    if (etapasViagem.length) {
+      return {
+        chave: 'viagem:' + etapasViagem.map(e => `${e.tipo}${e.numero || ''}${e.coords.length}`).join('|'),
+        cor: etapasViagem.find(e => e.tipo === 'onibus')?.cor,
+        trechos: etapasViagem.filter(e => e.coords?.length > 1).map(e => e.coords.map(c => [c[1], c[0]]))
+      };
+    }
+    if (linhasComSentido.length !== 1) return null;
+    const l = linhasComSentido[0];
+    const filtroAtivo = filtroSentidoVisivel();
+    const verIda = !filtroAtivo || sentidosVisiveis.ida;
+    const verVolta = !filtroAtivo || sentidosVisiveis.volta;
+    const trechos = [];
+    if (verIda && l.idaPx?.length > 1) trechos.push(l.idaPx);
+    if (verVolta && l.voltaPx?.length > 1) trechos.push(l.voltaPx);
+    return { chave: `linha:${l.numero}:${l.ida.length}:${verIda}:${verVolta}`, cor: l.cor, trechos };
+  }
+
+  function pararPercursoAnimado() {
+    if (animacao.quadro) cancelAnimationFrame(animacao.quadro);
+    animacao.quadro = null;
+    animacao.marcador?.remove();
+    animacao.marcador = null;
+    animacao.trechos = [];
+    animacao.chave = '';
+  }
+
+  function atualizarPercursoAnimado() {
+    if (!mapa) return;
+    const alvo = caminhosParaAnimar();
+    if (!alvo || !alvo.trechos.length) {
+      pararPercursoAnimado();
+      return;
+    }
+    const trechos = alvo.trechos.map(montarTrecho).filter(t => t.total > 0);
+    const total = trechos.reduce((s, t) => s + t.total, 0);
+    if (!total) {
+      pararPercursoAnimado();
+      return;
+    }
+    // Mesmo percurso (ex.: só mudou o zoom): continua de onde estava; senão recomeça do início
+    const fracao = animacao.chave === alvo.chave && animacao.total ? animacao.percorrido / animacao.total : 0;
+    animacao.chave = alvo.chave;
+    animacao.trechos = trechos;
+    animacao.total = total;
+    animacao.percorrido = fracao * total;
+    // Velocidade constante (~0,8 km por segundo): igual com ida + volta, só ida ou só volta.
+    // Percursos muito curtos levam pelo menos 4 s, para o ponto não "piscar" de uma ponta à outra.
+    animacao.duracaoMs = Math.max(4000, total / VELOCIDADE_PONTO_M_POR_MS);
+
+    if (!animacao.marcador) {
+      animacao.marcador = L.marker(posicaoNoPercurso(animacao.percorrido), {
+        icon: L.divIcon({
+          className: '',
+          html: '<div class="ponto-gps" aria-hidden="true"><span class="ponto-gps-pulso"></span><span class="ponto-gps-centro"></span></div>',
+          iconSize: [22, 22],
+          iconAnchor: [11, 11]
+        }),
+        interactive: false,
+        keyboard: false,
+        pane: 'panePontoGps'
+      }).addTo(mapa);
+    }
+    animacao.marcador.setLatLng(posicaoNoPercurso(animacao.percorrido));
+
+    if (!animacao.quadro && !reduzirMovimento) {
+      animacao.ultimoInstante = performance.now();
+      animacao.quadro = requestAnimationFrame(passoAnimacao);
+    }
+  }
+
+  function passoAnimacao(agora) {
+    // limita o salto quando a aba volta do segundo plano
+    const dt = Math.min(100, agora - animacao.ultimoInstante);
+    animacao.ultimoInstante = agora;
+    animacao.percorrido = (animacao.percorrido + (animacao.total * dt) / animacao.duracaoMs) % animacao.total;
+    animacao.marcador?.setLatLng(posicaoNoPercurso(animacao.percorrido));
+    animacao.quadro = requestAnimationFrame(passoAnimacao);
+  }
+
+  function posicaoNoPercurso(distancia) {
+    let resto = distancia;
+    for (const t of animacao.trechos) {
+      if (resto <= t.total) {
+        // busca binária do segmento
+        let lo = 0;
+        let hi = t.acum.length - 1;
+        while (hi - lo > 1) {
+          const meio = (lo + hi) >> 1;
+          if (t.acum[meio] <= resto) lo = meio;
+          else hi = meio;
+        }
+        const seg = t.acum[hi] - t.acum[lo] || 1;
+        const f = (resto - t.acum[lo]) / seg;
+        const a = t.pts[lo];
+        const b = t.pts[hi];
+        return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+      }
+      resto -= t.total;
+    }
+    const ultimo = animacao.trechos[animacao.trechos.length - 1];
+    return ultimo.pts[ultimo.pts.length - 1];
   }
 
   let mostrarTerminalRetorno = true;
@@ -234,7 +435,7 @@ window.BuzuMapa = (function () {
     // Mapa base: OpenFreeMap (gratuito, sem chave, sem limite de acessos), estilo claro "Positron".
     // Se o MapLibre não carregar (CDN fora do ar ou navegador sem WebGL), usa os tiles do OpenStreetMap.
     const creditoMapa =
-      '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> | STTU Natal — Concorrência 11.001/2026';
+      '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
     const suportaWebGL = (() => {
       try {
         const c = document.createElement('canvas');
@@ -254,8 +455,21 @@ window.BuzuMapa = (function () {
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> | STTU Natal — Concorrência 11.001/2026'
+          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
       }).addTo(mapa);
+    }
+
+    // Os controles do canto inferior esquerdo (filtro Ida/Volta, dica de zoom) ficam sempre acima dos
+    // créditos do mapa, que em telas estreitas ocupam a largura toda e podem quebrar em duas linhas.
+    const creditos = mapa.attributionControl?.getContainer();
+    const cantoInferiorEsquerdo = mapa.getContainer().querySelector('.leaflet-bottom.leaflet-left');
+    if (creditos && cantoInferiorEsquerdo) {
+      ajustarCantoInferiorEsquerdo = () => {
+        cantoInferiorEsquerdo.style.bottom = `${creditos.offsetHeight}px`;
+      };
+      ajustarCantoInferiorEsquerdo();
+      if (typeof ResizeObserver === 'function') new ResizeObserver(ajustarCantoInferiorEsquerdo).observe(creditos);
+      mapa.on('resize', ajustarCantoInferiorEsquerdo);
     }
 
     camadaRedeAtual = L.layerGroup().addTo(mapa);
@@ -300,6 +514,9 @@ window.BuzuMapa = (function () {
     mapa.getPane('paneSetas').style.pointerEvents = 'none';
     camadaSentidos = L.layerGroup().addTo(mapa);
     camadaEtapas = L.layerGroup().addTo(mapa);
+    mapa.createPane('panePontoGps');
+    mapa.getPane('panePontoGps').style.zIndex = 640; // acima de setas, paradas e marcadores
+    mapa.getPane('panePontoGps').style.pointerEvents = 'none';
     mapa.on('zoomend', atualizarSentidos);
 
     // Clique no mapa durante o Modo Editor Administrativo (nova parada ou estender rota)
@@ -394,12 +611,14 @@ window.BuzuMapa = (function () {
       diaSemana = 'dias_uteis_sabados',
       mostrarRedeAtual = false,
       redeAtualGeoJson = null,
-      mostrarSentido = false // "Como chegar": mostra ida/volta e setas de todas as linhas do trajeto
+      mostrarSentido = false, // "Como chegar": mostra ida/volta e setas de todas as linhas do trajeto
+      filtroSentido = false // "Itinerários": mostra o filtro Ida/Volta da linha selecionada
     } = opcoes;
 
     camadaRotasPropostas.clearLayers();
     camadaRedeAtual.clearLayers();
     linhasComSentido = [];
+    permitirFiltroSentido = Boolean(filtroSentido) && !mostrarSentido;
 
     // Camada opcional de rede atual em linha sólida fina
     if (mostrarRedeAtual && redeAtualGeoJson && Array.isArray(redeAtualGeoJson.features)) {

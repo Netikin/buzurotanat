@@ -315,17 +315,31 @@ window.BuzuDados = (function () {
   async function inicializar() {
     let carregouServidor = false;
 
+    // Tudo em paralelo: dados principais, rascunho do admin (IndexedDB), locais e camada opcional.
+    // Os traçados dos lotes também já começam a carregar aqui (ficam em cache para o primeiro desenho).
+    const promessaAdmin = carregarOverrideAdminAsync();
+    const promessaLocais = buscarDados('dados/locais-natal.json')
+      .then(r => (r.ok ? r.json() : FALLBACK_INICIAL.locaisNatal))
+      .catch(() => FALLBACK_INICIAL.locaisNatal);
+    const promessaRedeAtual = estado.redeAtualGeoJson
+      ? Promise.resolve(null)
+      : fetch('dados/rede-atual.geojson')
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null);
+
     try {
-      const [resIndice, resParadas, resPivot] = await Promise.all([
-        fetch('dados/linhas.json', { cache: 'no-store' }),
-        fetch('dados/paradas.json', { cache: 'no-store' }),
-        fetch('dados/linha_paradas.json', { cache: 'no-store' }).catch(() => null)
+      const [dadosIndice, dadosParadas, dadosPivot] = await Promise.all([
+        buscarDados('dados/linhas.json').then(r => (r.ok ? r.json() : null)),
+        buscarDados('dados/paradas.json').then(r => (r.ok ? r.json() : null)),
+        buscarDados('dados/linha_paradas.json')
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null)
       ]);
-      if (resIndice.ok && resParadas.ok) {
-        estado.indice = await resIndice.json();
-        estado.paradas = await resParadas.json();
-        if (resPivot && resPivot.ok) {
-          estado.linhaParadas = await resPivot.json();
+      if (dadosIndice && dadosParadas) {
+        estado.indice = dadosIndice;
+        estado.paradas = dadosParadas;
+        if (dadosPivot) {
+          estado.linhaParadas = dadosPivot;
         }
         carregouServidor = true;
       }
@@ -333,7 +347,7 @@ window.BuzuDados = (function () {
       carregouServidor = false;
     }
 
-    const adminSalvo = await carregarOverrideAdminAsync();
+    const adminSalvo = await promessaAdmin;
 
     if (!carregouServidor) {
       if (adminSalvo && adminSalvo.indice && adminSalvo.paradas) {
@@ -369,36 +383,30 @@ window.BuzuDados = (function () {
       };
     }
 
-    // Carrega dicionário de locais de Natal para autocomplete instantâneo
-    try {
-      const resLocais = await fetch('dados/locais-natal.json');
-      if (resLocais.ok) {
-        estado.locaisNatal = await resLocais.json();
-      } else {
-        estado.locaisNatal = FALLBACK_INICIAL.locaisNatal;
-      }
-    } catch (_e) {
-      estado.locaisNatal = FALLBACK_INICIAL.locaisNatal;
+    // Dicionário de locais de Natal para autocomplete instantâneo
+    estado.locaisNatal = await promessaLocais;
+
+    // Camada opcional de rede atual (dados/rede-atual.geojson)
+    const gj = await promessaRedeAtual;
+    if (gj && Array.isArray(gj.features) && gj.features.length > 0) {
+      estado.redeAtualGeoJson = gj;
+      estado.temRedeAtual = true;
     }
 
-    // Verifica se há camada opcional de rede atual (dados/rede-atual.geojson)
-    if (!estado.redeAtualGeoJson) {
-      try {
-        const resRedeAtual = await fetch('dados/rede-atual.geojson');
-        if (resRedeAtual.ok) {
-          const gj = await resRedeAtual.json();
-          if (gj && Array.isArray(gj.features) && gj.features.length > 0) {
-            estado.redeAtualGeoJson = gj;
-            estado.temRedeAtual = true;
-          }
-        }
-      } catch (_e) {
-        estado.temRedeAtual = false;
-      }
+    // Adianta os traçados dos lotes (já estão baixando desde o <head>)
+    if (carregouServidor) {
+      ['1', '2'].forEach(id => carregarGeoJsonLote(id).catch(() => {}));
     }
 
     return estado;
   }
+
+  /** Usa a resposta já pedida no <head> (js/precarga.js), ou busca revalidando o cache do navegador */
+  function buscarDados(url) {
+    return window.BuzuPrecarga ? window.BuzuPrecarga.obter(url) : fetch(url, { cache: 'no-cache' });
+  }
+
+  const carregamentosLote = {};
 
   /**
    * Carrega sob demanda o GeoJSON de um lote específico (1 ou 2)
@@ -409,12 +417,21 @@ window.BuzuDados = (function () {
     if (estado.cacheGeoJsonLotes[id]) {
       return estado.cacheGeoJsonLotes[id];
     }
+    // Mais de uma chamada ao mesmo tempo compartilha o mesmo download
+    if (!carregamentosLote[id]) {
+      carregamentosLote[id] = baixarGeoJsonLote(id).finally(() => {
+        delete carregamentosLote[id];
+      });
+    }
+    return carregamentosLote[id];
+  }
 
+  async function baixarGeoJsonLote(id) {
     const configLote = (estado.indice?.lotes || []).find(l => String(l.id) === id);
     const caminho = configLote ? configLote.arquivo : `dados/lote-${id}.geojson`;
 
     try {
-      const res = await fetch(caminho, { cache: 'no-store' });
+      const res = await buscarDados(caminho);
       if (!res.ok) throw new Error(`Lote ${id} não encontrado via HTTP`);
       const geojson = await res.json();
 

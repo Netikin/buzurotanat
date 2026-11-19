@@ -55,12 +55,8 @@
     configurarModalAdmin();
     configurarGestaoRascunhoEBeforeUnload();
 
-    const dadosEstado = await window.BuzuDados.inicializar();
-
-    const containerFiltroRedeAtual = document.getElementById('container-filtro-rede-atual');
-    if (containerFiltroRedeAtual) {
-      containerFiltroRedeAtual.hidden = !dadosEstado.temRedeAtual;
-    }
+    // Os dados começam a carregar já; o mapa base é montado enquanto isso (não espera os dados)
+    const promessaDados = window.BuzuDados.inicializar();
 
     window.BuzuMapa.inicializar('mapa', {
       aoClicarLinha: (idLinha, diaDaFeature) => {
@@ -150,6 +146,13 @@
         }
       }
     });
+
+    const dadosEstado = await promessaDados;
+
+    const containerFiltroRedeAtual = document.getElementById('container-filtro-rede-atual');
+    if (containerFiltroRedeAtual) {
+      containerFiltroRedeAtual.hidden = !dadosEstado.temRedeAtual;
+    }
 
     // Modo escuro: troca o mapa base e redesenha linhas/paradas com as cores do tema
     document.addEventListener('buzu:tema', async e => {
@@ -1475,7 +1478,9 @@
       diaSemana: estadoUI.diaSemana,
       mostrarRedeAtual: estadoUI.mostrarRedeAtual,
       redeAtualGeoJson: estadoDados.redeAtualGeoJson,
-      mostrarSentido: modoViagem
+      mostrarSentido: modoViagem,
+      // filtro Ida/Volta no canto do mapa: só na aba "Itinerários"
+      filtroSentido: estadoUI.abaBusca === 'linha'
     });
 
     const linhasComTracadoNoDia = new Set();
