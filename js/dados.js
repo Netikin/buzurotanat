@@ -576,6 +576,66 @@ window.BuzuDados = (function () {
   }
 
   /**
+   * Retorna os códigos das linhas que realmente passam pela parada `idParada` no `diaSemana`,
+   * excluindo automaticamente linhas cujo traçado daquele dia tenha sido removido.
+   */
+  function obterLinhasDaParadaNoDia(idParada, diaSemana = 'dias_uteis_sabados') {
+    const feat = obterParadaPorId(idParada);
+    if (!feat) return [];
+    const pid = String(feat.properties?.id || '');
+
+    // Verifica nos lotes já carregados quais linhas possuem traçado real para o dia pedido
+    const linhasSemTracadoNoDia = new Set();
+    const linhasComTracadoNoDia = new Set();
+    const lotesCarregados = Object.values(estado.cacheGeoJsonLotes || {});
+    if (lotesCarregados.length > 0 && diaSemana !== 'todos') {
+      for (const l of estado.indice?.linhas || []) {
+        const num = String(l.numero || '').toUpperCase();
+        if (num) linhasSemTracadoNoDia.add(num);
+      }
+      for (const fc of lotesCarregados) {
+        for (const f of fc?.features || []) {
+          const p = f.properties || {};
+          const num = String(p.numero || p.linha_id || '').toUpperCase();
+          const d = p.dia_semana || 'todos';
+          if (num && (d === 'todos' || d === diaSemana)) {
+            linhasComTracadoNoDia.add(num);
+            linhasSemTracadoNoDia.delete(num);
+          }
+        }
+      }
+    }
+
+    const doPivotNoDia = new Set();
+    let temQualquerRegistroPivotParaParada = false;
+    for (const lp of estado.linhaParadas || []) {
+      if (String(lp.parada_id) !== pid) continue;
+      temQualquerRegistroPivotParaParada = true;
+      const d = lp.dia_semana || 'todos';
+      if (diaSemana === 'todos' || d === 'todos' || d === diaSemana) {
+        doPivotNoDia.add(String(lp.linha_id).toUpperCase());
+      }
+    }
+
+    let candidatas;
+    if (temQualquerRegistroPivotParaParada) {
+      candidatas = Array.from(doPivotNoDia);
+    } else {
+      candidatas = (feat.properties?.rotas || []).map(r => String(r).toUpperCase());
+    }
+
+    if (diaSemana === 'todos') {
+      return Array.from(new Set(candidatas));
+    }
+
+    return Array.from(new Set(candidatas)).filter(num => {
+      if (linhasComTracadoNoDia.has(num)) return true;
+      if (linhasSemTracadoNoDia.has(num)) return false;
+      return true;
+    });
+  }
+
+  /**
    * Calcula as 3 a 5 paradas/terminais mais próximos de uma coordenada (lat, lng)
    * considerando o dia da semana selecionado.
    */
@@ -2268,7 +2328,10 @@ window.BuzuDados = (function () {
         f => String(f.properties?.numero || f.properties?.linha_id || '').toUpperCase() === numUpper
       );
       if (feats.length === 0) return null;
-      const exata = feats.find(f => f.properties?.dia_semana === diaSemana) || feats[0];
+      const exata = feats.find(
+        f => f.properties?.dia_semana === diaSemana || !f.properties?.dia_semana
+      );
+      if (!exata) return null;
       return {
         feature: exata,
         loteId,
@@ -2499,14 +2562,33 @@ window.BuzuDados = (function () {
       linhaIdx.bbox = bbox;
       linhaIdx.situacao_rota = 'disponivel';
 
-      if (linhaIdx.variantes_dia && linhaIdx.variantes_dia[diaReal]) {
+      if (!Array.isArray(linhaIdx.dias_disponiveis)) {
+        linhaIdx.dias_disponiveis = [];
+      }
+      if (!linhaIdx.dias_disponiveis.includes(diaReal)) {
+        linhaIdx.dias_disponiveis.push(diaReal);
+      }
+      linhaIdx.variantes_dia = linhaIdx.variantes_dia || {};
+      if (!linhaIdx.variantes_dia[diaReal]) {
+        linhaIdx.variantes_dia[diaReal] = {
+          dia_semana: diaReal,
+          dia_rotulo: diaReal === 'domingos_feriados' ? 'Domingos e feriados' : 'Dias úteis e sábados',
+          nome: novoNome,
+          extensao_km: extensaoKm,
+          cor: novaCor,
+          sentido: 'ambos',
+          paradas_atendidas: [],
+          integracoes: [],
+          bbox
+        };
+      } else {
         linhaIdx.variantes_dia[diaReal].nome = novoNome;
         linhaIdx.variantes_dia[diaReal].cor = novaCor;
         linhaIdx.variantes_dia[diaReal].extensao_km = extensaoKm;
         linhaIdx.variantes_dia[diaReal].bbox = bbox;
-        if (novosMetadados.itinerario_ruas) {
-          linhaIdx.variantes_dia[diaReal].itinerario_ruas = novosMetadados.itinerario_ruas;
-        }
+      }
+      if (novosMetadados.itinerario_ruas) {
+        linhaIdx.variantes_dia[diaReal].itinerario_ruas = novosMetadados.itinerario_ruas;
       }
     }
 
@@ -3356,6 +3438,7 @@ window.BuzuDados = (function () {
     obterDadosLinhaNoDia,
     obterParadasPorDia,
     obterParadaPorId,
+    obterLinhasDaParadaNoDia,
     buscarParadasMaisProximas,
     buscarSugestoesEndereco,
     buscarSugestoesEnderecoLocal,

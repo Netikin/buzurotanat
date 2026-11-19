@@ -269,6 +269,18 @@
       !estadoUI.paradaSelecionadaId
     );
 
+    if (reprocessarRota && estadoUI.modoEditorRota && estadoUI.editorRotaLinha && typeof estadoUI.reabrirEditorRotaNoDia === 'function') {
+      const diaEdit = novoDia === 'todos' ? 'dias_uteis_sabados' : novoDia;
+      await estadoUI.reabrirEditorRotaNoDia(estadoUI.editorRotaLinha, diaEdit);
+      return;
+    }
+
+    if (reprocessarRota && estadoUI.modoDesenhadorRota && estadoUI.desenhadorLinha && typeof estadoUI.reabrirDesenhadorNoDia === 'function') {
+      const diaEdit = novoDia === 'todos' ? 'dias_uteis_sabados' : novoDia;
+      await estadoUI.reabrirDesenhadorNoDia(estadoUI.desenhadorLinha, diaEdit);
+      return;
+    }
+
     if (reprocessarRota && estadoUI.linhaSelecionadaId) {
       window.BuzuMapa.solicitarEnquadramentoNaProximaRenderizacao();
       await atualizarMapaEListagens();
@@ -1360,7 +1372,7 @@
           </div>
           <div style="margin-top:8px;font-size:0.88rem;">
             <strong>Linhas propostas que passam aqui:</strong>
-            ${(p.rotas || [])
+            ${window.BuzuDados.obterLinhasDaParadaNoDia(p.id, estadoUI.diaSemana)
               .map(
                 r =>
                   `<a href="#/linha/${encodeURIComponent(
@@ -1466,16 +1478,30 @@
       mostrarSentido: modoViagem
     });
 
+    const linhasComTracadoNoDia = new Set();
+    for (const feat of featuresRotas) {
+      const pF = feat.properties || {};
+      const dF = pF.dia_semana || 'todos';
+      if (estadoUI.diaSemana === 'todos' || dF === 'todos' || dF === estadoUI.diaSemana) {
+        linhasComTracadoNoDia.add(String(pF.numero || pF.linha_id || '').toUpperCase());
+      }
+    }
+
     const paradasDia = window.BuzuDados.obterParadasPorDia(estadoUI.diaSemana, {
       incluirInativas: estadoUI.modoEditorParadas,
       incluirVirtuaisNoMapa: estadoUI.mostrarVirtuaisNoMapa || linhaSelecionadaAtiva
     });
-    let paradasVisiveis = modoViagem ? [] : paradasDia.filter(feat => {
-      const rotas = (feat.properties?.rotas || []).map(rota => String(rota).toUpperCase());
-      // Paradas sem linha associada só aparecem na visão geral (nunca no detalhe de uma linha)
-      if (rotas.length === 0) return !linhaSelecionadaAtiva;
-      return rotas.some(rota => numerosPermitidos.has(rota));
-    });
+    let paradasVisiveis = modoViagem
+      ? []
+      : paradasDia
+          .filter(feat => {
+            const pid = feat.properties?.id;
+            const rotasDia = window.BuzuDados.obterLinhasDaParadaNoDia(pid, estadoUI.diaSemana);
+            feat.properties.rotas_dia = rotasDia;
+            // Paradas sem linha associada só aparecem na visão geral (nunca no detalhe de uma linha)
+            if (rotasDia.length === 0) return !linhaSelecionadaAtiva;
+            return rotasDia.some(rota => numerosPermitidos.has(rota) && linhasComTracadoNoDia.has(rota));
+          });
 
     if (estadoUI.paradaSelecionadaId) {
       const paradaSelecionada = window.BuzuDados.obterParadaPorId(estadoUI.paradaSelecionadaId);
@@ -2328,26 +2354,32 @@
           <span class="material-symbols-outlined" aria-hidden="true">directions_bus</span>
         </h3>
         <ul class="lista-cartoes">
-          ${(props.rotas || [])
-            .map(codRota => {
-              const objLinha = window.BuzuDados.obterLinhaPorId(codRota, estadoUI.diaSemana);
-              return `
-                <li class="cartao-item">
-                  <div class="cabecalho-cartao">
-                    <div>
-                      <span class="badge-numero-linha">${window.BuzuUtils.escaparHtml(codRota)}</span>
-                      <strong style="margin-left:8px;font-size:1rem;">${window.BuzuUtils.escaparHtml(
-                        objLinha ? objLinha.nome : `Linha ${codRota}`
-                      )}</strong>
+          ${(() => {
+            const rotasDoDia = window.BuzuDados.obterLinhasDaParadaNoDia(props.id, estadoUI.diaSemana);
+            if (rotasDoDia.length === 0) {
+              return `<li class="cartao-item">Nenhuma linha com traçado ativo atende este ponto no dia selecionado.</li>`;
+            }
+            return rotasDoDia
+              .map(codRota => {
+                const objLinha = window.BuzuDados.obterLinhaPorId(codRota, estadoUI.diaSemana);
+                return `
+                  <li class="cartao-item">
+                    <div class="cabecalho-cartao">
+                      <div>
+                        <span class="badge-numero-linha">${window.BuzuUtils.escaparHtml(codRota)}</span>
+                        <strong style="margin-left:8px;font-size:1rem;">${window.BuzuUtils.escaparHtml(
+                          objLinha ? objLinha.nome : `Linha ${codRota}`
+                        )}</strong>
+                      </div>
+                      <a href="#/linha/${encodeURIComponent(codRota)}" class="btn-primario">
+                        Ver paradas e rota
+                      </a>
                     </div>
-                    <a href="#/linha/${encodeURIComponent(codRota)}" class="btn-primario">
-                      Ver paradas e rota
-                    </a>
-                  </div>
-                </li>
-              `;
-            })
-            .join('')}
+                  </li>
+                `;
+              })
+              .join('');
+          })()}
         </ul>
 
         ${
@@ -2444,14 +2476,15 @@
     });
 
     async function abrirEditorRotaNoMapa(numeroLinha, diaSemana) {
-      const dadosRota = await window.BuzuDados.obterCoordenadasRota(numeroLinha, diaSemana);
-      const linhaMeta = window.BuzuDados.obterLinhaPorId(numeroLinha, diaSemana);
+      const diaAlvo = !diaSemana || diaSemana === 'todos' ? 'dias_uteis_sabados' : diaSemana;
+      const dadosRota = await window.BuzuDados.obterCoordenadasRota(numeroLinha, diaAlvo);
+      const linhaMeta = window.BuzuDados.obterLinhaPorId(numeroLinha, diaAlvo);
       if (!dadosRota && !linhaMeta) {
         mostrarFeedbackAdmin(`Linha ${numeroLinha} não encontrada.`, 'erro');
         return;
       }
 
-      const diaReal = dadosRota?.diaReal || (diaSemana === 'todos' ? 'dias_uteis_sabados' : diaSemana);
+      const diaReal = diaAlvo;
       const coordsIniciais = dadosRota?.coordenadas || [];
       const corInicial = dadosRota?.feature?.properties?.cor || linhaMeta?.cor || '#e0621f';
 
@@ -2460,6 +2493,10 @@
         estadoUI.criarParadaCliqueAtivo = false;
         if (barraEditorMapa) barraEditorMapa.hidden = true;
         window.BuzuMapa.definirModoEditorParadas(false, false);
+      }
+
+      if (estadoUI.diaSemana !== diaReal) {
+        await definirDiaSemana(diaReal, false);
       }
 
       estadoUI.modoEditorRota = true;
@@ -2612,18 +2649,36 @@
 
     async function executarLimpezaTodoTracadoRota() {
       if (!estadoUI.modoEditorRota || !estadoUI.editorRotaLinha) return;
+      const diaAlvo = estadoUI.editorRotaDia || 'dias_uteis_sabados';
       const diaRotulo =
-        estadoUI.editorRotaDia === 'domingos_feriados'
+        diaAlvo === 'domingos_feriados'
           ? 'Domingos e feriados'
           : 'Dias úteis e sábados';
+
+      const dadosDia = await window.BuzuDados.obterCoordenadasRota(
+        estadoUI.editorRotaLinha,
+        diaAlvo
+      );
+      const coordsEditor = window.BuzuMapa.obterCoordenadasEdicaoRota();
+      const box = document.getElementById('feedback-editor-rota');
+
+      if (!dadosDia && coordsEditor.length === 0) {
+        if (box) {
+          box.hidden = false;
+          box.className = 'alerta-edital';
+          box.textContent = `A linha ${estadoUI.editorRotaLinha} não possui traçado cadastrado em "${diaRotulo}" para remover. Selecione outro dia em CIRCULAÇÃO ou clique no mapa para desenhar.`;
+        }
+        return;
+      }
+
       const confirmado = window.confirm(
-        `Tem certeza que deseja remover TODO o traçado da linha ${estadoUI.editorRotaLinha} (${diaRotulo})?\n\nAs paradas vinculadas deixarão de exibir esta linha até você finalizar e salvar o novo traçado.`
+        `Tem certeza que deseja remover TODO o traçado da linha ${estadoUI.editorRotaLinha} apenas de "${diaRotulo}"?\n\nOs outros dias de circulação não serão apagados. As paradas deste dia deixarão de exibir esta linha até você salvar o novo traçado.`
       );
       if (!confirmado) return;
 
       await window.BuzuDados.removerTracadoLinhaNoMapa(
         estadoUI.editorRotaLinha,
-        estadoUI.editorRotaDia
+        diaAlvo
       );
       window.BuzuMapa.limparTodosVerticesRota();
       await atualizarMapaEListagens();
@@ -2631,7 +2686,6 @@
       if (btnRotaEstender) btnRotaEstender.setAttribute('aria-pressed', 'true');
       window.BuzuMapa.definirAdicionarVerticeCliqueRota(true);
 
-      const box = document.getElementById('feedback-editor-rota');
       if (box) {
         box.hidden = false;
         box.className = 'alerta-edital';
@@ -2717,9 +2771,14 @@
         window.BuzuMapa.definirModoEditorParadas(false, false);
       }
 
+      const diaAlvo = !diaSemana || diaSemana === 'todos' ? 'dias_uteis_sabados' : diaSemana;
+      if (estadoUI.diaSemana !== diaAlvo) {
+        await definirDiaSemana(diaAlvo, false);
+      }
+
       estadoUI.modoDesenhadorRota = true;
       estadoUI.desenhadorLinha = numeroLinha;
-      estadoUI.desenhadorDia = diaSemana || 'dias_uteis_sabados';
+      estadoUI.desenhadorDia = diaAlvo;
       estadoUI.linhaSelecionadaId = numeroLinha;
       estadoUI.paradaSelecionadaId = null;
 
@@ -2739,15 +2798,20 @@
       );
       const linhaMeta = window.BuzuDados.obterLinhaPorId(numeroLinha, estadoUI.desenhadorDia);
 
-      window.BuzuMapa.solicitarEnquadramentoNaProximaRenderizacao();
+      if (dadosExistentes?.coordenadas?.length >= 2) {
+        window.BuzuMapa.solicitarEnquadramentoNaProximaRenderizacao();
+      }
       await atualizarMapaEListagens();
       renderizarPainelDesenhadorRota(numeroLinha, estadoUI.desenhadorDia);
       window.BuzuMapa.definirModoDesenhadorRota(true, {
         coordenadasExistentes: dadosExistentes?.coordenadas || [],
         indiceRetorno: dadosExistentes?.feature?.properties?.indice_retorno,
-        itinerarioRuas: linhaMeta?.itinerario_ruas || null
+        itinerarioRuas: linhaMeta?.variantes_dia?.[estadoUI.desenhadorDia]?.itinerario_ruas || null
       });
     }
+
+    estadoUI.reabrirEditorRotaNoDia = abrirEditorRotaNoMapa;
+    estadoUI.reabrirDesenhadorNoDia = abrirDesenhadorRota;
 
     async function sairModoDesenhadorRota(voltarParaLinha = true) {
       estadoUI.modoDesenhadorRota = false;
@@ -3057,6 +3121,13 @@
         if (valorVis && [...selectLinhaVisual.options].some(o => o.value === valorVis)) {
           selectLinhaVisual.value = valorVis;
         }
+      }
+
+      if (selectDiaVisual) {
+        selectDiaVisual.value =
+          estadoUI.diaSemana === 'domingos_feriados'
+            ? 'domingos_feriados'
+            : 'dias_uteis_sabados';
       }
 
       const linhaEscolhida = selectLinha?.value || '';

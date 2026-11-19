@@ -608,8 +608,9 @@ window.BuzuMapa = (function () {
   }
 
   function textoTooltipParada(props) {
-    const linhas = (props.rotas || []).slice(0, 10);
-    const extra = (props.rotas || []).length > linhas.length ? ` +${props.rotas.length - linhas.length}` : '';
+    const listaRotas = props.rotas_dia || props.rotas || [];
+    const linhas = listaRotas.slice(0, 10);
+    const extra = listaRotas.length > linhas.length ? ` +${listaRotas.length - linhas.length}` : '';
     const tipo = ehParadaPrincipal(props.tipo) ? `<span class="tooltip-parada-tipo">${window.BuzuUtils.escaparHtml(props.tipo)}</span><br>` : '';
     return (
       `${tipo}<strong>${window.BuzuUtils.escaparHtml(props.nome)}</strong>` +
@@ -695,10 +696,11 @@ window.BuzuMapa = (function () {
       const sentidoTag = (props.sentidos_atendidos || 'AMBOS').toUpperCase();
       const dicaEditor = modoEditorAtivo ? '<br><em>🛠️ Arraste para ajustar posição ou clique para editar sentido</em>' : '';
 
+      const listaRotasEditor = props.rotas_dia || props.rotas || [];
       marker.bindTooltip(
         `<strong>${window.BuzuUtils.escaparHtml(props.nome)}</strong><br>` +
           `[${origemTag} • Sentido: ${sentidoTag}] • Linhas: ${window.BuzuUtils.escaparHtml(
-            (props.rotas || []).slice(0, 8).join(', ')
+            listaRotasEditor.slice(0, 8).join(', ')
           )}${dicaEditor}`,
         { direction: 'top', offset: [0, -14] }
       );
