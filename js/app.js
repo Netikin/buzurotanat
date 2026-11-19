@@ -351,6 +351,11 @@
       caixaLegenda.setAttribute('data-aberta-mobile', String(!aberta));
       btnLegenda.setAttribute('aria-expanded', String(!aberta));
     });
+
+    const chkTerminalRetorno = document.getElementById('chk-mostrar-terminal-retorno');
+    chkTerminalRetorno?.addEventListener('change', () => {
+      window.BuzuMapa.definirMostrarTerminalRetorno(chkTerminalRetorno.checked);
+    });
   }
 
   function ajustarBottomSheetMobile(estadoSheet) {
@@ -2424,6 +2429,7 @@
     const barraEditorRota = document.getElementById('barra-editor-rota');
     const btnRotaDesfazer = document.getElementById('btn-rota-desfazer');
     const btnRotaEstender = document.getElementById('btn-rota-estender-clique');
+    const btnRotaLimparTudo = document.getElementById('btn-rota-limpar-tudo');
     const btnRotaSalvar = document.getElementById('btn-rota-salvar-mapa');
     const btnRotaSair = document.getElementById('btn-rota-sair');
 
@@ -2439,10 +2445,15 @@
 
     async function abrirEditorRotaNoMapa(numeroLinha, diaSemana) {
       const dadosRota = await window.BuzuDados.obterCoordenadasRota(numeroLinha, diaSemana);
-      if (!dadosRota) {
-        mostrarFeedbackAdmin(`Traçado da linha ${numeroLinha} não encontrado.`, 'erro');
+      const linhaMeta = window.BuzuDados.obterLinhaPorId(numeroLinha, diaSemana);
+      if (!dadosRota && !linhaMeta) {
+        mostrarFeedbackAdmin(`Linha ${numeroLinha} não encontrada.`, 'erro');
         return;
       }
+
+      const diaReal = dadosRota?.diaReal || (diaSemana === 'todos' ? 'dias_uteis_sabados' : diaSemana);
+      const coordsIniciais = dadosRota?.coordenadas || [];
+      const corInicial = dadosRota?.feature?.properties?.cor || linhaMeta?.cor || '#e0621f';
 
       if (estadoUI.modoEditorParadas) {
         estadoUI.modoEditorParadas = false;
@@ -2453,8 +2464,8 @@
 
       estadoUI.modoEditorRota = true;
       estadoUI.editorRotaLinha = numeroLinha;
-      estadoUI.editorRotaDia = dadosRota.diaReal;
-      estadoUI.estenderRotaCliqueAtivo = false;
+      estadoUI.editorRotaDia = diaReal;
+      estadoUI.estenderRotaCliqueAtivo = coordsIniciais.length === 0;
       estadoUI.linhaSelecionadaId = numeroLinha;
       estadoUI.paradaSelecionadaId = null;
 
@@ -2463,19 +2474,24 @@
       const tituloBarra = document.getElementById('titulo-barra-editor-rota');
       if (tituloBarra) {
         tituloBarra.textContent = `Editando Linha ${numeroLinha} (${
-          dadosRota.diaReal === 'domingos_feriados' ? 'Domingos' : 'Úteis/Sáb'
+          diaReal === 'domingos_feriados' ? 'Domingos' : 'Úteis/Sáb'
         })`;
       }
-      if (btnRotaEstender) btnRotaEstender.setAttribute('aria-pressed', 'false');
+      if (btnRotaEstender) {
+        btnRotaEstender.setAttribute('aria-pressed', String(estadoUI.estenderRotaCliqueAtivo));
+      }
 
       await atualizarMapaEListagens();
       window.BuzuMapa.definirModoEditorRota(
         true,
-        dadosRota.coordenadas,
-        dadosRota.feature?.properties?.cor || '#e0621f',
-        true
+        coordsIniciais,
+        corInicial,
+        coordsIniciais.length >= 2
       );
-      renderizarFormularioEditorRota(numeroLinha, dadosRota.diaReal);
+      if (estadoUI.estenderRotaCliqueAtivo) {
+        window.BuzuMapa.definirAdicionarVerticeCliqueRota(true);
+      }
+      renderizarFormularioEditorRota(numeroLinha, diaReal);
     }
 
     async function sairModoEditorRota(voltarParaLinha = true) {
@@ -2577,6 +2593,9 @@
             <button type="button" id="btn-salvar-rota-form" class="btn-rumo-primary" style="flex:1;">
               <i class="bi bi-save"></i> Salvar Alterações e Recalcular (40m)
             </button>
+            <button type="button" id="btn-limpar-rota-form" class="btn-rumo-secondary" style="color:#b91c1c;border-color:#fca5a5;">
+              <i class="bi bi-trash"></i> Remover traçado
+            </button>
             <button type="button" id="btn-cancelar-rota-form" class="btn-rumo-secondary">
               Cancelar
             </button>
@@ -2585,9 +2604,40 @@
       `;
 
       document.getElementById('btn-salvar-rota-form')?.addEventListener('click', salvarEdicaoRotaAtual);
+      document.getElementById('btn-limpar-rota-form')?.addEventListener('click', executarLimpezaTodoTracadoRota);
       document.getElementById('btn-cancelar-rota-form')?.addEventListener('click', () => {
         void sairModoEditorRota(true);
       });
+    }
+
+    async function executarLimpezaTodoTracadoRota() {
+      if (!estadoUI.modoEditorRota || !estadoUI.editorRotaLinha) return;
+      const diaRotulo =
+        estadoUI.editorRotaDia === 'domingos_feriados'
+          ? 'Domingos e feriados'
+          : 'Dias úteis e sábados';
+      const confirmado = window.confirm(
+        `Tem certeza que deseja remover TODO o traçado da linha ${estadoUI.editorRotaLinha} (${diaRotulo})?\n\nAs paradas vinculadas deixarão de exibir esta linha até você finalizar e salvar o novo traçado.`
+      );
+      if (!confirmado) return;
+
+      await window.BuzuDados.removerTracadoLinhaNoMapa(
+        estadoUI.editorRotaLinha,
+        estadoUI.editorRotaDia
+      );
+      window.BuzuMapa.limparTodosVerticesRota();
+      await atualizarMapaEListagens();
+      estadoUI.estenderRotaCliqueAtivo = true;
+      if (btnRotaEstender) btnRotaEstender.setAttribute('aria-pressed', 'true');
+      window.BuzuMapa.definirAdicionarVerticeCliqueRota(true);
+
+      const box = document.getElementById('feedback-editor-rota');
+      if (box) {
+        box.hidden = false;
+        box.className = 'alerta-edital';
+        box.textContent =
+          'Traçado removido e paradas desvinculadas desta linha! Clique no mapa para desenhar a nova rota e salve para vincular as paradas novamente.';
+      }
     }
 
     async function salvarEdicaoRotaAtual() {
@@ -2615,7 +2665,9 @@
         if (box) {
           box.hidden = false;
           box.className = 'alerta-sucesso';
-          box.textContent = `Salvo! ${res.extensao_km.toFixed(2).replace('.', ',')} km • ${res.vertices} vértices • ${res.paradasVinculadas} paradas vinculadas (40m).`;
+          box.textContent = res?.removida
+            ? 'Traçado removido e paradas desvinculadas desta linha no rascunho!'
+            : `Salvo! ${res.extensao_km.toFixed(2).replace('.', ',')} km • ${res.vertices} vértices • ${res.paradasVinculadas} paradas vinculadas (40m).`;
         }
       } catch (err) {
         if (box) {
@@ -2641,6 +2693,8 @@
       btnRotaEstender.setAttribute('aria-pressed', String(estadoUI.estenderRotaCliqueAtivo));
       window.BuzuMapa.definirAdicionarVerticeCliqueRota(estadoUI.estenderRotaCliqueAtivo);
     });
+
+    btnRotaLimparTudo?.addEventListener('click', executarLimpezaTodoTracadoRota);
 
     btnRotaSalvar?.addEventListener('click', () => {
       void salvarEdicaoRotaAtual();

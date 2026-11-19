@@ -2281,6 +2281,113 @@ window.BuzuDados = (function () {
   }
 
   /**
+   * Garante que `p.rotas` em dados/paradas.json reflita exatamente os vínculos ativos de `numUpper`.
+   */
+  function sincronizarRotasNasParadasPorLinha(numUpper) {
+    const chave = String(numUpper || '').toUpperCase().trim();
+    const paradasComVinculo = new Set();
+    for (const lp of estado.linhaParadas || []) {
+      if (String(lp.linha_id).toUpperCase() === chave) {
+        paradasComVinculo.add(String(lp.parada_id));
+      }
+    }
+    const linhaIdx = (estado.indice?.linhas || []).find(
+      l => String(l.numero).toUpperCase() === chave
+    );
+    if (linhaIdx?.variantes_dia) {
+      for (const v of Object.values(linhaIdx.variantes_dia)) {
+        for (const idP of v?.paradas_atendidas || []) {
+          paradasComVinculo.add(String(idP));
+        }
+      }
+    }
+    for (const featP of estado.paradas?.features || []) {
+      const p = featP.properties || {};
+      const rotas = Array.isArray(p.rotas) ? p.rotas.map(r => String(r).toUpperCase()) : [];
+      const possui = rotas.includes(chave);
+      const deveTer = paradasComVinculo.has(String(p.id));
+      if (possui && !deveTer) {
+        p.rotas = (p.rotas || []).filter(r => String(r).toUpperCase() !== chave);
+      } else if (!possui && deveTer) {
+        p.rotas = [...(p.rotas || []), chave];
+      }
+    }
+  }
+
+  /**
+   * Remove todo o traçado de uma linha (no dia selecionado), desvincula suas paradas
+   * e limpa a linha de `p.rotas` para não aparecer nos pontos até que um novo traçado seja finalizado.
+   */
+  async function removerTracadoLinhaNoMapa(numeroLinha, diaSemana = 'dias_uteis_sabados') {
+    const numUpper = String(numeroLinha || '').toUpperCase().trim();
+    if (!numUpper) return null;
+
+    registrarSnapshotUndoAdmin(`Remover traçado ${numUpper}`);
+
+    await Promise.all([carregarGeoJsonLote('1'), carregarGeoJsonLote('2')]);
+    const encontrado = await obterCoordenadasRota(numUpper, diaSemana);
+    const diaReal = encontrado?.diaReal || diaSemana;
+
+    // Remove a Feature GeoJSON correspondente deste dia
+    for (const idLote of ['1', '2']) {
+      const fc = estado.cacheGeoJsonLotes[idLote];
+      if (fc?.features) {
+        fc.features = fc.features.filter(
+          f =>
+            !(
+              String(f.properties?.numero || f.properties?.linha_id || '').toUpperCase() === numUpper &&
+              (!f.properties?.dia_semana || f.properties.dia_semana === diaReal)
+            )
+        );
+      }
+    }
+
+    // Zera os dados de traçado e paradas da variante removida
+    const linhaIdx = (estado.indice?.linhas || []).find(
+      l => String(l.numero).toUpperCase() === numUpper
+    );
+    if (linhaIdx) {
+      if (linhaIdx.variantes_dia?.[diaReal]) {
+        linhaIdx.variantes_dia[diaReal].extensao_km = 0;
+        linhaIdx.variantes_dia[diaReal].paradas_atendidas = [];
+        linhaIdx.variantes_dia[diaReal].itinerario_ruas = { ida: [], volta: [] };
+        delete linhaIdx.variantes_dia[diaReal].bbox;
+      }
+      // Atualiza situacao_rota conforme ainda houver traçado em algum dia
+      let temOutroDiaComRota = false;
+      for (const idLote of ['1', '2']) {
+        const fc = estado.cacheGeoJsonLotes[idLote];
+        if ((fc?.features || []).some(f => String(f.properties?.numero || f.properties?.linha_id || '').toUpperCase() === numUpper)) {
+          temOutroDiaComRota = true;
+        }
+      }
+      linhaIdx.situacao_rota = temOutroDiaComRota ? 'parcial' : 'indisponivel';
+    }
+
+    // Remove vínculos linha_paradas da linha neste dia
+    estado.linhaParadas = (estado.linhaParadas || []).filter(
+      lp =>
+        !(
+          String(lp.linha_id).toUpperCase() === numUpper &&
+          (lp.dia_semana === diaReal || lp.dia_semana === 'todos')
+        )
+    );
+
+    sincronizarRotasNasParadasPorLinha(numUpper);
+    estado.grafoMemoria = {};
+    await salvarOverrideAdmin({ publicar: false, resumoAcao: `Traçado ${numUpper} (${diaReal}) removido` });
+
+    return {
+      extensao_km: 0,
+      vertices: 0,
+      paradasVinculadas: 0,
+      paradasIda: 0,
+      paradasVolta: 0,
+      removida: true
+    };
+  }
+
+  /**
    * Atualiza visualmente o traçado e/ou metadados de uma linha, recalcula extensão/bbox/vínculos 40m
    * e persiste no localStorage e no servidor (/api/salvar-rotas).
    */
@@ -2290,17 +2397,50 @@ window.BuzuDados = (function () {
     novasCoordenadas = [],
     novosMetadados = {}
   ) {
-    const encontrado = await obterCoordenadasRota(numeroLinha, diaSemana);
-    if (!encontrado) return null;
-    registrarSnapshotUndoAdmin(`Editar rota ${numeroLinha}`);
-
-    const { feature, loteId: loteAntigo, diaReal } = encontrado;
     const coordsLimpas = (novasCoordenadas || [])
       .filter(c => Array.isArray(c) && c.length >= 2 && Number.isFinite(c[0]) && Number.isFinite(c[1]))
       .map(c => [Number(Number(c[0]).toFixed(6)), Number(Number(c[1]).toFixed(6))]);
 
-    if (coordsLimpas.length < 2) {
-      throw new Error('O traçado precisa ter pelo menos 2 vértices.');
+    if (coordsLimpas.length === 0) {
+      return removerTracadoLinhaNoMapa(numeroLinha, diaSemana);
+    }
+
+    const numUpper = String(numeroLinha || '').toUpperCase().trim();
+    const linhaIdx = (estado.indice?.linhas || []).find(
+      l => String(l.numero).toUpperCase() === numUpper
+    );
+    let encontrado = await obterCoordenadasRota(numUpper, diaSemana);
+    registrarSnapshotUndoAdmin(`Editar rota ${numUpper}`);
+
+    const diaReal = encontrado?.diaReal || (diaSemana === 'todos' ? 'dias_uteis_sabados' : diaSemana);
+    const loteAntigo = encontrado?.loteId || String(linhaIdx?.lote || '1');
+    let feature = encontrado?.feature;
+
+    if (!feature) {
+      if (!estado.cacheGeoJsonLotes[loteAntigo]) {
+        estado.cacheGeoJsonLotes[loteAntigo] = { type: 'FeatureCollection', features: [] };
+      }
+      feature = {
+        type: 'Feature',
+        properties: {
+          id: `${numUpper}-${diaReal}`,
+          linha_id: numUpper,
+          numero: numUpper,
+          nome: linhaIdx?.nome || `Linha ${numUpper}`,
+          lote: loteAntigo,
+          tipo: linhaIdx?.tipo || 'convencional',
+          categoria_edital: linhaIdx?.categoria_edital || 'Convencional',
+          sentido: 'ambos',
+          dia_semana: diaReal,
+          dia_rotulo: diaReal === 'domingos_feriados' ? 'Domingos e feriados' : 'Dias úteis e sábados',
+          cor: linhaIdx?.cor || '#162652'
+        },
+        geometry: {
+          type: 'LineString',
+          coordinates: coordsLimpas
+        }
+      };
+      estado.cacheGeoJsonLotes[loteAntigo].features.push(feature);
     }
 
     const acum = window.BuzuUtils.calcularComprimentoAcumulado(coordsLimpas);
@@ -2321,6 +2461,7 @@ window.BuzuDados = (function () {
     feature.properties.cor = novaCor;
     feature.properties.categoria_edital = novaCat;
     feature.properties.extensao_km = extensaoKm;
+    feature.properties.situacao_rota = 'disponivel';
     if (
       Number.isInteger(novosMetadados.indice_retorno) &&
       novosMetadados.indice_retorno > 0 &&
@@ -2344,10 +2485,6 @@ window.BuzuDados = (function () {
     }
 
     // Atualiza índice da linha
-    const numUpper = String(numeroLinha).toUpperCase().trim();
-    const linhaIdx = (estado.indice?.linhas || []).find(
-      l => String(l.numero).toUpperCase() === numUpper
-    );
     if (linhaIdx) {
       if (novosMetadados.nome) linhaIdx.nome = novoNome;
       linhaIdx.lote = novoLote;
@@ -2360,6 +2497,7 @@ window.BuzuDados = (function () {
       if (novosMetadados.tarifa) linhaIdx.tarifa = novosMetadados.tarifa.trim();
       if (novosMetadados.horario_operacao) linhaIdx.horario_operacao = novosMetadados.horario_operacao.trim();
       linhaIdx.bbox = bbox;
+      linhaIdx.situacao_rota = 'disponivel';
 
       if (linhaIdx.variantes_dia && linhaIdx.variantes_dia[diaReal]) {
         linhaIdx.variantes_dia[diaReal].nome = novoNome;
@@ -2998,9 +3136,9 @@ window.BuzuDados = (function () {
       for (const feat of fc?.features || []) {
         const g = feat?.geometry;
         const fid = feat?.properties?.id || feat?.properties?.numero || '?';
-        if (g?.type !== 'LineString' || !Array.isArray(g.coordinates) || g.coordinates.length < 2) {
-          erros.push(`Traçado "${fid}" (Lote ${idLote}) possui menos de 2 vértices válidos.`);
-        } else {
+        if (g?.type !== 'LineString' || !Array.isArray(g.coordinates)) {
+          erros.push(`Traçado "${fid}" (Lote ${idLote}) possui geometria inválida.`);
+        } else if (g.coordinates.length > 0) {
           const invalido = g.coordinates.some(
             pt => !Array.isArray(pt) || pt.length < 2 || !Number.isFinite(Number(pt[0])) || !Number.isFinite(Number(pt[1]))
           );
@@ -3233,6 +3371,7 @@ window.BuzuDados = (function () {
     excluirParadaNoMapa,
     obterCoordenadasRota,
     atualizarRotaNoMapa,
+    removerTracadoLinhaNoMapa,
     obterVinculosLinhaParadas,
     exportarPacoteCompletoJson,
     importarJsonAdmin,

@@ -165,9 +165,19 @@ window.BuzuMapa = (function () {
       l.casVolta?.setLatLngs(voltaPx);
       desenharSetas(idaPx, l.cor, 'Sentido ida');
       desenharSetas(voltaPx, l.corVolta, 'Sentido volta');
-      marcadorPonta(idaPx[0], `<i class="bi bi-flag-fill" aria-hidden="true"></i> Terminal${sufixo}`, 'pino-ponta--inicio');
-      marcadorPonta(idaPx[idaPx.length - 1], `<i class="bi bi-arrow-return-left" aria-hidden="true"></i> Retorno${sufixo}`, 'pino-ponta--retorno');
+      if (mostrarTerminalRetorno) {
+        marcadorPonta(idaPx[0], `<i class="bi bi-flag-fill" aria-hidden="true"></i> Terminal${sufixo}`, 'pino-ponta--inicio');
+        marcadorPonta(idaPx[idaPx.length - 1], `<i class="bi bi-arrow-return-left" aria-hidden="true"></i> Retorno${sufixo}`, 'pino-ponta--retorno');
+      }
     }
+  }
+
+  let mostrarTerminalRetorno = true;
+
+  function definirMostrarTerminalRetorno(ativo) {
+    mostrarTerminalRetorno = Boolean(ativo);
+    atualizarSentidos();
+    if (modoEditorRotaAtivo) desenharEditorRota();
   }
 
   let callbacks = {
@@ -793,7 +803,7 @@ window.BuzuMapa = (function () {
 
       marker.on('contextmenu', e => {
         L.DomEvent.stopPropagation(e);
-        if (coordsEdicaoRota.length <= 2) return;
+        if (coordsEdicaoRota.length === 0) return;
         registrarHistoricoEdicaoRota();
         coordsEdicaoRota.splice(idxAtual, 1);
         desenharEditorRota();
@@ -827,6 +837,28 @@ window.BuzuMapa = (function () {
         });
         midMarker.addTo(camadaEdicaoRota);
       }
+    }
+
+    if (mostrarTerminalRetorno && coordsEdicaoRota.length >= 2) {
+      const pIni = coordsEdicaoRota[0];
+      const idxRet = indiceRetorno(coordsEdicaoRota, {});
+      const pRet = coordsEdicaoRota[idxRet] || coordsEdicaoRota[coordsEdicaoRota.length - 1];
+      [
+        { pt: pIni, texto: '<i class="bi bi-flag-fill" aria-hidden="true"></i> Terminal', cls: 'pino-ponta--inicio' },
+        { pt: pRet, texto: '<i class="bi bi-arrow-return-left" aria-hidden="true"></i> Retorno', cls: 'pino-ponta--retorno' }
+      ].forEach(item => {
+        L.marker([item.pt[1], item.pt[0]], {
+          icon: L.divIcon({
+            className: '',
+            html: `<div class="pino-ponta ${item.cls}">${item.texto}</div>`,
+            iconSize: null,
+            iconAnchor: [0, 0]
+          }),
+          interactive: false,
+          keyboard: false,
+          zIndexOffset: 950
+        }).addTo(camadaEdicaoRota);
+      });
     }
   }
 
@@ -862,6 +894,19 @@ window.BuzuMapa = (function () {
   function desfazerEdicaoRota() {
     if (!modoEditorRotaAtivo || historicoEdicaoRota.length === 0) return false;
     coordsEdicaoRota = historicoEdicaoRota.pop();
+    desenharEditorRota();
+    notificarAtualizacaoRotaEditor();
+    return true;
+  }
+
+  function limparTodosVerticesRota() {
+    if (!modoEditorRotaAtivo) return false;
+    if (coordsEdicaoRota.length > 0) {
+      registrarHistoricoEdicaoRota();
+    }
+    coordsEdicaoRota = [];
+    if (camadaRotasPropostas) camadaRotasPropostas.clearLayers();
+    if (camadaSentidos) camadaSentidos.clearLayers();
     desenharEditorRota();
     notificarAtualizacaoRotaEditor();
     return true;
@@ -1501,6 +1546,7 @@ style="width:30px;height:30px;font-size:13px;">${sigla}</div>`,
     definirModoEditorRota,
     definirAdicionarVerticeCliqueRota,
     desfazerEdicaoRota,
+    limparTodosVerticesRota,
     obterCoordenadasEdicaoRota,
     definirModoDesenhadorRota,
     definirSentidoDesenhador,
@@ -1513,6 +1559,7 @@ style="width:30px;height:30px;font-size:13px;">${sigla}</div>`,
     invalidarTamanho,
     definirTemaMapa,
     renderizarEtapasViagem,
-    limparEtapasViagem
+    limparEtapasViagem,
+    definirMostrarTerminalRetorno
   };
 })();
