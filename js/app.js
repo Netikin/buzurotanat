@@ -52,8 +52,6 @@
     configurarAbasBusca();
     configurarBuscaViagem();
     configurarBuscaDiretaLinhaEFiltros();
-    configurarModalAdmin();
-    configurarGestaoRascunhoEBeforeUnload();
 
     // Os dados começam a carregar já; o mapa base é montado enquanto isso (não espera os dados)
     const promessaDados = window.BuzuDados.inicializar();
@@ -69,81 +67,6 @@
       aoClicarParada: idParada => {
         ajustarBottomSheetMobile('meio');
         window.location.hash = `#/parada/${encodeURIComponent(idParada)}`;
-      },
-      aoArrastarParada: async (idParada, novoLat, novoLng) => {
-        await window.BuzuDados.moverParadaNoMapa(idParada, novoLat, novoLng, true);
-        await atualizarMapaEListagens();
-        if (String(estadoUI.paradaSelecionadaId) === String(idParada)) {
-          renderizarVisaoDetalheParada(idParada);
-        } else {
-          window.location.hash = `#/parada/${encodeURIComponent(idParada)}`;
-        }
-      },
-      aoClicarMapaEditor: async (lat, lng) => {
-        const nova = await window.BuzuDados.criarOuEditarParadaNoMapa({
-          lat,
-          lng,
-          nome: `Parada Revisada (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-          origem: 'manual',
-          ativo: true,
-          sentidos_atendidos: 'AUTO'
-        });
-        estadoUI.criarParadaCliqueAtivo = false;
-        const btnCriar = document.getElementById('btn-editor-criar-clique');
-        if (btnCriar) btnCriar.setAttribute('aria-pressed', 'false');
-        window.BuzuMapa.definirModoEditorParadas(estadoUI.modoEditorParadas, false);
-        await atualizarMapaEListagens();
-        if (nova?.properties?.id) {
-          window.location.hash = `#/parada/${encodeURIComponent(nova.properties.id)}`;
-        }
-      },
-      aoAtualizarRotaEditor: info => {
-        const elInfo = document.getElementById('info-barra-editor-rota');
-        const btnDesfazer = document.getElementById('btn-rota-desfazer');
-        if (elInfo && info) {
-          elInfo.textContent = `${info.vertices} vértices • ${info.extensaoKm.toFixed(2).replace('.', ',')} km — Arraste pontos, clique no + para inserir, botão direito remove`;
-        }
-        if (btnDesfazer && info) {
-          btnDesfazer.disabled = !info.podeDesfazer;
-        }
-      },
-      aoAtualizarDesenhador: info => {
-        if (!info || !info.ativo) return;
-        const elInfo = document.getElementById('info-barra-desenhador');
-        const btnIda = document.getElementById('btn-desenhador-aba-ida');
-        const btnVolta = document.getElementById('btn-desenhador-aba-volta');
-        const elResumo = document.getElementById('resumo-desenhador-lateral');
-        const btnPainelIda = document.getElementById('btn-painel-desenhador-ida');
-        const btnPainelVolta = document.getElementById('btn-painel-desenhador-volta');
-        const btnInsercao = document.getElementById('btn-painel-desenhador-insercao');
-
-        const ehIda = info.sentidoAtivo !== 'VOLTA';
-        if (btnIda) btnIda.className = ehIda ? 'btn-rumo-primary' : 'btn-rumo-secondary';
-        if (btnVolta) btnVolta.className = !ehIda ? 'btn-rumo-primary' : 'btn-rumo-secondary';
-        if (btnPainelIda) btnPainelIda.className = ehIda ? 'btn-rumo-primary' : 'btn-rumo-secondary';
-        if (btnPainelVolta) btnPainelVolta.className = !ehIda ? 'btn-rumo-primary' : 'btn-rumo-secondary';
-        if (btnInsercao) {
-          btnInsercao.textContent = info.inserirNoMeio
-            ? 'Clique no mapa: Inserir no trecho'
-            : 'Clique no mapa: Adicionar no final';
-        }
-
-        if (elInfo) {
-          if (info.carregando) {
-            elInfo.textContent = 'Calculando trajeto pelas ruas (OSRM)...';
-          } else if (info.erroRoteamento) {
-            elInfo.textContent = info.erroRoteamento;
-          } else {
-            elInfo.textContent = `Modo ${info.sentidoAtivo}: Ida ${info.distIdaKm.toFixed(2).replace('.', ',')} km (${info.qtdWaypointsIda} pts) • Volta ${info.distVoltaKm.toFixed(2).replace('.', ',')} km (${info.qtdWaypointsVolta} pts)`;
-          }
-        }
-
-        if (elResumo) {
-          elResumo.innerHTML =
-            `<strong>IDA:</strong> ${info.qtdWaypointsIda} pontos • ${info.distIdaKm.toFixed(2).replace('.', ',')} km<br>` +
-            `<strong>VOLTA:</strong> ${info.qtdWaypointsVolta} pontos • ${info.distVoltaKm.toFixed(2).replace('.', ',')} km` +
-            (info.carregando ? '<br><em>Roteando ruas via OSRM...</em>' : '');
-        }
       }
     });
 
@@ -163,7 +86,103 @@
     window.addEventListener('hashchange', processarRotaHash);
     await atualizarMapaEListagens(true);
     await processarRotaHash();
+
+    registrarEvento('visita', '', {
+      celular: window.matchMedia?.('(max-width: 760px)').matches || false,
+      escuro: document.documentElement.getAttribute('data-tema') === 'escuro'
+    });
+    carregarAvisosPublicos();
+    document.querySelector('a.btn-menu[href="sobre.html"]')?.addEventListener('click', () => registrarEvento('aba', 'sobre'));
   });
+
+  // ---------- Estatísticas anônimas de uso (painel administrativo) ----------
+  // Só contagens agregadas por dia: nada que identifique a pessoa (sem cookie, sem IP guardado).
+  let ultimaLinhaRegistrada = '';
+  function registrarEvento(tipo, valor = '', extras = {}) {
+    try {
+      const corpo = JSON.stringify({ tipo, valor: String(valor || ''), ...extras });
+      const blob = new Blob([corpo], { type: 'text/plain' });
+      if (!(navigator.sendBeacon && navigator.sendBeacon('/api/evento', blob))) {
+        fetch('/api/evento', { method: 'POST', body: corpo, keepalive: true, credentials: 'omit' }).catch(() => {});
+      }
+    } catch (_e) {
+      /* estatística nunca atrapalha o site */
+    }
+  }
+
+  // ---------- Avisos publicados pela equipe no painel ----------
+  const CHAVE_AVISOS_FECHADOS = 'buzu_avisos_fechados';
+  function lerAvisosFechados() {
+    try {
+      return JSON.parse(localStorage.getItem(CHAVE_AVISOS_FECHADOS) || '[]');
+    } catch (_e) {
+      return [];
+    }
+  }
+
+  async function carregarAvisosPublicos() {
+    let avisos = [];
+    try {
+      const r = await fetch('/api/avisos', { cache: 'no-cache' });
+      if (r.ok) avisos = (await r.json()).avisos || [];
+    } catch (_e) {
+      return;
+    }
+    const fechados = new Set(lerAvisosFechados());
+    const visiveis = avisos.filter(a => a && a.id && !fechados.has(a.id));
+    if (!visiveis.length) return;
+    const ancora = document.querySelector('.aviso-independencia');
+    if (!ancora) return;
+    const lista = document.createElement('div');
+    lista.className = 'avisos-publicos';
+    const icones = { info: 'bi-info-circle-fill', alerta: 'bi-exclamation-triangle-fill', urgente: 'bi-exclamation-octagon-fill', sucesso: 'bi-check-circle-fill' };
+    for (const a of visiveis) {
+      const tipo = icones[a.tipo] ? a.tipo : 'info';
+      const item = document.createElement('div');
+      item.className = `aviso-publico aviso-publico--${tipo}`;
+      item.setAttribute('role', tipo === 'urgente' ? 'alert' : 'status');
+      const icone = document.createElement('i');
+      icone.className = `bi ${icones[tipo]}`;
+      icone.setAttribute('aria-hidden', 'true');
+      const texto = document.createElement('div');
+      texto.className = 'aviso-publico__texto';
+      if (a.titulo) {
+        const t = document.createElement('strong');
+        t.textContent = a.titulo;
+        texto.appendChild(t);
+      }
+      if (a.mensagem) {
+        const m = document.createElement('span');
+        m.textContent = a.mensagem;
+        texto.appendChild(m);
+      }
+      if (a.link && (/^https:\/\//i.test(a.link) || /^[/#]/.test(a.link))) {
+        const l = document.createElement('a');
+        l.href = a.link;
+        l.textContent = a.linkTexto || 'Saiba mais';
+        if (/^https:/i.test(a.link)) {
+          l.target = '_blank';
+          l.rel = 'noopener noreferrer';
+        }
+        texto.appendChild(l);
+      }
+      const fechar = document.createElement('button');
+      fechar.type = 'button';
+      fechar.className = 'aviso-publico__fechar';
+      fechar.setAttribute('aria-label', 'Fechar aviso');
+      fechar.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+      fechar.addEventListener('click', () => {
+        item.remove();
+        try {
+          const ids = [...new Set([...lerAvisosFechados(), a.id])].slice(-50);
+          localStorage.setItem(CHAVE_AVISOS_FECHADOS, JSON.stringify(ids));
+        } catch (_e) {}
+      });
+      item.append(icone, texto, fechar);
+      lista.appendChild(item);
+    }
+    ancora.insertAdjacentElement('afterend', lista);
+  }
 
   function configurarAcessibilidadeTopo() {
     const btnContraste = document.getElementById('btn-alto-contraste');
@@ -394,6 +413,7 @@
 
     function ativar(nome) {
       const ehLinha = nome === 'linha';
+      if (estadoUI.abaBusca !== (ehLinha ? 'linha' : 'endereco')) registrarEvento('aba', ehLinha ? 'itinerarios' : 'como_chegar');
       estadoUI.abaBusca = ehLinha ? 'linha' : 'endereco';
 
       if (abaLinha) {
@@ -776,6 +796,7 @@
     );
 
     estadoUI.viagemAtiva = { origem, destino, resultados, horario, madrugada };
+    if (!opcoes.silencioso) registrarEvento('viagem');
     await selecionarTrajetoSugerido(0, { silencioso: opcoes.silencioso });
 
     if (!opcoes.silencioso) {
@@ -1845,6 +1866,10 @@
     if (!container) return;
 
     const linha = window.BuzuDados.obterLinhaPorId(idLinha, estadoUI.diaSemana);
+    if (linha && linha.numero !== ultimaLinhaRegistrada) {
+      ultimaLinhaRegistrada = linha.numero;
+      registrarEvento('linha', linha.numero);
+    }
     if (!linha) {
       if (faixaTopo) faixaTopo.hidden = true;
       container.innerHTML = `
@@ -2230,6 +2255,7 @@
       const url = btnCopiar.getAttribute('data-url') || window.location.href;
       try {
         await navigator.clipboard.writeText(url);
+        registrarEvento('compartilhar');
         btnCopiar.innerHTML = '<i class="bi bi-check2"></i> <span>Copiado!</span>';
       } catch (_e) {
         window.prompt('Copie o link direto desta linha:', url);
@@ -2438,1039 +2464,4 @@
     });
   }
 
-  /**
-   * Modal Técnico de Acesso Restrito (Admin JSON / KML / KMZ)
-   */
-  function configurarModalAdmin() {
-    const btnAbrir = document.getElementById('btn-acesso-restrito');
-    const modal = document.getElementById('modal-admin');
-    const btnFechar = document.getElementById('btn-fechar-modal-admin');
-    const formSenha = document.getElementById('form-login-admin');
-    const areaDesbloqueada = document.getElementById('area-admin-desbloqueada');
-    const inputSenha = document.getElementById('input-chave-admin');
-    const feedbackAdmin = document.getElementById('feedback-admin');
-    const textareaJson = document.getElementById('textarea-json-admin');
-    const inputArquivo = document.getElementById('input-arquivo-admin');
-    const btnSalvarJson = document.getElementById('btn-aplicar-json-admin');
-    const btnBaixarJson = document.getElementById('btn-baixar-json-admin');
-    const btnRestaurar = document.getElementById('btn-restaurar-padrao-admin');
-    const btnAtivarEditorMapa = document.getElementById('btn-ativar-editor-mapa');
-    const barraEditorMapa = document.getElementById('barra-editor-mapa');
-    const btnEditorCriarClique = document.getElementById('btn-editor-criar-clique');
-    const chkEditorVirtuais = document.getElementById('chk-editor-mostrar-virtuais');
-    const btnEditorSair = document.getElementById('btn-editor-sair');
-
-    const btnAtivarEditorRota = document.getElementById('btn-ativar-editor-rota');
-    const selectLinhaVisual = document.getElementById('select-linha-editor-visual');
-    const selectDiaVisual = document.getElementById('select-dia-editor-visual');
-    const barraEditorRota = document.getElementById('barra-editor-rota');
-    const btnRotaDesfazer = document.getElementById('btn-rota-desfazer');
-    const btnRotaEstender = document.getElementById('btn-rota-estender-clique');
-    const btnRotaLimparTudo = document.getElementById('btn-rota-limpar-tudo');
-    const btnRotaSalvar = document.getElementById('btn-rota-salvar-mapa');
-    const btnRotaSair = document.getElementById('btn-rota-sair');
-
-    btnAtivarEditorMapa?.addEventListener('click', async () => {
-      if (estadoUI.modoEditorRota) sairModoEditorRota(false);
-      estadoUI.modoEditorParadas = true;
-      estadoUI.criarParadaCliqueAtivo = false;
-      if (modal) modal.hidden = true;
-      if (barraEditorMapa) barraEditorMapa.hidden = false;
-      window.BuzuMapa.definirModoEditorParadas(true, false);
-      await atualizarMapaEListagens();
-    });
-
-    async function abrirEditorRotaNoMapa(numeroLinha, diaSemana) {
-      const diaAlvo = !diaSemana || diaSemana === 'todos' ? 'dias_uteis_sabados' : diaSemana;
-      const dadosRota = await window.BuzuDados.obterCoordenadasRota(numeroLinha, diaAlvo);
-      const linhaMeta = window.BuzuDados.obterLinhaPorId(numeroLinha, diaAlvo);
-      if (!dadosRota && !linhaMeta) {
-        mostrarFeedbackAdmin(`Linha ${numeroLinha} não encontrada.`, 'erro');
-        return;
-      }
-
-      const diaReal = diaAlvo;
-      const coordsIniciais = dadosRota?.coordenadas || [];
-      const corInicial = dadosRota?.feature?.properties?.cor || linhaMeta?.cor || '#e0621f';
-
-      if (estadoUI.modoEditorParadas) {
-        estadoUI.modoEditorParadas = false;
-        estadoUI.criarParadaCliqueAtivo = false;
-        if (barraEditorMapa) barraEditorMapa.hidden = true;
-        window.BuzuMapa.definirModoEditorParadas(false, false);
-      }
-
-      if (estadoUI.diaSemana !== diaReal) {
-        await definirDiaSemana(diaReal, false);
-      }
-
-      estadoUI.modoEditorRota = true;
-      estadoUI.editorRotaLinha = numeroLinha;
-      estadoUI.editorRotaDia = diaReal;
-      estadoUI.estenderRotaCliqueAtivo = coordsIniciais.length === 0;
-      estadoUI.linhaSelecionadaId = numeroLinha;
-      estadoUI.paradaSelecionadaId = null;
-
-      if (modal) modal.hidden = true;
-      if (barraEditorRota) barraEditorRota.hidden = false;
-      const tituloBarra = document.getElementById('titulo-barra-editor-rota');
-      if (tituloBarra) {
-        tituloBarra.textContent = `Editando Linha ${numeroLinha} (${
-          diaReal === 'domingos_feriados' ? 'Domingos' : 'Úteis/Sáb'
-        })`;
-      }
-      if (btnRotaEstender) {
-        btnRotaEstender.setAttribute('aria-pressed', String(estadoUI.estenderRotaCliqueAtivo));
-      }
-
-      await atualizarMapaEListagens();
-      window.BuzuMapa.definirModoEditorRota(
-        true,
-        coordsIniciais,
-        corInicial,
-        coordsIniciais.length >= 2
-      );
-      if (estadoUI.estenderRotaCliqueAtivo) {
-        window.BuzuMapa.definirAdicionarVerticeCliqueRota(true);
-      }
-      renderizarFormularioEditorRota(numeroLinha, diaReal);
-    }
-
-    async function sairModoEditorRota(voltarParaLinha = true) {
-      estadoUI.modoEditorRota = false;
-      estadoUI.estenderRotaCliqueAtivo = false;
-      if (barraEditorRota) barraEditorRota.hidden = true;
-      window.BuzuMapa.definirModoEditorRota(false, []);
-      if (voltarParaLinha && estadoUI.editorRotaLinha) {
-        window.location.hash = `#/linha/${encodeURIComponent(estadoUI.editorRotaLinha)}`;
-      }
-      await atualizarMapaEListagens();
-    }
-
-    function renderizarFormularioEditorRota(numeroLinha, diaReal) {
-      const containerDetalhe = document.getElementById('visao-detalhe');
-      const containerExploracao = document.getElementById('visao-exploracao');
-      const linha = window.BuzuDados.obterLinhaPorId(numeroLinha, diaReal);
-      if (!containerDetalhe || !linha) return;
-
-      if (containerExploracao) containerExploracao.hidden = true;
-      containerDetalhe.hidden = false;
-
-      const corAtual = /^#[0-9a-f]{6}$/i.test(String(linha.cor || '')) ? linha.cor : '#162652';
-
-      containerDetalhe.innerHTML = `
-        <div class="bloco-secao bloco-secao-destaque">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
-            <strong style="font-size:1.05rem;color:#162652;">
-              <i class="bi bi-bezier2"></i> Editando Linha ${window.BuzuUtils.escaparHtml(linha.numero)}
-            </strong>
-            <span class="badge-tipo">${
-              diaReal === 'domingos_feriados' ? 'Domingos e feriados' : 'Dias úteis e sábados'
-            }</span>
-          </div>
-
-          <div class="alerta-edital" style="margin-bottom:12px;font-size:0.82rem;">
-            <strong>Como editar no mapa:</strong><br>
-            • <strong>Arraste</strong> os pontos brancos para ajustar curvas e ruas.<br>
-            • Clique nos círculos <strong>+</strong> entre os pontos para criar novos vértices.<br>
-            • Clique com o <strong>botão direito</strong> em um ponto para removê-lo.
-          </div>
-
-          <div class="campo-grupo">
-            <label for="edit-rota-nome" class="consulta-search-label">Nome / Itinerário resumido da linha:</label>
-            <input type="text" id="edit-rota-nome" class="form-control-rumo" value="${window.BuzuUtils.escaparHtml(
-              linha.nome
-            )}">
-          </div>
-
-          <div class="grade-filtros">
-            <div>
-              <label for="edit-rota-lote" class="consulta-search-label">Lote:</label>
-              <select id="edit-rota-lote" class="form-select-rumo">
-                <option value="1" ${String(linha.lote) === '1' ? 'selected' : ''}>Lote 1 (Norte)</option>
-                <option value="2" ${String(linha.lote) === '2' ? 'selected' : ''}>Lote 2 (Sul / Leste / Oeste)</option>
-              </select>
-            </div>
-            <div>
-              <label for="edit-rota-categoria" class="consulta-search-label">Categoria:</label>
-              <select id="edit-rota-categoria" class="form-select-rumo">
-                <option value="Linha de Bairro" ${String(linha.categoria_edital).includes('Bairro') ? 'selected' : ''}>Linha de Bairro</option>
-                <option value="Linhas Estruturais" ${String(linha.categoria_edital).includes('Estrutur') ? 'selected' : ''}>Linha Estrutural</option>
-                <option value="Linhas Regionais" ${String(linha.categoria_edital).includes('Region') ? 'selected' : ''}>Linha Regional</option>
-                <option value="Linhas Diretas" ${String(linha.categoria_edital).includes('Diret') ? 'selected' : ''}>Linha Direta</option>
-                <option value="Linhas Corujões" ${String(linha.categoria_edital).includes('Coruj') ? 'selected' : ''}>Corujão / Noturna</option>
-              </select>
-            </div>
-            <div>
-              <label for="edit-rota-cor" class="consulta-search-label">Cor no mapa:</label>
-              <input type="color" id="edit-rota-cor" class="form-control-rumo" style="padding:4px;" value="${window.BuzuUtils.escaparHtml(
-                corAtual
-              )}">
-            </div>
-            <div>
-              <label for="edit-rota-horario" class="consulta-search-label">Horário previsto:</label>
-              <input type="text" id="edit-rota-horario" class="form-control-rumo" value="${window.BuzuUtils.escaparHtml(
-                linha.horario_operacao || '05:00 às 23:00'
-              )}">
-            </div>
-          </div>
-
-          <div class="campo-grupo" style="margin-top:8px;">
-            <label for="edit-rota-tarifa" class="consulta-search-label">Tarifa / Sistema:</label>
-            <input type="text" id="edit-rota-tarifa" class="form-control-rumo" value="${window.BuzuUtils.escaparHtml(
-              linha.tarifa || 'Sistema Natal'
-            )}">
-          </div>
-
-          <div class="campo-grupo" style="margin-top:8px;">
-            <label for="edit-rota-empresa" class="consulta-search-label">Empresa operadora:</label>
-            <input type="text" id="edit-rota-empresa" class="form-control-rumo" placeholder="Ainda não cadastrada" value="${window.BuzuUtils.escaparHtml(
-              linha.empresa || ''
-            )}">
-          </div>
-
-          <div id="feedback-editor-rota" hidden style="margin:10px 0;"></div>
-
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
-            <button type="button" id="btn-salvar-rota-form" class="btn-rumo-primary" style="flex:1;">
-              <i class="bi bi-save"></i> Salvar Alterações e Recalcular (40m)
-            </button>
-            <button type="button" id="btn-limpar-rota-form" class="btn-rumo-secondary" style="color:#b91c1c;border-color:#fca5a5;">
-              <i class="bi bi-trash"></i> Remover traçado
-            </button>
-            <button type="button" id="btn-cancelar-rota-form" class="btn-rumo-secondary">
-              Cancelar
-            </button>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('btn-salvar-rota-form')?.addEventListener('click', salvarEdicaoRotaAtual);
-      document.getElementById('btn-limpar-rota-form')?.addEventListener('click', executarLimpezaTodoTracadoRota);
-      document.getElementById('btn-cancelar-rota-form')?.addEventListener('click', () => {
-        void sairModoEditorRota(true);
-      });
-    }
-
-    async function executarLimpezaTodoTracadoRota() {
-      if (!estadoUI.modoEditorRota || !estadoUI.editorRotaLinha) return;
-      const diaAlvo = estadoUI.editorRotaDia || 'dias_uteis_sabados';
-      const diaRotulo =
-        diaAlvo === 'domingos_feriados'
-          ? 'Domingos e feriados'
-          : 'Dias úteis e sábados';
-
-      const dadosDia = await window.BuzuDados.obterCoordenadasRota(
-        estadoUI.editorRotaLinha,
-        diaAlvo
-      );
-      const coordsEditor = window.BuzuMapa.obterCoordenadasEdicaoRota();
-      const box = document.getElementById('feedback-editor-rota');
-
-      if (!dadosDia && coordsEditor.length === 0) {
-        if (box) {
-          box.hidden = false;
-          box.className = 'alerta-edital';
-          box.textContent = `A linha ${estadoUI.editorRotaLinha} não possui traçado cadastrado em "${diaRotulo}" para remover. Selecione outro dia em CIRCULAÇÃO ou clique no mapa para desenhar.`;
-        }
-        return;
-      }
-
-      const confirmado = window.confirm(
-        `Tem certeza que deseja remover TODO o traçado da linha ${estadoUI.editorRotaLinha} apenas de "${diaRotulo}"?\n\nOs outros dias de circulação não serão apagados. As paradas deste dia deixarão de exibir esta linha até você salvar o novo traçado.`
-      );
-      if (!confirmado) return;
-
-      await window.BuzuDados.removerTracadoLinhaNoMapa(
-        estadoUI.editorRotaLinha,
-        diaAlvo
-      );
-      window.BuzuMapa.limparTodosVerticesRota();
-      await atualizarMapaEListagens();
-      estadoUI.estenderRotaCliqueAtivo = true;
-      if (btnRotaEstender) btnRotaEstender.setAttribute('aria-pressed', 'true');
-      window.BuzuMapa.definirAdicionarVerticeCliqueRota(true);
-
-      if (box) {
-        box.hidden = false;
-        box.className = 'alerta-edital';
-        box.textContent =
-          'Traçado removido e paradas desvinculadas desta linha! Clique no mapa para desenhar a nova rota e salve para vincular as paradas novamente.';
-      }
-    }
-
-    async function salvarEdicaoRotaAtual() {
-      if (!estadoUI.modoEditorRota || !estadoUI.editorRotaLinha) return;
-      const coords = window.BuzuMapa.obterCoordenadasEdicaoRota();
-      const metadados = {
-        nome: document.getElementById('edit-rota-nome')?.value.trim(),
-        lote: document.getElementById('edit-rota-lote')?.value,
-        categoria_edital: document.getElementById('edit-rota-categoria')?.value,
-        cor: document.getElementById('edit-rota-cor')?.value,
-        horario_operacao: document.getElementById('edit-rota-horario')?.value.trim(),
-        tarifa: document.getElementById('edit-rota-tarifa')?.value.trim(),
-        empresa: document.getElementById('edit-rota-empresa')?.value.trim()
-      };
-
-      const box = document.getElementById('feedback-editor-rota');
-      try {
-        const res = await window.BuzuDados.atualizarRotaNoMapa(
-          estadoUI.editorRotaLinha,
-          estadoUI.editorRotaDia,
-          coords,
-          metadados
-        );
-        await atualizarMapaEListagens();
-        if (box) {
-          box.hidden = false;
-          box.className = 'alerta-sucesso';
-          box.textContent = res?.removida
-            ? 'Traçado removido e paradas desvinculadas desta linha no rascunho!'
-            : `Salvo! ${res.extensao_km.toFixed(2).replace('.', ',')} km • ${res.vertices} vértices • ${res.paradasVinculadas} paradas vinculadas (40m).`;
-        }
-      } catch (err) {
-        if (box) {
-          box.hidden = false;
-          box.className = 'alerta-erro';
-          box.textContent = `Erro ao salvar: ${err.message}`;
-        }
-      }
-    }
-
-    btnAtivarEditorRota?.addEventListener('click', () => {
-      const num = selectLinhaVisual?.value;
-      const dia = selectDiaVisual?.value || 'dias_uteis_sabados';
-      if (num) void abrirEditorRotaNoMapa(num, dia);
-    });
-
-    btnRotaDesfazer?.addEventListener('click', () => {
-      window.BuzuMapa.desfazerEdicaoRota();
-    });
-
-    btnRotaEstender?.addEventListener('click', () => {
-      estadoUI.estenderRotaCliqueAtivo = !estadoUI.estenderRotaCliqueAtivo;
-      btnRotaEstender.setAttribute('aria-pressed', String(estadoUI.estenderRotaCliqueAtivo));
-      window.BuzuMapa.definirAdicionarVerticeCliqueRota(estadoUI.estenderRotaCliqueAtivo);
-    });
-
-    btnRotaLimparTudo?.addEventListener('click', executarLimpezaTodoTracadoRota);
-
-    btnRotaSalvar?.addEventListener('click', () => {
-      void salvarEdicaoRotaAtual();
-    });
-
-    btnRotaSair?.addEventListener('click', () => {
-      void sairModoEditorRota(true);
-    });
-
-    // Novo Desenhador Interativo DE -> PARA pelas Ruas (Ida + Volta -> Linha Única)
-    const btnAtivarDesenhador = document.getElementById('btn-ativar-desenhador-rota');
-    const barraDesenhador = document.getElementById('barra-desenhador-rota');
-
-    async function abrirDesenhadorRota(numeroLinha, diaSemana) {
-      if (estadoUI.modoEditorRota) await sairModoEditorRota(false);
-      if (estadoUI.modoEditorParadas) {
-        estadoUI.modoEditorParadas = false;
-        estadoUI.criarParadaCliqueAtivo = false;
-        if (barraEditorMapa) barraEditorMapa.hidden = true;
-        window.BuzuMapa.definirModoEditorParadas(false, false);
-      }
-
-      const diaAlvo = !diaSemana || diaSemana === 'todos' ? 'dias_uteis_sabados' : diaSemana;
-      if (estadoUI.diaSemana !== diaAlvo) {
-        await definirDiaSemana(diaAlvo, false);
-      }
-
-      estadoUI.modoDesenhadorRota = true;
-      estadoUI.desenhadorLinha = numeroLinha;
-      estadoUI.desenhadorDia = diaAlvo;
-      estadoUI.linhaSelecionadaId = numeroLinha;
-      estadoUI.paradaSelecionadaId = null;
-
-      if (modal) modal.hidden = true;
-      if (barraDesenhador) barraDesenhador.hidden = false;
-
-      const tituloBar = document.getElementById('titulo-barra-desenhador');
-      if (tituloBar) {
-        tituloBar.textContent = `Desenhar ${numeroLinha} (${
-          estadoUI.desenhadorDia === 'domingos_feriados' ? 'Domingos' : 'Úteis/Sáb'
-        })`;
-      }
-
-      const dadosExistentes = await window.BuzuDados.obterCoordenadasRota(
-        numeroLinha,
-        estadoUI.desenhadorDia
-      );
-      const linhaMeta = window.BuzuDados.obterLinhaPorId(numeroLinha, estadoUI.desenhadorDia);
-
-      if (dadosExistentes?.coordenadas?.length >= 2) {
-        window.BuzuMapa.solicitarEnquadramentoNaProximaRenderizacao();
-      }
-      await atualizarMapaEListagens();
-      renderizarPainelDesenhadorRota(numeroLinha, estadoUI.desenhadorDia);
-      window.BuzuMapa.definirModoDesenhadorRota(true, {
-        coordenadasExistentes: dadosExistentes?.coordenadas || [],
-        indiceRetorno: dadosExistentes?.feature?.properties?.indice_retorno,
-        itinerarioRuas: linhaMeta?.variantes_dia?.[estadoUI.desenhadorDia]?.itinerario_ruas || null
-      });
-    }
-
-    estadoUI.reabrirEditorRotaNoDia = abrirEditorRotaNoMapa;
-    estadoUI.reabrirDesenhadorNoDia = abrirDesenhadorRota;
-
-    async function sairModoDesenhadorRota(voltarParaLinha = true) {
-      estadoUI.modoDesenhadorRota = false;
-      if (barraDesenhador) barraDesenhador.hidden = true;
-      window.BuzuMapa.definirModoDesenhadorRota(false);
-      if (voltarParaLinha && estadoUI.desenhadorLinha) {
-        window.location.hash = `#/linha/${encodeURIComponent(estadoUI.desenhadorLinha)}`;
-      }
-      await atualizarMapaEListagens();
-    }
-
-    function renderizarPainelDesenhadorRota(numeroLinha, diaReal) {
-      const containerDetalhe = document.getElementById('visao-detalhe');
-      const containerExploracao = document.getElementById('visao-exploracao');
-      const linha = window.BuzuDados.obterLinhaPorId(numeroLinha, diaReal);
-      if (!containerDetalhe || !linha) return;
-
-      if (containerExploracao) containerExploracao.hidden = true;
-      containerDetalhe.hidden = false;
-
-      containerDetalhe.innerHTML = `
-        <div class="bloco-secao bloco-secao-destaque">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;">
-            <strong style="font-size:1.05rem;color:#162652;">
-              <i class="bi bi-signpost-2"></i> Desenhar ${window.BuzuUtils.escaparHtml(linha.numero)} pelas ruas
-            </strong>
-            <span class="badge-tipo">${
-              diaReal === 'domingos_feriados' ? 'Domingos e feriados' : 'Dias úteis e sábados'
-            }</span>
-          </div>
-
-          <div class="alerta-edital" style="font-size:0.82rem;margin-bottom:12px;">
-            <strong>Passo a passo (OSRM automático nas ruas):</strong><br>
-            1. Na aba <strong>IDA</strong>, clique no mapa em <strong>DE</strong> (terminal), nos pontos intermediários das ruas e em <strong>PARA</strong> (retorno).<br>
-            2. Clique em <strong>↻ Gerar Volta invertendo a Ida</strong> (ou clique na aba <strong>VOLTA</strong>) e ajuste os pontos caso a volta passe por ruas diferentes.<br>
-            3. Arraste qualquer marcador para ajustar ou clique com o botão direito para remover.<br>
-            4. Ao salvar, junta tudo numa <strong>única linha</strong> e <strong>vincula as paradas existentes</strong>.
-          </div>
-
-          <div class="desenhador-abas">
-            <button type="button" id="btn-painel-desenhador-ida" class="btn-rumo-primary">
-              1. Desenhar IDA (DE → PARA)
-            </button>
-            <button type="button" id="btn-painel-desenhador-volta" class="btn-rumo-secondary">
-              2. Desenhar VOLTA (PARA → DE)
-            </button>
-          </div>
-
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-            <button type="button" id="btn-painel-desenhador-inverter" class="btn-rumo-secondary" style="flex:1;">
-              ↻ Gerar Volta invertendo a Ida
-            </button>
-            <button type="button" id="btn-painel-desenhador-insercao" class="btn-rumo-secondary" title="Alterna se o próximo clique insere no trecho mais próximo ou ao final da linha">
-              Clique no mapa: Inserir no trecho
-            </button>
-          </div>
-
-          <div id="resumo-desenhador-lateral" class="alerta-edital" style="margin-bottom:10px;font-size:0.85rem;">
-            <strong>IDA:</strong> 0 pontos • 0,00 km<br>
-            <strong>VOLTA:</strong> 0 pontos • 0,00 km
-          </div>
-
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
-            <button type="button" id="btn-painel-desenhador-desfazer" class="btn-rumo-secondary">
-              ↶ Desfazer ponto
-            </button>
-            <button type="button" id="btn-painel-desenhador-limpar" class="btn-rumo-secondary">
-              Limpar sentido atual
-            </button>
-          </div>
-
-          <div id="feedback-desenhador" hidden style="margin-bottom:10px;"></div>
-
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button type="button" id="btn-painel-desenhador-salvar" class="btn-rumo-primary" style="flex:1;background:#15803d;">
-              <i class="bi bi-check2-circle"></i> Unificar IDA + VOLTA e Vincular Paradas
-            </button>
-            <button type="button" id="btn-painel-desenhador-sair" class="btn-rumo-secondary">
-              Cancelar
-            </button>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('btn-painel-desenhador-ida')?.addEventListener('click', () => {
-        window.BuzuMapa.definirSentidoDesenhador('IDA');
-      });
-      document.getElementById('btn-painel-desenhador-volta')?.addEventListener('click', () => {
-        window.BuzuMapa.definirSentidoDesenhador('VOLTA');
-      });
-      document.getElementById('btn-painel-desenhador-inverter')?.addEventListener('click', () => {
-        void executarGerarVoltaInvertida();
-      });
-      document.getElementById('btn-painel-desenhador-insercao')?.addEventListener('click', () => {
-        window.BuzuMapa.alternarModoInsercaoDesenhador();
-      });
-      document.getElementById('btn-painel-desenhador-desfazer')?.addEventListener('click', () => {
-        window.BuzuMapa.desfazerPontoDesenhador();
-      });
-      document.getElementById('btn-painel-desenhador-limpar')?.addEventListener('click', () => {
-        window.BuzuMapa.limparSentidoDesenhador();
-      });
-      document.getElementById('btn-painel-desenhador-salvar')?.addEventListener('click', () => {
-        void salvarDesenhadorRota();
-      });
-      document.getElementById('btn-painel-desenhador-sair')?.addEventListener('click', () => {
-        void sairModoDesenhadorRota(true);
-      });
-    }
-
-    async function executarGerarVoltaInvertida() {
-      const box = document.getElementById('feedback-desenhador');
-      const ok = await window.BuzuMapa.gerarVoltaInvertidaDesenhador();
-      if (!ok && box) {
-        box.hidden = false;
-        box.className = 'alerta-erro';
-        box.textContent = 'Marque pelo menos 2 pontos na IDA (DE e PARA) antes de gerar a VOLTA.';
-      } else if (ok && box) {
-        box.hidden = false;
-        box.className = 'alerta-sucesso';
-        box.textContent = 'VOLTA gerada invertendo a IDA! Arraste ou adicione pontos no mapa se a volta passar por ruas diferentes.';
-      }
-    }
-
-    async function salvarDesenhadorRota() {
-      if (!estadoUI.modoDesenhadorRota || !estadoUI.desenhadorLinha) return;
-      const box = document.getElementById('feedback-desenhador');
-      const dados = window.BuzuMapa.obterDadosDesenhadorRota();
-
-      if (!dados.coordsIda || dados.coordsIda.length < 2) {
-        if (box) {
-          box.hidden = false;
-          box.className = 'alerta-erro';
-          box.textContent = 'Desenhe pelo menos a IDA (mínimo 2 pontos: DE e PARA) antes de salvar.';
-        }
-        return;
-      }
-
-      if (!dados.coordsVolta || dados.coordsVolta.length < 2) {
-        const confirmarSoIda = window.confirm(
-          'Você ainda não gerou a VOLTA. Deseja gerar automaticamente a VOLTA invertendo a IDA agora antes de unificar?'
-        );
-        if (confirmarSoIda) {
-          await window.BuzuMapa.gerarVoltaInvertidaDesenhador();
-        } else {
-          return;
-        }
-      }
-
-      const dadosFinais = window.BuzuMapa.obterDadosDesenhadorRota();
-      try {
-        const res = await window.BuzuDados.atualizarRotaNoMapa(
-          estadoUI.desenhadorLinha,
-          estadoUI.desenhadorDia,
-          dadosFinais.coordsUnificadas,
-          {
-            indice_retorno: dadosFinais.indiceRetorno,
-            itinerario_ruas: {
-              ida: dadosFinais.ruasIda,
-              volta: dadosFinais.ruasVolta
-            }
-          }
-        );
-
-        await atualizarMapaEListagens();
-        if (box) {
-          box.hidden = false;
-          box.className = 'alerta-sucesso';
-          box.textContent =
-            `Unificado numa linha só e salvo no rascunho! ` +
-            `${res.extensao_km.toFixed(2).replace('.', ',')} km • ` +
-            `${res.paradasVinculadas} paradas existentes vinculadas (${res.paradasIda} IDA, ${res.paradasVolta} VOLTA).`;
-        }
-      } catch (err) {
-        if (box) {
-          box.hidden = false;
-          box.className = 'alerta-erro';
-          box.textContent = `Erro ao unificar e salvar: ${err.message}`;
-        }
-      }
-    }
-
-    btnAtivarDesenhador?.addEventListener('click', () => {
-      const num = selectLinhaVisual?.value;
-      const dia = selectDiaVisual?.value || 'dias_uteis_sabados';
-      if (num) void abrirDesenhadorRota(num, dia);
-    });
-
-    document.getElementById('btn-desenhador-aba-ida')?.addEventListener('click', () => {
-      window.BuzuMapa.definirSentidoDesenhador('IDA');
-    });
-    document.getElementById('btn-desenhador-aba-volta')?.addEventListener('click', () => {
-      window.BuzuMapa.definirSentidoDesenhador('VOLTA');
-    });
-    document.getElementById('btn-desenhador-inverter')?.addEventListener('click', () => {
-      void executarGerarVoltaInvertida();
-    });
-    document.getElementById('btn-desenhador-desfazer')?.addEventListener('click', () => {
-      window.BuzuMapa.desfazerPontoDesenhador();
-    });
-    document.getElementById('btn-desenhador-salvar')?.addEventListener('click', () => {
-      void salvarDesenhadorRota();
-    });
-    document.getElementById('btn-desenhador-sair')?.addEventListener('click', () => {
-      void sairModoDesenhadorRota(true);
-    });
-
-    btnEditorCriarClique?.addEventListener('click', () => {
-      estadoUI.criarParadaCliqueAtivo = !estadoUI.criarParadaCliqueAtivo;
-      btnEditorCriarClique.setAttribute('aria-pressed', String(estadoUI.criarParadaCliqueAtivo));
-      window.BuzuMapa.definirModoEditorParadas(
-        estadoUI.modoEditorParadas,
-        estadoUI.criarParadaCliqueAtivo
-      );
-    });
-
-    chkEditorVirtuais?.addEventListener('change', async () => {
-      estadoUI.mostrarVirtuaisNoMapa = chkEditorVirtuais.checked;
-      await atualizarMapaEListagens();
-    });
-
-    btnEditorSair?.addEventListener('click', async () => {
-      estadoUI.modoEditorParadas = false;
-      estadoUI.criarParadaCliqueAtivo = false;
-      if (barraEditorMapa) barraEditorMapa.hidden = true;
-      window.BuzuMapa.definirModoEditorParadas(false, false);
-      await atualizarMapaEListagens();
-    });
-
-    btnAbrir?.addEventListener('click', () => {
-      if (!modal) return;
-      modal.hidden = false;
-      if (estadoUI.adminDesbloqueado) {
-        preencherEditorComDadosAtuais();
-      } else {
-        inputSenha?.focus();
-      }
-    });
-
-    btnFechar?.addEventListener('click', () => {
-      if (modal) modal.hidden = true;
-    });
-
-    modal?.addEventListener('click', e => {
-      if (e.target === modal) modal.hidden = true;
-    });
-
-    formSenha?.addEventListener('submit', async e => {
-      e.preventDefault();
-      const senhaDigitada = (inputSenha?.value || '').trim();
-      const resultado = await autenticarAdminNoServidor(senhaDigitada);
-      if (resultado.ok) {
-        estadoUI.adminDesbloqueado = true;
-        if (resultado.token && typeof window.BuzuDados.definirTokenAdmin === 'function') {
-          window.BuzuDados.definirTokenAdmin(resultado.token);
-        }
-        if (inputSenha) inputSenha.value = '';
-        formSenha.hidden = true;
-        if (areaDesbloqueada) areaDesbloqueada.hidden = false;
-        if (feedbackAdmin) feedbackAdmin.hidden = true;
-        preencherEditorComDadosAtuais();
-      } else {
-        if (feedbackAdmin) {
-          feedbackAdmin.hidden = false;
-          feedbackAdmin.className = 'alerta-erro';
-          feedbackAdmin.textContent = resultado.erro || 'Chave técnica inválida.';
-        }
-      }
-    });
-
-    function preencherEditorComDadosAtuais() {
-      if (!textareaJson) return;
-      const pacote = window.BuzuDados.exportarPacoteCompletoJson();
-      const selectLinha = document.getElementById('select-linha-edicao-admin');
-
-      if (selectLinha) {
-        const valorAtual =
-          selectLinha.value ||
-          (estadoUI.linhaSelecionadaId ? String(estadoUI.linhaSelecionadaId) : '');
-        const opcoesLinhas = (pacote.indice?.linhas || [])
-          .map(
-            l =>
-              `<option value="${window.BuzuUtils.escaparHtml(l.numero)}">Linha ${window.BuzuUtils.escaparHtml(
-                l.numero
-              )} — ${window.BuzuUtils.escaparHtml(l.nome)}</option>`
-          )
-          .join('');
-        selectLinha.innerHTML = `<option value="">Selecione uma linha (ou importe um arquivo abaixo)</option>${opcoesLinhas}`;
-        if (valorAtual && [...selectLinha.options].some(o => o.value === valorAtual)) {
-          selectLinha.value = valorAtual;
-        }
-      }
-
-      if (selectLinhaVisual) {
-        const valorVis =
-          selectLinhaVisual.value ||
-          (estadoUI.linhaSelecionadaId ? String(estadoUI.linhaSelecionadaId) : '');
-        const opcoesVis = (pacote.indice?.linhas || [])
-          .map(
-            l =>
-              `<option value="${window.BuzuUtils.escaparHtml(l.numero)}">${window.BuzuUtils.escaparHtml(
-                l.numero
-              )} — ${window.BuzuUtils.escaparHtml(l.nome)}</option>`
-          )
-          .join('');
-        selectLinhaVisual.innerHTML = opcoesVis;
-        if (valorVis && [...selectLinhaVisual.options].some(o => o.value === valorVis)) {
-          selectLinhaVisual.value = valorVis;
-        }
-      }
-
-      if (selectDiaVisual) {
-        selectDiaVisual.value =
-          estadoUI.diaSemana === 'domingos_feriados'
-            ? 'domingos_feriados'
-            : 'dias_uteis_sabados';
-      }
-
-      const linhaEscolhida = selectLinha?.value || '';
-      if (!linhaEscolhida) {
-        textareaJson.value = '';
-        textareaJson.placeholder =
-          'Selecione uma linha acima para editar o JSON dela (evita travar a guia com todas as 87 linhas e 2.276 paradas), ou use "Baixar JSON Consolidado" / "Abrir Editor de Paradas no Mapa".';
-        return;
-      }
-
-      // Isola apenas o JSON da linha selecionada para edição rápida e segura sem travar o navegador!
-      const linhaMeta = (pacote.indice?.linhas || []).find(l => l.numero === linhaEscolhida);
-      const paradasLinha = (pacote.paradas?.features || []).filter(f =>
-        (f.properties?.rotas || []).includes(linhaEscolhida)
-      );
-      const lotesLinha = {};
-      for (const [idLote, fc] of Object.entries(pacote.lotesGeoJson || {})) {
-        const feats = (fc?.features || []).filter(
-          f => f.properties?.numero === linhaEscolhida || f.properties?.linha_id === linhaEscolhida
-        );
-        if (feats.length > 0) {
-          lotesLinha[idLote] = { type: 'FeatureCollection', features: feats };
-        }
-      }
-      const recorteIsolado = {
-        indice: { linhas: linhaMeta ? [linhaMeta] : [] },
-        paradas: { type: 'FeatureCollection', features: paradasLinha },
-        lotesGeoJson: lotesLinha
-      };
-      textareaJson.value = JSON.stringify(recorteIsolado, null, 2);
-    }
-
-    document.getElementById('select-linha-edicao-admin')?.addEventListener('change', () => {
-      preencherEditorComDadosAtuais();
-    });
-
-    inputArquivo?.addEventListener('change', async () => {
-      const arquivo = inputArquivo.files?.[0];
-      if (!arquivo) return;
-
-      try {
-        const nomeArq = arquivo.name.toLowerCase();
-        if (nomeArq.endsWith('.json') || nomeArq.endsWith('.geojson')) {
-          const texto = await arquivo.text();
-          if (textareaJson) textareaJson.value = texto;
-          mostrarFeedbackAdmin(`Arquivo "${arquivo.name}" carregado. Clique em "Aplicar e Salvar Rotas".`, 'sucesso');
-        } else if (nomeArq.endsWith('.kml')) {
-          const textoKml = await arquivo.text();
-          const fc = window.BuzuDados.converterKmlTextoParaGeoJson(textoKml, '1');
-          if (textareaJson) textareaJson.value = JSON.stringify(fc, null, 2);
-          mostrarFeedbackAdmin(`Arquivo KML "${arquivo.name}" convertido para GeoJSON simplificado.`, 'sucesso');
-        } else if (nomeArq.endsWith('.kmz')) {
-          const textoKml = await extrairKmlDeKmzNoNavegador(arquivo);
-          const fc = window.BuzuDados.converterKmlTextoParaGeoJson(textoKml, '1');
-          if (textareaJson) textareaJson.value = JSON.stringify(fc, null, 2);
-          mostrarFeedbackAdmin(`Arquivo KMZ "${arquivo.name}" extraído e convertido para JSON.`, 'sucesso');
-        }
-      } catch (err) {
-        mostrarFeedbackAdmin(`Erro ao processar arquivo: ${err.message}`, 'erro');
-      }
-    });
-
-    btnSalvarJson?.addEventListener('click', async () => {
-      try {
-        const obj = JSON.parse(textareaJson.value);
-        const modo = document.getElementById('select-modo-importacao')?.value || 'mesclar';
-        window.BuzuDados.importarJsonAdmin(obj, modo);
-        window.BuzuMapa.solicitarEnquadramentoNaProximaRenderizacao();
-        await atualizarMapaEListagens(true);
-        preencherEditorComDadosAtuais();
-        mostrarFeedbackAdmin('Rotas e paradas gravadas e atualizadas no mapa!', 'sucesso');
-      } catch (err) {
-        mostrarFeedbackAdmin(`Erro de sintaxe JSON: ${err.message}`, 'erro');
-      }
-    });
-
-    btnBaixarJson?.addEventListener('click', () => {
-      const pacote = window.BuzuDados.exportarPacoteCompletoJson();
-      const blob = new Blob([JSON.stringify(pacote, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'buzu-rotas-pacote-completo.json';
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    btnRestaurar?.addEventListener('click', async () => {
-      const ok = window.confirm(
-        'Tem certeza que deseja descartar o rascunho local e restaurar os arquivos atuais do servidor (./dados/)?'
-      );
-      if (!ok) return;
-      await window.BuzuDados.restaurarDadosPadrao();
-      await atualizarMapaEListagens(true);
-      preencherEditorComDadosAtuais();
-      mostrarFeedbackAdmin('Base restaurada para os arquivos originais da pasta ./dados/.', 'sucesso');
-    });
-
-    // Versionamento (Backups) e Log de Auditoria no Modal Admin
-    async function carregarVersoesAdmin() {
-      const lista = document.getElementById('lista-versoes-servidor');
-      if (!lista) return;
-      lista.innerHTML = '<li class="cartao-item">Carregando versões...</li>';
-      try {
-        const versoes = await window.BuzuDados.listarVersoesServidor();
-        if (!versoes.length) {
-          lista.innerHTML = '<li class="cartao-item">Nenhum backup criado ainda (será gerado na primeira publicação).</li>';
-          return;
-        }
-        lista.innerHTML = versoes
-          .map(
-            v => `
-            <li class="cartao-item" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;">
-              <div style="font-size:0.82rem;">
-                <strong>${window.BuzuUtils.escaparHtml(v.versao)}</strong><br>
-                <span style="color:var(--c-texto-suave,#475569);">${window.BuzuUtils.escaparHtml(v.motivo || 'Backup automático')}</span>
-              </div>
-              <button type="button" class="btn-rumo-secondary btn-restaurar-versao" data-versao="${window.BuzuUtils.escaparHtml(v.versao)}" style="height:32px;font-size:0.78rem;">
-                Restaurar
-              </button>
-            </li>`
-          )
-          .join('');
-
-        lista.querySelectorAll('.btn-restaurar-versao').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const ver = btn.getAttribute('data-versao');
-            if (!window.confirm(`Restaurar a versão "${ver}" no servidor? Um backup do estado atual será criado antes.`)) {
-              return;
-            }
-            try {
-              const r = await window.BuzuDados.restaurarVersaoServidor(ver);
-              await atualizarMapaEListagens(true);
-              preencherEditorComDadosAtuais();
-              mostrarFeedbackAdmin(r.mensagem || `Versão ${ver} restaurada!`, 'sucesso');
-              void carregarVersoesAdmin();
-              void carregarAuditoriaAdmin();
-            } catch (err) {
-              mostrarFeedbackAdmin(`Erro ao restaurar versão: ${err.message}`, 'erro');
-            }
-          });
-        });
-      } catch (err) {
-        lista.innerHTML = `<li class="cartao-item">Erro ao carregar versões: ${window.BuzuUtils.escaparHtml(err.message)}</li>`;
-      }
-    }
-
-    async function carregarAuditoriaAdmin() {
-      const lista = document.getElementById('lista-auditoria-servidor');
-      if (!lista) return;
-      lista.innerHTML = '<li class="cartao-item">Carregando log de auditoria...</li>';
-      try {
-        const regs = await window.BuzuDados.listarAuditoriaServidor();
-        if (!regs.length) {
-          lista.innerHTML = '<li class="cartao-item">Nenhuma ação registrada ainda.</li>';
-          return;
-        }
-        lista.innerHTML = regs
-          .map(r => {
-            const dt = r.dataHora ? new Date(r.dataHora).toLocaleString('pt-BR') : '';
-            return `
-              <li class="cartao-item" style="padding:8px 10px;font-size:0.8rem;">
-                <strong>${window.BuzuUtils.escaparHtml(r.acao)}</strong> • <span>${window.BuzuUtils.escaparHtml(dt)}</span>
-                <div style="color:var(--c-texto-suave,#475569);margin-top:2px;">${window.BuzuUtils.escaparHtml(r.detalhes || '')}</div>
-              </li>`;
-          })
-          .join('');
-      } catch (err) {
-        lista.innerHTML = `<li class="cartao-item">Erro ao carregar auditoria: ${window.BuzuUtils.escaparHtml(err.message)}</li>`;
-      }
-    }
-
-    document.getElementById('detalhes-versoes-admin')?.addEventListener('toggle', e => {
-      if (e.target.open) void carregarVersoesAdmin();
-    });
-    document.getElementById('btn-recarregar-versoes')?.addEventListener('click', () => void carregarVersoesAdmin());
-
-    document.getElementById('detalhes-auditoria-admin')?.addEventListener('toggle', e => {
-      if (e.target.open) void carregarAuditoriaAdmin();
-    });
-    document.getElementById('btn-recarregar-auditoria')?.addEventListener('click', () => void carregarAuditoriaAdmin());
-
-    function mostrarFeedbackAdmin(msg, tipo) {
-      if (!feedbackAdmin) return;
-      feedbackAdmin.hidden = false;
-      feedbackAdmin.className = tipo === 'erro' ? 'alerta-erro' : 'alerta-sucesso';
-      feedbackAdmin.textContent = msg;
-    }
-  }
-
-  /**
-   * Barra de Rascunho Local -> Publicar no Servidor + Undo Multinível + beforeunload
-   */
-  function configurarGestaoRascunhoEBeforeUnload() {
-    const barra = document.getElementById('barra-rascunho-admin');
-    const badge = document.getElementById('badge-status-salvamento');
-    const texto = document.getElementById('texto-status-rascunho');
-    const btnUndo = document.getElementById('btn-desfazer-global-admin');
-    const btnPublicar = document.getElementById('btn-publicar-rascunho');
-    const btnDescartar = document.getElementById('btn-descartar-rascunho');
-
-    function atualizarBarra(status) {
-      if (!barra) return;
-      const mostrar = status.pendente || (status.ultimoStatus && status.ultimoStatus.tipo !== 'neutro');
-      barra.hidden = !mostrar;
-
-      if (badge) {
-        badge.className = 'badge-status-salvamento';
-        if (status.ultimoStatus?.tipo === 'sucesso') {
-          badge.classList.add('badge-status-salvamento--sucesso');
-          badge.textContent = 'Salvo no servidor';
-        } else if (status.ultimoStatus?.tipo === 'erro') {
-          badge.classList.add('badge-status-salvamento--erro');
-          badge.textContent = 'Falhou';
-        } else if (status.ultimoStatus?.tipo === 'alerta') {
-          badge.classList.add('badge-status-salvamento--alerta');
-          badge.textContent = 'Salvo só local';
-        } else {
-          badge.textContent = status.qtdAcoes
-            ? `Rascunho local (${status.qtdAcoes})`
-            : 'Rascunho local';
-        }
-      }
-
-      if (texto) {
-        texto.textContent =
-          status.ultimoStatus?.texto ||
-          'Alterações salvas localmente no IndexedDB. Clique em "Publicar no servidor" quando concluir.';
-      }
-
-      if (btnUndo) {
-        btnUndo.disabled = !status.qtdUndo;
-        const span = btnUndo.querySelector('span');
-        if (span) span.textContent = status.qtdUndo ? `Desfazer (${status.qtdUndo})` : 'Desfazer';
-      }
-      if (btnPublicar) btnPublicar.hidden = !status.pendente;
-      if (btnDescartar) btnDescartar.hidden = !status.pendente;
-    }
-
-    window.BuzuDados.inscreverStatusRascunho(atualizarBarra);
-    atualizarBarra(window.BuzuDados.obterStatusRascunho());
-
-    window.addEventListener('beforeunload', e => {
-      if (window.BuzuDados.obterStatusRascunho().pendente) {
-        e.preventDefault();
-        e.returnValue = 'Há alterações não publicadas no rascunho. Deseja realmente sair?';
-      }
-    });
-
-    btnUndo?.addEventListener('click', async () => {
-      const r = await window.BuzuDados.desfazerUltimaAlteracaoAdmin();
-      if (r.ok) {
-        await atualizarMapaEListagens();
-        if (estadoUI.paradaSelecionadaId) renderizarVisaoDetalheParada(estadoUI.paradaSelecionadaId);
-        else if (estadoUI.linhaSelecionadaId && !estadoUI.modoEditorRota) renderizarVisaoDetalheLinha(estadoUI.linhaSelecionadaId);
-      }
-    });
-
-    btnPublicar?.addEventListener('click', async () => {
-      if (!estadoUI.adminDesbloqueado) {
-        alert('Faça login no botão Admin antes de publicar no servidor.');
-        document.getElementById('btn-acesso-restrito')?.click();
-        return;
-      }
-      btnPublicar.disabled = true;
-      try {
-        const res = await window.BuzuDados.publicarRascunhoNoServidor();
-        if (res.status === 'erro_validacao') {
-          alert(`Publicação bloqueada pela validação:\n- ${(res.errosValidacao || []).join('\n- ')}`);
-        } else if (res.avisosValidacao && res.avisosValidacao.length > 0) {
-          console.info('Avisos de validação:', res.avisosValidacao);
-        }
-      } finally {
-        btnPublicar.disabled = false;
-      }
-    });
-
-    btnDescartar?.addEventListener('click', async () => {
-      const ok = window.confirm('Descartar todas as alterações do rascunho local e recarregar a base do servidor?');
-      if (!ok) return;
-      await window.BuzuDados.descartarRascunhoLocal();
-      await atualizarMapaEListagens(true);
-    });
-  }
-
-  async function autenticarAdminNoServidor(chave) {
-    if (!chave) return { ok: false, erro: 'Informe a chave de administrador.' };
-    try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chave })
-      });
-      const dados = await res.json().catch(() => ({}));
-      if (res.ok && dados.ok) {
-        return { ok: true, token: dados.token || '' };
-      }
-      return { ok: false, erro: dados.erro || 'Chave técnica inválida.' };
-    } catch (_e) {
-      return { ok: false, erro: 'Servidor de autenticação indisponível.' };
-    }
-  }
-
-  async function extrairKmlDeKmzNoNavegador(arquivoKmz) {
-    const buffer = await arquivoKmz.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    const view = new DataView(buffer);
-
-    let offset = 0;
-    while (offset + 30 < bytes.length) {
-      const sig = view.getUint32(offset, true);
-      if (sig !== 0x04034b50) break;
-
-      const metodoCompressao = view.getUint16(offset + 8, true);
-      const tamComprimido = view.getUint32(offset + 18, true);
-      const tamNome = view.getUint16(offset + 26, true);
-      const tamExtra = view.getUint16(offset + 28, true);
-
-      const nomeEntrada = new TextDecoder().decode(bytes.subarray(offset + 30, offset + 30 + tamNome));
-      const inicioDados = offset + 30 + tamNome + tamExtra;
-      const dadosEntrada = bytes.subarray(inicioDados, inicioDados + tamComprimido);
-
-      if (nomeEntrada.toLowerCase().endsWith('.kml')) {
-        if (metodoCompressao === 0) {
-          return new TextDecoder('utf-8').decode(dadosEntrada);
-        }
-        if (metodoCompressao === 8 && typeof DecompressionStream !== 'undefined') {
-          const ds = new DecompressionStream('deflate-raw');
-          const writer = ds.writable.getWriter();
-          writer.write(dadosEntrada);
-          writer.close();
-          const res = new Response(ds.readable);
-          return await res.text();
-        }
-      }
-      offset = inicioDados + tamComprimido;
-    }
-    throw new Error('Não foi possível extrair doc.kml deste KMZ no navegador.');
-  }
 })();

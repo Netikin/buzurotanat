@@ -3,12 +3,12 @@
  * Servidor HTTP em Node.js puro (Zero Dependências / Sem npm install)
  *
  * Segurança para produção pública:
- * - Autenticação administrativa exclusivamente no backend (POST /api/admin/login)
- * - Chave lida de process.env.BUZU_ADMIN_KEY ou arquivo .env (nunca hardcoded no código)
- * - Sessões com token aleatório (crypto.randomBytes), cookie HttpOnly + SameSite=Strict e expiração
- * - Rate limit contra força bruta no login + comparação timingSafeEqual
- * - POST /api/salvar-rotas exige sessão autenticada (401 sem token válido)
- * - Bloqueio de acesso HTTP a arquivos sensíveis (.env, servidor.js, scripts/, rotas/, .git)
+ * - Área administrativa em endereço oculto, com uma conta por pessoa: senha guardada só como hash
+ *   (scrypt) + verificação em duas etapas (TOTP). Ver admin/painel-servidor.js.
+ * - Sessões com token aleatório, cookie HttpOnly + Secure + SameSite=Strict, expiração e inatividade
+ * - Limite de tentativas no login (por IP e por usuário) e checagem de origem (anti-CSRF)
+ * - POST /api/salvar-rotas exige sessão autenticada (401 sem sessão válida)
+ * - Bloqueio de acesso HTTP a arquivos sensíveis (.env, servidor.js, scripts/, rotas/, admin/, dados-admin/, .git)
  */
 
 const http = require('http');
@@ -33,11 +33,12 @@ const ARQUIVOS_VERSIONADOS = [
   'lote-2.geojson'
 ];
 
-function registrarAuditoria(acao, ip, detalhes = '') {
+function registrarAuditoria(acao, ip, detalhes = '', usuario = '') {
   try {
     if (!fs.existsSync(DADOS_DIR)) fs.mkdirSync(DADOS_DIR, { recursive: true });
     const linha = JSON.stringify({
       dataHora: new Date().toISOString(),
+      usuario: String(usuario || ''),
       ip: String(ip || ''),
       acao: String(acao || 'ACAO'),
       detalhes: String(detalhes || '').slice(0, 400)
@@ -110,56 +111,25 @@ function carregarEnvLocal() {
 }
 carregarEnvLocal();
 
-// Chave administrativa: vem de BUZU_ADMIN_KEY (.env ou variável de ambiente).
-// Se não definida e não estiver em modo somente leitura, gera uma chave temporária aleatória apenas no terminal do servidor.
+// Área administrativa: contas por pessoa (senha com hash + verificação em duas etapas),
+// endereço oculto e dados do painel. Detalhes em admin/painel-servidor.js.
 const MODO_SOMENTE_LEITURA = process.env.BUZU_PUBLIC_READONLY === '1';
-let ADMIN_KEY_ATIVA = (process.env.BUZU_ADMIN_KEY || '').trim();
-let CHAVE_FOI_GERADA_NO_TERMINAL = false;
-
-if (!MODO_SOMENTE_LEITURA && !ADMIN_KEY_ATIVA) {
-  ADMIN_KEY_ATIVA = crypto.randomBytes(18).toString('base64url');
-  CHAVE_FOI_GERADA_NO_TERMINAL = true;
-}
-
-const sessoesAdmin = new Map(); // token -> { expiraEm }
-const tentativasLogin = new Map(); // ip -> { falhas, bloqueadoAte }
-const TTL_SESSAO_MS = 4 * 60 * 60 * 1000; // 4 horas
-const MAX_TENTATIVAS_LOGIN = 5;
-const BLOQUEIO_LOGIN_MS = 15 * 60 * 1000; // 15 minutos
-
-function compararChavesSeguro(a, b) {
-  if (!a || !b) return false;
-  const hashA = crypto.createHash('sha256').update(String(a)).digest();
-  const hashB = crypto.createHash('sha256').update(String(b)).digest();
-  return crypto.timingSafeEqual(hashA, hashB);
-}
-
-function extrairTokenSessao(req) {
-  const authHeader = req.headers.authorization || '';
-  if (authHeader.startsWith('Bearer ')) {
-    return authHeader.slice(7).trim();
-  }
-  const cookieHeader = req.headers.cookie || '';
-  for (const parte of cookieHeader.split(';')) {
-    const [k, ...v] = parte.trim().split('=');
-    if (k === 'buzu_admin_sess') {
-      return decodeURIComponent(v.join('='));
-    }
-  }
-  return '';
-}
+const { criarPainel } = require('./admin/painel-servidor.js');
+const painel = criarPainel({
+  RAIZ,
+  DADOS_DIR,
+  BACKUPS_DIR,
+  ARQ_AUDITORIA,
+  somenteLeitura: MODO_SOMENTE_LEITURA,
+  registrarAuditoria
+});
 
 function sessaoEstaValida(req) {
-  if (MODO_SOMENTE_LEITURA) return false;
-  const token = extrairTokenSessao(req);
-  if (!token) return false;
-  const reg = sessoesAdmin.get(token);
-  if (!reg) return false;
-  if (Date.now() > reg.expiraEm) {
-    sessoesAdmin.delete(token);
-    return false;
-  }
-  return true;
+  return Boolean(painel.obterSessao(req));
+}
+
+function usuarioDaSessao(req) {
+  return painel.obterSessao(req)?.usuario || '';
 }
 
 // Monitora automaticamente a pasta ./rotas/ para converter novos arquivos .kmz/.kml assim que forem colados!
@@ -249,68 +219,24 @@ const servidor = http.createServer(async (req, res) => {
     req.socket.remoteAddress ||
     'desconhecido';
 
-  // 1. Login administrativo (exclusivo no servidor, com rate limit)
-  if (req.method === 'POST' && urlObj.pathname === '/api/admin/login') {
-    if (MODO_SOMENTE_LEITURA || !ADMIN_KEY_ATIVA) {
-      responderJson(res, 403, { ok: false, erro: 'Painel administrativo desabilitado neste servidor.' });
-      return;
-    }
+  // 1. Painel administrativo (login, endereço oculto, avisos, estatísticas anônimas)
+  if (await painel.tratar(req, res, urlObj, ipCliente)) return;
 
-    const regTent = tentativasLogin.get(ipCliente) || { falhas: 0, bloqueadoAte: 0 };
-    if (Date.now() < regTent.bloqueadoAte) {
-      responderJson(res, 429, {
-        ok: false,
-        erro: 'Muitas tentativas inválidas. Aguarde 15 minutos e tente novamente.'
-      });
-      return;
-    }
-
-    try {
-      const body = await lerCorpoJson(req, 16 * 1024);
-      if (compararChavesSeguro(body.chave, ADMIN_KEY_ATIVA)) {
-        tentativasLogin.delete(ipCliente);
-        const token = crypto.randomBytes(32).toString('base64url');
-        sessoesAdmin.set(token, { expiraEm: Date.now() + TTL_SESSAO_MS });
-        registrarAuditoria('LOGIN_ADMIN', ipCliente, 'Autenticação bem-sucedida');
-
-        responderJson(
-          res,
-          200,
-          { ok: true, token },
-          {
-            'Set-Cookie': `buzu_admin_sess=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(TTL_SESSAO_MS / 1000)}`
-          }
-        );
-      } else {
-        regTent.falhas += 1;
-        if (regTent.falhas >= MAX_TENTATIVAS_LOGIN) {
-          regTent.bloqueadoAte = Date.now() + BLOQUEIO_LOGIN_MS;
-          regTent.falhas = 0;
-        }
-        tentativasLogin.set(ipCliente, regTent);
-        responderJson(res, 401, { ok: false, erro: 'Chave técnica inválida.' });
-      }
-    } catch (err) {
-      responderJson(res, 400, { ok: false, erro: err.message });
-    }
+  // 2. Alterações nas rotas antigas de admin só valem vindas do próprio site (anti-CSRF)
+  if (req.method === 'POST' && urlObj.pathname.startsWith('/api/') && !painel.origemConfiavel(req)) {
+    responderJson(res, 403, { ok: false, erro: 'Origem da requisição não permitida.' });
     return;
   }
 
-  // 2. Verificar sessão / Logout
+  // Verificar sessão / Logout (usados pelo editor do mapa no site)
   if (req.method === 'GET' && urlObj.pathname === '/api/admin/sessao') {
-    responderJson(res, 200, { autenticado: sessaoEstaValida(req), somenteLeitura: MODO_SOMENTE_LEITURA });
-    return;
-  }
-
-  if (req.method === 'POST' && urlObj.pathname === '/api/admin/logout') {
-    const token = extrairTokenSessao(req);
-    if (token) sessoesAdmin.delete(token);
-    responderJson(
-      res,
-      200,
-      { ok: true },
-      { 'Set-Cookie': 'buzu_admin_sess=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' }
-    );
+    const sessao = painel.obterSessao(req);
+    responderJson(res, 200, {
+      autenticado: Boolean(sessao),
+      usuario: sessao ? { usuario: sessao.usuario, nome: painel.nomeUsuario(sessao) } : null,
+      painel: sessao ? `${painel.info.caminho}/` : null,
+      somenteLeitura: MODO_SOMENTE_LEITURA
+    });
     return;
   }
 
@@ -359,14 +285,14 @@ const servidor = http.createServer(async (req, res) => {
         responderJson(res, 404, { ok: false, erro: 'Versão de backup não encontrada.' });
         return;
       }
-      criarBackupVersao(`Antes de restaurar ${versao}`);
+      criarBackupVersao(`Antes de restaurar ${versao} (${usuarioDaSessao(req)})`);
       for (const nomeArq of ARQUIVOS_VERSIONADOS) {
         const src = path.join(pastaOrigem, nomeArq);
         if (fs.existsSync(src)) {
           fs.copyFileSync(src, path.join(DADOS_DIR, nomeArq));
         }
       }
-      registrarAuditoria('RESTAURAR_VERSAO', ipCliente, `Restaurado backup ${versao}`);
+      registrarAuditoria('RESTAURAR_VERSAO', ipCliente, `Restaurado backup ${versao}`, usuarioDaSessao(req));
       responderJson(res, 200, { ok: true, mensagem: `Versão ${versao} restaurada com sucesso!` });
     } catch (err) {
       responderJson(res, 500, { ok: false, erro: err.message });
@@ -410,7 +336,9 @@ const servidor = http.createServer(async (req, res) => {
         fs.mkdirSync(DADOS_DIR, { recursive: true });
       }
 
-      const versaoBackup = criarBackupVersao(pacote.resumoAuditoria || 'Publicação Admin');
+      const versaoBackup = criarBackupVersao(
+        `${pacote.resumoAuditoria || 'Publicação Admin'} — por ${usuarioDaSessao(req) || 'admin'}`
+      );
 
       fs.writeFileSync(path.join(DADOS_DIR, 'linhas.json'), JSON.stringify(pacote.indice, null, 2), 'utf8');
       fs.writeFileSync(path.join(DADOS_DIR, 'paradas.json'), JSON.stringify(pacote.paradas, null, 2), 'utf8');
@@ -445,7 +373,8 @@ const servidor = http.createServer(async (req, res) => {
       registrarAuditoria(
         'PUBLICAR_ROTAS',
         ipCliente,
-        pacote.resumoAuditoria || `Publicado: ${totalLinhas} linhas, ${totalParadas} paradas (backup: ${versaoBackup || 'n/a'})`
+        pacote.resumoAuditoria || `Publicado: ${totalLinhas} linhas, ${totalParadas} paradas (backup: ${versaoBackup || 'n/a'})`,
+        usuarioDaSessao(req)
       );
 
       responderJson(res, 200, {
@@ -465,7 +394,18 @@ const servidor = http.createServer(async (req, res) => {
 
   const segmentos = caminhoRelativo.split('/').filter(Boolean);
   const primeiroSeg = (segmentos[0] || '').toLowerCase();
-  const bloqueados = new Set(['.env', '.env.example', '.git', 'servidor.js', 'scripts', 'rotas', 'node_modules']);
+  const bloqueados = new Set([
+    '.env',
+    '.env.example',
+    '.git',
+    'servidor.js',
+    'scripts',
+    'rotas',
+    'node_modules',
+    'admin',
+    'painel',
+    'dados-admin'
+  ]);
   const caminhoLower = caminhoRelativo.toLowerCase();
   if (
     bloqueados.has(primeiroSeg) ||
@@ -693,11 +633,14 @@ function iniciarServidor(porta) {
     }
     if (MODO_SOMENTE_LEITURA) {
       console.log(' -> Admin:  DESABILITADO (BUZU_PUBLIC_READONLY=1)');
-    } else if (CHAVE_FOI_GERADA_NO_TERMINAL) {
-      console.log(` -> Chave Admin gerada nesta sessão: ${ADMIN_KEY_ATIVA}`);
-      console.log('    (Dica: crie um arquivo .env com BUZU_ADMIN_KEY=sua-chave-forte)');
     } else {
-      console.log(' -> Admin:  Protegido por BUZU_ADMIN_KEY configurada no ambiente/.env');
+      const { caminho, contas } = painel.info;
+      console.log(` -> Painel: http://localhost:${porta}${caminho}/  (editor do mapa: ${caminho}/editor)`);
+      if (contas === 0) {
+        console.log(' -> Admin:  nenhuma conta configurada. Crie com: node scripts/admin/criar-usuario.js');
+      } else {
+        console.log(` -> Admin:  ${contas} conta(s) com senha + verificação em duas etapas`);
+      }
     }
     console.log('===================================================================');
   });
