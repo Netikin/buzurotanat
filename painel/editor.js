@@ -78,6 +78,7 @@
     fundo: '',
     opacFundo: 100,
     verLinhas: true,
+    verOutrasAoEditar: false,
     corLinhas: 'linha',
     opacLinhas: 45,
     verParadas: true,
@@ -252,6 +253,7 @@
     G.fantasma.clearLayers();
     if (!prefs.verLinhas) return;
     const selNum = S.sel?.tipo === 'linha' ? S.sel.numero : null;
+    if (selNum && !prefs.verOutrasAoEditar) return;
     for (const f of featuresDoDia()) {
       const num = numeroDe(f);
       if (num === selNum) continue;
@@ -959,6 +961,7 @@
     return `<div class="ed-insp-cabecalho">
       <span class="ed-num-linha" style="background:${cor};color:${corClara(cor) ? '#14213d' : '#fff'}">${esc(numero)}</span>
       <h2>${esc(l?.nome || 'Linha sem cadastro')}<small>Lote ${esc(l?.lote || '?')} • ${esc(l?.categoria_edital || '')}</small></h2>
+      <button type="button" id="ed-fechar-sel" class="btn-icone" title="Fechar linha e mostrar todas no mapa (Esc)" aria-label="Fechar linha" style="margin-left:auto;flex-shrink:0;"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
     </div>
     <div class="ed-subabas" role="tablist">
       ${[['tracado', 'Traçado'], ['dados', 'Dados'], ['paradas', 'Paradas'], ['operacao', 'Operação']]
@@ -976,6 +979,7 @@
     else if (S.subaba === 'paradas') corpo = corpoParadasLinha(l, numero);
     else corpo = corpoOperacao(l, numero);
     alvo.innerHTML = cabecalhoLinha(l, numero) + corpo;
+    alvo.querySelector('#ed-fechar-sel')?.addEventListener('click', limparSelecao);
     alvo.querySelectorAll('[data-subaba]').forEach(b =>
       b.addEventListener('click', () => {
         S.subaba = b.dataset.subaba;
@@ -2124,6 +2128,7 @@
       });
     };
     check('#ed-ver-linhas', 'verLinhas', renderFantasma);
+    check('#ed-ver-outras-editar', 'verOutrasAoEditar', renderFantasma);
     check('#ed-ver-paradas', 'verParadas', renderParadas);
     check('#ed-paradas-sempre', 'paradasSempre', renderParadas);
     check('#ed-ver-inativas', 'verInativas', renderParadas);
