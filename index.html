@@ -15,8 +15,8 @@
   <meta property="og:locale" content="pt_BR">
   <meta property="og:title" content="BuzuRota Natal — Nova rede de ônibus">
   <meta property="og:description" content="Consulte itinerários, paradas, horários e o mapa das linhas da nova rede de ônibus de Natal (Concorrência Pública nº 11.001/2026).">
-  <meta property="og:url" content="https://buzurotanat.vertraweb.app/">
-  <meta property="og:image" content="https://buzurotanat.vertraweb.app/img/icone-512.png">
+  <meta property="og:url" content="https://rotasnatal.vertraweb.app/">
+  <meta property="og:image" content="https://rotasnatal.vertraweb.app/img/icone-512.png">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="512">
   <meta property="og:image:height" content="512">
@@ -24,7 +24,7 @@
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="BuzuRota Natal — Nova rede de ônibus">
   <meta name="twitter:description" content="Consulte itinerários, paradas, horários e o mapa das linhas da nova rede de ônibus de Natal (Concorrência Pública nº 11.001/2026).">
-  <meta name="twitter:image" content="https://buzurotanat.vertraweb.app/img/icone-512.png">
+  <meta name="twitter:image" content="https://rotasnatal.vertraweb.app/img/icone-512.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -61,11 +61,13 @@
               <span>BUZU<strong>ROTA</strong></span>
             </div>
             <span class="header-brand-credit">
-              <i class="bi bi-code-slash" aria-hidden="true"></i>
-              <span>Desenvolvido por</span>
-              <strong>Wesly Nascimento</strong>
-              <span class="header-brand-credit-sep" aria-hidden="true">&bull;</span>
-              <span class="header-brand-credit-tag">wn_busrn</span>
+              <span>Feito com</span>
+              <i class="bi bi-heart-fill header-brand-credit-coracao" aria-hidden="true"></i>
+              <span class="sr-only">amor</span>
+              <span>por</span>
+              <span class="header-brand-credit-tag">@wn_busrn</span>
+              <span>e</span>
+              <span class="header-brand-credit-tag">@oi.felipinho</span>
             </span>
           </div>
           <span class="header-brand-divider" aria-hidden="true"></span>
@@ -85,10 +87,6 @@
         <button type="button" id="btn-alto-contraste" class="btn-top-util" aria-pressed="false" aria-label="Alternar alto contraste" title="Alternar Alto Contraste">
           <i class="bi bi-circle-half" aria-hidden="true"></i>
           <span>Contraste</span>
-        </button>
-        <button type="button" id="btn-acesso-restrito" class="btn-top-util btn-top-util--admin" aria-label="Acesso restrito" title="Acesso Restrito (JSON e Editor de Mapa)">
-          <i class="bi bi-shield-lock" aria-hidden="true"></i>
-          <span>Admin</span>
         </button>
       </div>
     </div>
@@ -127,25 +125,6 @@
       <span>
         <strong>Portal independente:</strong> este site <strong>não possui vínculo com a Prefeitura do Natal, STTU ou qualquer órgão público</strong>. É uma ferramenta gratuita de consulta de itinerários criada para ajudar os passageiros a conhecerem as futuras novas linhas da Concorrência nº 11.001/2026.
       </span>
-    </div>
-
-    <!-- Barra de Rascunho e Publicação do Administrador (IndexedDB -> Servidor) -->
-    <div id="barra-rascunho-admin" class="barra-rascunho-admin" hidden role="status" aria-live="polite">
-      <div class="barra-rascunho-admin__info">
-        <span id="badge-status-salvamento" class="badge-status-salvamento">Rascunho local</span>
-        <span id="texto-status-rascunho">Há alterações pendentes (não publicadas no servidor).</span>
-      </div>
-      <div class="barra-rascunho-admin__acoes">
-        <button type="button" id="btn-desfazer-global-admin" class="btn-rumo-secondary" disabled>
-          <i class="bi bi-arrow-counterclockwise"></i> <span>Desfazer</span>
-        </button>
-        <button type="button" id="btn-publicar-rascunho" class="btn-rumo-primary">
-          <i class="bi bi-cloud-upload"></i> <span>Publicar no servidor</span>
-        </button>
-        <button type="button" id="btn-descartar-rascunho" class="btn-rumo-secondary" style="color:#b91c1c;border-color:#fca5a5;">
-          <i class="bi bi-trash"></i> <span>Descartar rascunho</span>
-        </button>
-      </div>
     </div>
 
     <!-- 3.1. Cabeçalho de Consulta (.consulta-page > .consulta-header do RUMO) -->
@@ -386,82 +365,6 @@
       <!-- COLUNA 2 (Direita: Mapa + Dados do Lote/Consórcio Igual ao .coluna-mapa-consorcio-empresa do RUMO) -->
       <div class="coluna-mapa-consorcio-empresa">
         <div class="container-mapa">
-          <!-- Barra Flutuante do Editor Administrativo de Paradas no Mapa -->
-          <div id="barra-editor-mapa" class="barra-editor-mapa" hidden>
-            <div class="barra-editor-mapa__status">
-              <i class="bi bi-geo-alt-fill"></i>
-              <strong>Editor de Paradas (Raio 40m)</strong>
-              <span>Arraste marcadores para ajustar o lado da avenida</span>
-            </div>
-            <div class="barra-editor-mapa__acoes">
-              <button type="button" id="btn-editor-criar-clique" class="btn-rumo-secondary" aria-pressed="false">
-                + Criar parada no clique
-              </button>
-              <label class="rumo-inline-check">
-                <input type="checkbox" id="chk-editor-mostrar-virtuais">
-                <span>Virtuais (~200m)</span>
-              </label>
-              <button type="button" id="btn-editor-sair" class="btn-rumo-primary" style="background:#b91c1c;">
-                Concluir
-              </button>
-            </div>
-          </div>
-
-          <!-- Barra Flutuante do Editor Interativo de Traçado de Rota -->
-          <div id="barra-editor-rota" class="barra-editor-mapa" hidden>
-            <div class="barra-editor-mapa__status">
-              <i class="bi bi-bezier2"></i>
-              <strong id="titulo-barra-editor-rota">Editor de Traçado</strong>
-              <span id="info-barra-editor-rota">Arraste vértices • Clique no + para inserir • Botão direito remove</span>
-            </div>
-            <div class="barra-editor-mapa__acoes">
-              <button type="button" id="btn-rota-desfazer" class="btn-rumo-secondary" disabled>
-                <i class="bi bi-arrow-counterclockwise"></i> Desfazer
-              </button>
-              <button type="button" id="btn-rota-estender-clique" class="btn-rumo-secondary" aria-pressed="false">
-                + Estender no clique
-              </button>
-              <button type="button" id="btn-rota-limpar-tudo" class="btn-rumo-secondary" style="color:#b91c1c;border-color:#fca5a5;">
-                <i class="bi bi-trash"></i> Remover traçado
-              </button>
-              <button type="button" id="btn-rota-salvar-mapa" class="btn-rumo-primary">
-                <i class="bi bi-check2-circle"></i> Salvar Traçado
-              </button>
-              <button type="button" id="btn-rota-sair" class="btn-rumo-secondary" style="color:#b91c1c;border-color:#fca5a5;">
-                Sair
-              </button>
-            </div>
-          </div>
-
-          <!-- Barra Flutuante do Novo Desenhador DE -> PARA pelas Ruas (Ida + Volta -> Linha Única) -->
-          <div id="barra-desenhador-rota" class="barra-editor-mapa" hidden>
-            <div class="barra-editor-mapa__status">
-              <i class="bi bi-signpost-2-fill"></i>
-              <strong id="titulo-barra-desenhador">Desenhador DE → PARA (OSRM)</strong>
-              <span id="info-barra-desenhador">Clique no mapa para marcar DE, pontos de passagem e PARA</span>
-            </div>
-            <div class="barra-editor-mapa__acoes">
-              <button type="button" id="btn-desenhador-aba-ida" class="btn-rumo-primary" style="height:34px;font-size:0.8rem;">
-                1. IDA
-              </button>
-              <button type="button" id="btn-desenhador-aba-volta" class="btn-rumo-secondary" style="height:34px;font-size:0.8rem;">
-                2. VOLTA
-              </button>
-              <button type="button" id="btn-desenhador-inverter" class="btn-rumo-secondary" style="height:34px;font-size:0.8rem;" title="Copia os pontos da Ida ao contrário para começar a Volta">
-                ↻ Gerar Volta
-              </button>
-              <button type="button" id="btn-desenhador-desfazer" class="btn-rumo-secondary" style="height:34px;font-size:0.8rem;">
-                ↶ Desfazer
-              </button>
-              <button type="button" id="btn-desenhador-salvar" class="btn-rumo-primary" style="height:34px;font-size:0.8rem;background:#15803d;">
-                <i class="bi bi-check2-circle"></i> Unificar e Salvar
-              </button>
-              <button type="button" id="btn-desenhador-sair" class="btn-rumo-secondary" style="height:34px;font-size:0.8rem;color:#b91c1c;border-color:#fca5a5;">
-                Sair
-              </button>
-            </div>
-          </div>
-
           <div id="mapa" role="application" aria-label="Mapa interativo das rotas de Natal"></div>
 
           <!-- Etiqueta Flutuante da Linha Selecionada/Destacada no Mapa -->
@@ -534,156 +437,6 @@
 
     </div>
   </main>
-
-  <!-- Modal Administrativo Exclusivo -->
-  <div id="modal-admin" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-admin" hidden>
-    <div class="modal-caixa">
-      <div class="modal-cabecalho">
-        <h2 id="titulo-modal-admin" style="margin:0;font-size:1.1rem;display:flex;align-items:center;gap:8px;">
-          <i class="bi bi-shield-lock"></i>
-          Acesso Restrito — Gestão de Rotas e Paradas
-        </h2>
-        <button type="button" id="btn-fechar-modal-admin" class="btn-rumo-secondary">Fechar ✕</button>
-      </div>
-
-      <div id="feedback-admin" hidden aria-live="polite"></div>
-
-      <form id="form-login-admin">
-        <p style="margin-top:0;font-size:0.9rem;">
-          Área exclusiva da comissão técnica para revisão de paradas no mapa e atualização de arquivos <strong>JSON / GeoJSON / KML / KMZ</strong>.
-        </p>
-        <div class="campo-grupo">
-          <label for="input-chave-admin" class="consulta-search-label">Chave de Administrador:</label>
-          <div class="input-com-botao">
-            <input
-              type="password"
-              id="input-chave-admin"
-              class="form-control-rumo"
-              placeholder="Digite a chave de administrador"
-              required
-            >
-            <button type="submit" class="btn-rumo-primary">Autenticar</button>
-          </div>
-        </div>
-      </form>
-
-      <div id="area-admin-desbloqueada" hidden>
-        <div class="admin-cards-grid">
-          <div class="admin-card-acao">
-            <div class="admin-card-acao__header">
-              <i class="bi bi-geo-alt-fill"></i>
-              <strong>1. Editor Visual de Paradas</strong>
-            </div>
-            <p class="admin-card-acao__desc">
-              Arraste paradas no mapa, crie novas com 1 clique, defina sentido (IDA/VOLTA/AMBOS) e recalcule automaticamente os vínculos em 40 m.
-            </p>
-            <button type="button" id="btn-ativar-editor-mapa" class="btn-rumo-primary" style="width:100%;">
-              <i class="bi bi-cursor-fill"></i> Abrir Editor de Paradas no Mapa
-            </button>
-          </div>
-
-          <div class="admin-card-acao">
-            <div class="admin-card-acao__header">
-              <i class="bi bi-bezier2"></i>
-              <strong>2. Editor Visual de Traçado e Linha</strong>
-            </div>
-            <p class="admin-card-acao__desc">
-              Edite curvas, vértices, nome, cor e categoria de qualquer linha direto no mapa, sem mexer em JSON.
-            </p>
-            <div style="display:grid;grid-template-columns:1fr 170px;gap:6px;margin-bottom:8px;">
-              <select id="select-linha-editor-visual" class="form-select-rumo" aria-label="Linha para editar traçado"></select>
-              <select id="select-dia-editor-visual" class="form-select-rumo" aria-label="Dia de operação">
-                <option value="dias_uteis_sabados">Úteis e Sábados</option>
-                <option value="domingos_feriados">Domingos</option>
-              </select>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:6px;">
-              <button type="button" id="btn-ativar-desenhador-rota" class="btn-rumo-primary" style="width:100%;">
-                <i class="bi bi-signpost-2"></i> Desenhar Ida e Volta pelas Ruas (DE → PARA)
-              </button>
-              <button type="button" id="btn-ativar-editor-rota" class="btn-rumo-secondary" style="width:100%;color:#e0621f;border-color:#fdba74;">
-                <i class="bi bi-pencil-square"></i> Ajustar Vértices Existentes no Mapa
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <details class="admin-avancado" id="detalhes-versoes-admin" style="margin-bottom:10px;">
-          <summary>
-            <i class="bi bi-clock-history"></i>
-            <span>Versões Anteriores (Backup Automático do Servidor)</span>
-          </summary>
-          <div style="margin-top:10px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
-              <span style="font-size:0.82rem;color:var(--c-texto-suave,#475569);">A cada publicação, um snapshot completo é guardado em <code>dados/backups/</code>.</span>
-              <button type="button" id="btn-recarregar-versoes" class="btn-rumo-secondary" style="height:32px;font-size:0.78rem;">Atualizar</button>
-            </div>
-            <ul id="lista-versoes-servidor" class="lista-cartoes" style="max-height:200px;overflow-y:auto;"></ul>
-          </div>
-        </details>
-
-        <details class="admin-avancado" id="detalhes-auditoria-admin" style="margin-bottom:10px;">
-          <summary>
-            <i class="bi bi-journal-text"></i>
-            <span>Log de Auditoria (Histórico de Alterações)</span>
-          </summary>
-          <div style="margin-top:10px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
-              <span style="font-size:0.82rem;color:var(--c-texto-suave,#475569);">Últimas ações administrativas registradas no servidor.</span>
-              <button type="button" id="btn-recarregar-auditoria" class="btn-rumo-secondary" style="height:32px;font-size:0.78rem;">Atualizar</button>
-            </div>
-            <ul id="lista-auditoria-servidor" class="lista-cartoes" style="max-height:200px;overflow-y:auto;"></ul>
-          </div>
-        </details>
-
-        <details class="admin-avancado">
-          <summary>
-            <i class="bi bi-code-slash"></i>
-            <span>Avançado: Importar / Exportar JSON, GeoJSON, KML ou KMZ</span>
-          </summary>
-
-          <div class="grade-filtros" style="margin:12px 0 10px;">
-            <div>
-              <label for="select-linha-edicao-admin" class="consulta-search-label">Escolher linha para editar JSON:</label>
-              <select id="select-linha-edicao-admin" class="form-select-rumo">
-                <option value="">Selecione uma linha (ou importe um arquivo abaixo)</option>
-              </select>
-            </div>
-            <div>
-              <label for="select-modo-importacao" class="consulta-search-label">Modo de gravação:</label>
-              <select id="select-modo-importacao" class="form-select-rumo">
-                <option value="mesclar">Atualizar/Mesclar apenas a(s) linha(s) do editor</option>
-                <option value="substituir">Substituir base completa pelo JSON</option>
-              </select>
-            </div>
-            <div style="grid-column: 1 / -1;">
-              <label for="input-arquivo-admin" class="consulta-search-label">Importar arquivo (.json, .geojson, .kml, .kmz):</label>
-              <input type="file" id="input-arquivo-admin" class="form-control-rumo" accept=".json,.geojson,.kml,.kmz">
-            </div>
-          </div>
-
-          <div class="campo-grupo">
-            <label for="textarea-json-admin" class="consulta-search-label">Estrutura JSON:</label>
-            <textarea id="textarea-json-admin" class="editor-json-admin" spellcheck="false"></textarea>
-          </div>
-
-          <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin-top:12px;">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button type="button" id="btn-aplicar-json-admin" class="btn-rumo-primary">
-                Aplicar e Salvar Rotas
-              </button>
-              <button type="button" id="btn-baixar-json-admin" class="btn-rumo-secondary">
-                Baixar JSON Consolidado
-              </button>
-            </div>
-            <button type="button" id="btn-restaurar-padrao-admin" class="btn-rumo-secondary">
-              Restaurar Base Original
-            </button>
-          </div>
-        </details>
-      </div>
-    </div>
-  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <!-- Mapa base vetorial gratuito (OpenFreeMap) desenhado pelo MapLibre dentro do Leaflet -->

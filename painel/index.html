@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Painel BuzuRota</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="painel.css">
+  <script src="painel.js" defer></script>
+</head>
+<body>
+  <!-- Tela de entrada -->
+  <main id="tela-login" class="tela-login" hidden>
+    <form id="form-login" class="cartao-login" autocomplete="on" novalidate>
+      <div class="login-marca">
+        <i class="bi bi-bus-front-fill" aria-hidden="true"></i>
+        <span>BUZU<strong>ROTA</strong></span>
+      </div>
+      <h1>Área administrativa</h1>
+      <p class="login-sub">Acesso restrito à equipe.</p>
+
+      <label for="campo-usuario">Usuário</label>
+      <input id="campo-usuario" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+
+      <label for="campo-senha">Senha</label>
+      <div class="campo-senha">
+        <input id="campo-senha" name="password" type="password" autocomplete="current-password" required>
+        <button type="button" id="btn-ver-senha" class="btn-icone" aria-label="Mostrar senha" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+      </div>
+
+      <div id="grupo-codigo">
+        <label for="campo-codigo">Código do app autenticador</label>
+        <input id="campo-codigo" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required>
+      </div>
+
+      <p id="erro-login" class="msg-erro" role="alert" hidden></p>
+      <button type="submit" id="btn-entrar" class="btn btn--primario btn--largo">
+        <i class="bi bi-shield-lock-fill" aria-hidden="true"></i> Entrar
+      </button>
+      <p class="login-nota"><i class="bi bi-lock-fill" aria-hidden="true"></i> A senha é verificada só no servidor.</p>
+    </form>
+    <p id="aviso-sem-contas" class="login-nota login-nota--fora" hidden>
+      Nenhuma conta configurada neste servidor. Crie com <code>node scripts/admin/criar-usuario.js</code>.
+    </p>
+  </main>
+
+  <!-- Painel -->
+  <div id="app" class="app" hidden>
+    <header class="topo">
+      <button type="button" id="btn-menu" class="btn-icone topo__menu" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu-lateral"><i class="bi bi-list" aria-hidden="true"></i></button>
+      <div class="topo__marca">
+        <i class="bi bi-bus-front-fill" aria-hidden="true"></i>
+        <span>BUZU<strong>ROTA</strong></span>
+        <span class="topo__selo">Painel</span>
+      </div>
+      <div class="topo__acoes">
+        <a href="/" class="btn btn--leve" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="some-celular"> Ver site</span></a>
+        <button type="button" id="btn-tema" class="btn-icone" aria-label="Alternar tema claro/escuro"><i class="bi bi-moon-stars" aria-hidden="true"></i></button>
+        <div class="topo__usuario">
+          <span class="avatar" id="avatar" aria-hidden="true"></span>
+          <span class="some-celular" id="nome-usuario"></span>
+        </div>
+        <button type="button" id="btn-sair" class="btn btn--leve"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span class="some-celular"> Sair</span></button>
+      </div>
+    </header>
+
+    <nav id="menu-lateral" class="menu-lateral" aria-label="Seções do painel">
+      <a href="#visao" data-aba="visao"><i class="bi bi-speedometer2" aria-hidden="true"></i> Visão geral</a>
+      <a href="#interacoes" data-aba="interacoes"><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Interações</a>
+      <a href="editor" class="menu-lateral__destaque"><i class="bi bi-map" aria-hidden="true"></i> Editor do mapa</a>
+      <a href="#mudancas" data-aba="mudancas"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Mudanças nos dados</a>
+      <a href="#avisos" data-aba="avisos"><i class="bi bi-megaphone" aria-hidden="true"></i> Avisos do site</a>
+      <a href="#log" data-aba="log"><i class="bi bi-journal-text" aria-hidden="true"></i> Log de alterações</a>
+      <a href="#acessos" data-aba="acessos"><i class="bi bi-shield-check" aria-hidden="true"></i> Acessos e segurança</a>
+      <a href="#notas" data-aba="notas"><i class="bi bi-check2-square" aria-hidden="true"></i> Notas da equipe</a>
+      <a href="#perfil" data-aba="perfil"><i class="bi bi-person-gear" aria-hidden="true"></i> Meu perfil</a>
+      <div class="menu-lateral__rodape">
+        <a href="/?previa=1" target="_blank" rel="noopener" class="menu-lateral__editor"><i class="bi bi-eye" aria-hidden="true"></i> Prévia do rascunho no site</a>
+        <small>Abre o site mostrando as alterações ainda não publicadas deste navegador.</small>
+      </div>
+    </nav>
+
+    <main id="conteudo" class="conteudo" tabindex="-1">
+      <div id="carregando" class="carregando" hidden><i class="bi bi-arrow-repeat girando" aria-hidden="true"></i> Carregando…</div>
+      <div id="aba-conteudo"></div>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

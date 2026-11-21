@@ -322,9 +322,11 @@ window.BuzuDados = (function () {
       .then(r => (r.ok ? r.json() : FALLBACK_INICIAL.locaisNatal))
       .catch(() => FALLBACK_INICIAL.locaisNatal);
     const promessaRedeAtual =
-      estado.redeAtualGeoJson || window.BuzuPrecarga?.podeExistir('dados/rede-atual.geojson') === false
+      estado.redeAtualGeoJson ||
+      window.BUZU_MODO_EDITOR ||
+      window.BuzuPrecarga?.podeExistir('dados/rede-atual.geojson') === false
       ? Promise.resolve(null)
-      : fetch('dados/rede-atual.geojson')
+      : fetch('/dados/rede-atual.geojson')
           .then(r => (r.ok ? r.json() : null))
           .catch(() => null);
 
@@ -366,8 +368,15 @@ window.BuzuDados = (function () {
         estado.cacheGeoJsonLotes['1'] = JSON.parse(JSON.stringify(FALLBACK_INICIAL.lote1));
         estado.cacheGeoJsonLotes['2'] = JSON.parse(JSON.stringify(FALLBACK_INICIAL.lote2));
       }
-    } else if (adminSalvo && adminSalvo.rascunhoPendente && adminSalvo.indice && adminSalvo.paradas) {
-      // Há um rascunho não publicado salvo no IndexedDB: aplica na pré-visualização local
+    } else if (
+      adminSalvo &&
+      adminSalvo.rascunhoPendente &&
+      adminSalvo.indice &&
+      adminSalvo.paradas &&
+      (window.BUZU_MODO_EDITOR || new URLSearchParams(window.location.search).get('previa') === '1')
+    ) {
+      // Há um rascunho não publicado salvo no IndexedDB: aplica só no editor do mapa ou na
+      // pré-visualização (site aberto com ?previa=1). O site normal sempre mostra o que está publicado.
       estado.indice = adminSalvo.indice;
       estado.paradas = adminSalvo.paradas;
       if (Array.isArray(adminSalvo.linhaParadas)) {
@@ -403,8 +412,10 @@ window.BuzuDados = (function () {
   }
 
   /** Usa a resposta já pedida no <head> (js/precarga.js), ou busca revalidando o cache do navegador */
+  // Endereço absoluto (/dados/...): funciona também em páginas fora da raiz, como o editor do painel
   function buscarDados(url) {
-    return window.BuzuPrecarga ? window.BuzuPrecarga.obter(url) : fetch(url, { cache: 'no-cache' });
+    const absoluto = /^(https?:)?\//.test(url) ? url : `/${url}`;
+    return window.BuzuPrecarga ? window.BuzuPrecarga.obter(url) : fetch(absoluto, { cache: 'no-cache' });
   }
 
   const carregamentosLote = {};
@@ -436,8 +447,10 @@ window.BuzuDados = (function () {
       if (!res.ok) throw new Error(`Lote ${id} não encontrado via HTTP`);
       const geojson = await res.json();
 
-      // Garante simplificação de cada LineString em memória caso tenha muitos vértices
-      for (const feat of geojson.features || []) {
+      // Garante simplificação de cada LineString em memória caso tenha muitos vértices.
+      // No editor do mapa (painel admin) o traçado é carregado completo, sem simplificar,
+      // para que uma publicação nunca grave uma versão simplificada.
+      for (const feat of window.BUZU_MODO_EDITOR ? [] : geojson.features || []) {
         if (feat.geometry && feat.geometry.type === 'LineString' && feat.geometry.coordinates.length > 100) {
           const coords = feat.geometry.coordinates;
           const tol = window.BuzuUtils.TOLERANCIA_PADRAO_GRAUS;
@@ -3485,6 +3498,7 @@ window.BuzuDados = (function () {
     desfazerUltimaAlteracaoAdmin,
     validarPacoteAntesDeSalvar,
     publicarRascunhoNoServidor,
+    salvarOverrideAdmin,
     descartarRascunhoLocal,
     listarVersoesServidor,
     restaurarVersaoServidor,

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Editor do mapa — Painel BuzuRota</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" crossorigin="">
+  <link rel="stylesheet" href="painel.css">
+  <link rel="stylesheet" href="editor.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" crossorigin="" defer></script>
+  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js" crossorigin="" defer></script>
+  <script src="/js/utils.js" defer></script>
+  <script src="/js/dados.js" defer></script>
+  <script src="editor.js" defer></script>
+</head>
+<body class="ed-corpo">
+  <!-- Bloqueio: sem sessão / tela pequena -->
+  <div id="ed-bloqueio" class="ed-bloqueio" hidden>
+    <div class="cartao-login">
+      <div class="login-marca"><i class="bi bi-bus-front-fill" aria-hidden="true"></i><span>BUZU<strong>ROTA</strong></span></div>
+      <h1 id="ed-bloqueio-titulo">Entre no painel</h1>
+      <p id="ed-bloqueio-texto" class="login-sub">O editor do mapa é exclusivo da equipe.</p>
+      <a href="./" class="btn btn--primario btn--largo"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Ir para o painel</a>
+    </div>
+  </div>
+
+  <div id="ed-carregando" class="ed-carregando"><i class="bi bi-arrow-repeat girando" aria-hidden="true"></i> Carregando linhas, paradas e traçados completos…</div>
+
+  <div id="ed-app" class="ed-app" hidden>
+    <!-- ===================== Barra superior ===================== -->
+    <header class="ed-topo">
+      <a href="./#mudancas" class="ed-marca" title="Voltar ao painel">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <i class="bi bi-bus-front-fill" aria-hidden="true"></i>
+        <span>Editor do mapa</span>
+      </a>
+
+      <div class="segmentado ed-dia" role="group" aria-label="Dia da operação">
+        <button type="button" data-dia="dias_uteis_sabados" aria-pressed="true" title="Dias úteis e sábados">Úteis/Sáb</button>
+        <button type="button" data-dia="domingos_feriados" aria-pressed="false" title="Domingos e feriados">Dom/Feriado</button>
+      </div>
+
+      <div class="ed-ferramentas" role="toolbar" aria-label="Ferramentas">
+        <button type="button" class="ed-ferr" data-ferramenta="selecionar" aria-pressed="true" title="Selecionar (V)"><i class="bi bi-cursor" aria-hidden="true"></i><span>Selecionar</span></button>
+        <button type="button" class="ed-ferr" data-ferramenta="vertices" aria-pressed="false" title="Editar pontos do traçado (E)"><i class="bi bi-bezier2" aria-hidden="true"></i><span>Pontos</span></button>
+        <button type="button" class="ed-ferr" data-ferramenta="desenhar" aria-pressed="false" title="Desenhar à mão: clique para adicionar pontos (D)"><i class="bi bi-pencil" aria-hidden="true"></i><span>Desenhar</span></button>
+        <button type="button" class="ed-ferr" data-ferramenta="rotear" aria-pressed="false" title="Traçar pelas ruas (OSRM): clique para marcar pontos-guia (R)"><i class="bi bi-signpost-split" aria-hidden="true"></i><span>Pelas ruas</span></button>
+        <button type="button" class="ed-ferr" data-ferramenta="parada" aria-pressed="false" title="Nova parada: clique no mapa (P)"><i class="bi bi-geo-alt" aria-hidden="true"></i><span>Parada</span></button>
+        <button type="button" class="ed-ferr" data-ferramenta="medir" aria-pressed="false" title="Medir distância (M)"><i class="bi bi-rulers" aria-hidden="true"></i><span>Medir</span></button>
+      </div>
+
+      <div class="ed-busca">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input id="ed-busca" type="search" placeholder="Buscar linha, parada ou endereço (Ctrl+K)" autocomplete="off" aria-label="Buscar linha, parada ou endereço" aria-controls="ed-busca-lista" aria-expanded="false">
+        <ul id="ed-busca-lista" class="ed-busca-lista" role="listbox" hidden></ul>
+      </div>
+
+      <div class="ed-topo-acoes">
+        <button type="button" id="ed-desfazer" class="btn-icone" title="Desfazer (Ctrl+Z)" aria-label="Desfazer"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></button>
+        <button type="button" id="ed-refazer" class="btn-icone" title="Refazer (Ctrl+Y) — pontos do traçado" aria-label="Refazer"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i></button>
+        <span id="ed-status-rascunho" class="ed-status" title="Situação do rascunho"></span>
+        <button type="button" id="ed-previa" class="btn btn--leve" title="Abrir o site mostrando o rascunho"><i class="bi bi-eye" aria-hidden="true"></i> Prévia</button>
+        <button type="button" id="ed-publicar" class="btn btn--primario"><i class="bi bi-cloud-upload" aria-hidden="true"></i> Publicar</button>
+        <button type="button" id="ed-ajuda" class="btn-icone" title="Atalhos de teclado (?)" aria-label="Atalhos de teclado"><i class="bi bi-keyboard" aria-hidden="true"></i></button>
+        <button type="button" id="ed-tema" class="btn-icone" title="Tema claro/escuro" aria-label="Alternar tema"><i class="bi bi-moon-stars" aria-hidden="true"></i></button>
+      </div>
+    </header>
+
+    <!-- ===================== Lateral esquerda ===================== -->
+    <aside class="ed-esquerda" aria-label="Linhas, paradas e problemas">
+      <div class="ed-abas" role="tablist">
+        <button type="button" role="tab" data-aba-esq="linhas" aria-selected="true"><i class="bi bi-bus-front" aria-hidden="true"></i> Linhas</button>
+        <button type="button" role="tab" data-aba-esq="paradas" aria-selected="false"><i class="bi bi-geo-alt" aria-hidden="true"></i> Paradas</button>
+        <button type="button" role="tab" data-aba-esq="problemas" aria-selected="false"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Problemas <span id="ed-qtd-problemas" class="ed-contador"></span></button>
+        <button type="button" role="tab" data-aba-esq="alteracoes" aria-selected="false"><i class="bi bi-clock-history" aria-hidden="true"></i> Rascunho</button>
+      </div>
+
+      <section data-painel-esq="linhas" class="ed-painel-esq">
+        <div class="ed-filtros">
+          <input id="ed-filtro-linhas" type="search" placeholder="Filtrar por número ou nome" aria-label="Filtrar linhas">
+          <div class="ed-filtros-linha">
+            <select id="ed-filtro-lote" aria-label="Lote"><option value="">Todos os lotes</option><option value="1">Lote 1 (Norte)</option><option value="2">Lote 2 (Sul)</option></select>
+            <select id="ed-filtro-situacao" aria-label="Situação do traçado"><option value="">Qualquer situação</option><option value="com">Com traçado no dia</option><option value="sem">Sem traçado no dia</option></select>
+          </div>
+          <button type="button" id="ed-nova-linha" class="btn btn--peq btn--largo"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nova linha</button>
+        </div>
+        <ul id="ed-lista-linhas" class="ed-lista" aria-label="Linhas"></ul>
+      </section>
+
+      <section data-painel-esq="paradas" class="ed-painel-esq" hidden>
+        <div class="ed-filtros">
+          <input id="ed-filtro-paradas" type="search" placeholder="Nome, código ou bairro" aria-label="Filtrar paradas">
+          <div class="ed-filtros-linha">
+            <select id="ed-filtro-tipo" aria-label="Tipo"><option value="">Todos os tipos</option><option value="parada">Paradas</option><option value="terminal">Terminais</option><option value="ponto de integração">Integração</option></select>
+            <select id="ed-filtro-ativa" aria-label="Situação"><option value="">Ativas e inativas</option><option value="ativa">Só ativas</option><option value="inativa">Só inativas</option><option value="semlinha">Sem linha</option></select>
+          </div>
+        </div>
+        <p id="ed-qtd-paradas" class="ed-lista-info"></p>
+        <ul id="ed-lista-paradas" class="ed-lista" aria-label="Paradas"></ul>
+      </section>
+
+      <section data-painel-esq="problemas" class="ed-painel-esq" hidden>
+        <div class="ed-filtros">
+          <p class="ed-lista-info">Verificação automática dos dados do dia selecionado. Clique para ir ao local.</p>
+          <select id="ed-filtro-problemas" aria-label="Tipo de problema"><option value="">Todos</option><option value="erro">Só erros</option><option value="alerta">Só alertas</option></select>
+        </div>
+        <ul id="ed-lista-problemas" class="ed-lista" aria-label="Problemas encontrados"></ul>
+      </section>
+
+      <section data-painel-esq="alteracoes" class="ed-painel-esq" hidden>
+        <div class="ed-filtros">
+          <p class="ed-lista-info">Alterações salvas no rascunho deste navegador e ainda não publicadas.</p>
+          <div class="ed-filtros-linha">
+            <button type="button" id="ed-descartar" class="btn btn--peq btn--perigo"><i class="bi bi-trash" aria-hidden="true"></i> Descartar rascunho</button>
+            <button type="button" id="ed-baixar-pacote" class="btn btn--peq"><i class="bi bi-download" aria-hidden="true"></i> Baixar JSON</button>
+          </div>
+        </div>
+        <ul id="ed-lista-alteracoes" class="ed-lista ed-lista--texto" aria-label="Alterações"></ul>
+      </section>
+    </aside>
+
+    <!-- ===================== Mapa ===================== -->
+    <main class="ed-centro">
+      <div id="ed-mapa" class="ed-mapa" aria-label="Mapa do editor"></div>
+
+      <div class="ed-camadas" id="ed-camadas">
+        <button type="button" id="ed-btn-camadas" class="btn btn--peq" aria-expanded="false" aria-controls="ed-camadas-menu"><i class="bi bi-layers" aria-hidden="true"></i> Mapa e camadas</button>
+        <div id="ed-camadas-menu" class="ed-camadas-menu" hidden>
+          <fieldset>
+            <legend>Fundo do mapa</legend>
+            <label><input type="radio" name="ed-fundo" value="claro"> Claro</label>
+            <label><input type="radio" name="ed-fundo" value="escuro"> Escuro</label>
+            <label><input type="radio" name="ed-fundo" value="osm"> OpenStreetMap (ruas)</label>
+            <label><input type="radio" name="ed-fundo" value="satelite"> Satélite</label>
+            <label><input type="radio" name="ed-fundo" value="nenhum"> Sem fundo</label>
+            <label class="ed-slider">Intensidade do fundo <input type="range" id="ed-opac-fundo" min="15" max="100" step="5"></label>
+          </fieldset>
+          <fieldset>
+            <legend>Outras linhas</legend>
+            <label><input type="checkbox" id="ed-ver-linhas"> Mostrar todas as linhas</label>
+            <label><input type="radio" name="ed-cor-linhas" value="linha"> Cor de cada linha</label>
+            <label><input type="radio" name="ed-cor-linhas" value="lote"> Cor por lote</label>
+            <label><input type="radio" name="ed-cor-linhas" value="cinza"> Cinza (discreto)</label>
+            <label class="ed-slider">Transparência <input type="range" id="ed-opac-linhas" min="10" max="100" step="5"></label>
+          </fieldset>
+          <fieldset>
+            <legend>Paradas</legend>
+            <label><input type="checkbox" id="ed-ver-paradas"> Mostrar paradas</label>
+            <label><input type="checkbox" id="ed-paradas-sempre"> Mesmo com o mapa afastado</label>
+            <label><input type="checkbox" id="ed-ver-inativas"> Incluir inativas</label>
+            <label><input type="checkbox" id="ed-ver-nomes"> Nomes das paradas (bem de perto)</label>
+          </fieldset>
+          <fieldset>
+            <legend>Linha selecionada</legend>
+            <label><input type="checkbox" id="ed-ver-setas"> Setas de sentido</label>
+            <label><input type="checkbox" id="ed-ver-ordem"> Números da ordem das paradas</label>
+            <label class="ed-slider">Espessura <input type="range" id="ed-espessura" min="3" max="10" step="1"></label>
+          </fieldset>
+        </div>
+      </div>
+
+      <div id="ed-dica-ferramenta" class="ed-dica-ferramenta" role="status" aria-live="polite" hidden></div>
+    </main>
+
+    <!-- ===================== Inspetor (direita) ===================== -->
+    <aside class="ed-direita" aria-label="Propriedades">
+      <div id="ed-inspetor"></div>
+    </aside>
+
+    <!-- ===================== Barra de status ===================== -->
+    <footer class="ed-rodape">
+      <span id="ed-coord" title="Clique para copiar a coordenada">—</span>
+      <span id="ed-zoom"></span>
+      <span id="ed-medida" hidden></span>
+      <span class="ed-rodape-dir" id="ed-resumo-dados"></span>
+    </footer>
+  </div>
+
+  <!-- ===================== Diálogos ===================== -->
+  <dialog id="dlg-publicar" class="ed-dialogo" aria-labelledby="dlg-publicar-titulo">
+    <form method="dialog" id="form-publicar">
+      <h2 id="dlg-publicar-titulo"><i class="bi bi-cloud-upload" aria-hidden="true"></i> Publicar no site</h2>
+      <p>As alterações do rascunho vão para o site oficial. Antes, o servidor guarda uma cópia dos dados atuais (dá para restaurar na aba <em>Mudanças nos dados</em> do painel).</p>
+      <div id="dlg-publicar-validacao"></div>
+      <label for="dlg-publicar-resumo">Resumo do que mudou (vai para o log)</label>
+      <textarea id="dlg-publicar-resumo" maxlength="400" required></textarea>
+      <div class="acoes-form">
+        <button type="submit" value="publicar" id="dlg-publicar-ok" class="btn btn--primario"><i class="bi bi-cloud-upload" aria-hidden="true"></i> Publicar agora</button>
+        <button type="submit" value="cancelar" class="btn" formnovalidate>Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-nova-linha" class="ed-dialogo" aria-labelledby="dlg-nova-linha-titulo">
+    <form method="dialog" id="form-nova-linha">
+      <h2 id="dlg-nova-linha-titulo"><i class="bi bi-plus-circle" aria-hidden="true"></i> Nova linha</h2>
+      <div class="formulario-linha">
+        <div><label for="nl-numero">Código (ex.: B12, N-80)</label><input id="nl-numero" maxlength="10" required></div>
+        <div><label for="nl-cor">Cor</label><input id="nl-cor" type="color" value="#1a73e8"></div>
+        <div class="inteira"><label for="nl-nome">Nome</label><input id="nl-nome" maxlength="120" required placeholder="Origem / Destino, via …"></div>
+        <div><label for="nl-lote">Lote</label><select id="nl-lote"><option value="1">Lote 1 (Norte)</option><option value="2">Lote 2 (Sul)</option></select></div>
+        <div><label for="nl-categoria">Categoria</label><select id="nl-categoria"></select></div>
+      </div>
+      <p id="nl-erro" class="msg-erro" hidden></p>
+      <div class="acoes-form">
+        <button type="submit" value="criar" class="btn btn--primario">Criar e desenhar o traçado</button>
+        <button type="submit" value="cancelar" class="btn" formnovalidate>Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-ajuda" class="ed-dialogo ed-dialogo--largo" aria-labelledby="dlg-ajuda-titulo">
+    <form method="dialog">
+      <h2 id="dlg-ajuda-titulo"><i class="bi bi-keyboard" aria-hidden="true"></i> Atalhos e dicas</h2>
+      <div class="grade grade--2">
+        <table class="ed-atalhos"><tbody>
+          <tr><td><kbd>V</kbd></td><td>Selecionar linha/parada</td></tr>
+          <tr><td><kbd>E</kbd></td><td>Editar pontos do traçado</td></tr>
+          <tr><td><kbd>D</kbd></td><td>Desenhar à mão (clique adiciona no fim; <kbd>Shift</kbd>+clique no começo)</td></tr>
+          <tr><td><kbd>R</kbd></td><td>Traçar pelas ruas com pontos-guia</td></tr>
+          <tr><td><kbd>P</kbd></td><td>Nova parada</td></tr>
+          <tr><td><kbd>M</kbd></td><td>Medir distância</td></tr>
+          <tr><td><kbd>1</kbd> / <kbd>2</kbd></td><td>Editar a ida / a volta</td></tr>
+          <tr><td><kbd>F</kbd></td><td>Enquadrar a seleção</td></tr>
+        </tbody></table>
+        <table class="ed-atalhos"><tbody>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Desfazer</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Refazer (pontos do traçado)</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Salvar o traçado no rascunho</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Buscar</td></tr>
+          <tr><td><kbd>Del</kbd></td><td>Apagar o ponto do traçado selecionado</td></tr>
+          <tr><td>Botão direito</td><td>Apagar ponto / ponto-guia</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>Cancelar ferramenta / fechar</td></tr>
+          <tr><td><kbd>?</kbd></td><td>Esta ajuda</td></tr>
+        </tbody></table>
+      </div>
+      <div class="dica mt"><i class="bi bi-lightbulb" aria-hidden="true"></i><span>Arraste os quadradinhos para mover pontos. Arraste os círculos menores (entre dois pontos) para criar um ponto novo. Tudo fica no rascunho até você clicar em <strong>Publicar</strong>.</span></div>
+      <div class="acoes-form"><button type="submit" class="btn btn--primario">Entendi</button></div>
+    </form>
+  </dialog>
+
+  <input type="file" id="ed-arquivo" accept=".geojson,.json,.kml,.kmz" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

@@ -10,3 +10,6 @@ dados/auditoria-admin.jsonl
 node_modules/
 .DS_Store
 Thumbs.db
+
+# Dados da área administrativa (acessos, avisos, notas, estatísticas)
+dados-admin/

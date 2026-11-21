@@ -51,6 +51,11 @@
   --c-info-fundo: #eef4ff;
   --c-info-borda: #9db7e8;
   --c-info-texto: #1e3a6e;
+
+  /* Apelidos usados em partes do CSS (seguem o tema claro/escuro automaticamente) */
+  --c-superficie: var(--c-fundo);
+  --c-borda-suave: var(--c-borda);
+  --c-texto-suave: var(--c-texto-sec);
 }
 
 /* ===== MODO ESCURO ===== */
@@ -231,6 +236,11 @@ button, input, select, textarea, .leaflet-container {
 .header-brand-credit-sep {
   color: var(--c-borda-forte);
   opacity: 0.55;
+}
+
+.header-brand-credit i.header-brand-credit-coracao {
+  font-size: 0.72rem;
+  color: #e0405a;
 }
 
 .header-brand-credit-tag {
@@ -1809,10 +1819,8 @@ body.alto-contraste .btn-menu.active {
     font-size: 0.6rem;
   }
 
-  .header-brand-credit > span:first-of-type,
-  .header-brand-credit-sep,
   .header-brand-credit-tag {
-    display: none;
+    font-size: 0.58rem;
   }
 
   .header-banner__actions {
@@ -2745,4 +2753,86 @@ body.alto-contraste .btn-menu.active {
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+/* ==========================================================================
+   Avisos publicados pela equipe (painel administrativo)
+   ========================================================================== */
+.avisos-publicos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.aviso-publico {
+  --cor-aviso: #2563eb;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--c-borda);
+  border-left: 4px solid var(--cor-aviso);
+  border-radius: 10px;
+  background: var(--c-fundo);
+  color: var(--c-texto);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.aviso-publico--alerta { --cor-aviso: #d97706; }
+.aviso-publico--urgente { --cor-aviso: #dc2626; }
+.aviso-publico--sucesso { --cor-aviso: #16a34a; }
+
+.aviso-publico > i {
+  color: var(--cor-aviso);
+  font-size: 1.05rem;
+  margin-top: 1px;
+}
+
+.aviso-publico__texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.aviso-publico__texto a {
+  color: var(--c-link);
+  font-weight: 600;
+}
+
+.aviso-publico__fechar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--c-texto-sec);
+  cursor: pointer;
+}
+
+.aviso-publico__fechar:hover {
+  background: var(--c-fundo-destaque);
+}
+
+.admin-sessao-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--c-fundo-destaque);
+  color: var(--c-texto);
+  font-size: 0.88rem;
+}
+
+.admin-sessao-info a {
+  color: var(--c-link);
+  font-weight: 600;
 }
