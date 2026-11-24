@@ -248,6 +248,12 @@ button, input, select, textarea, .leaflet-container {
   font-size: 0.65rem;
   font-weight: 600;
   color: var(--c-link);
+  text-decoration: none;
+}
+
+.header-brand-credit-tag:hover,
+.header-brand-credit-tag:focus-visible {
+  text-decoration: underline;
 }
 
 .header-brand-rumo {
@@ -258,6 +264,7 @@ button, input, select, textarea, .leaflet-container {
   font-weight: 400;
   letter-spacing: -0.03em;
   color: var(--c-texto);
+  text-decoration: none;
 }
 
 .header-brand-rumo strong {
@@ -273,6 +280,11 @@ button, input, select, textarea, .leaflet-container {
   width: 1px;
   height: 40px;
   background: var(--c-fundo-linha);
+}
+
+.header-brand-org {
+  text-decoration: none;
+  color: inherit;
 }
 
 .header-brand-org strong {
