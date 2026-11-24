@@ -417,6 +417,8 @@ function criarPainel(opcoes) {
     const indice = ler('linhas.json');
     const paradas = ler('paradas.json');
     const vinculos = ler('linha_paradas.json');
+    const lote1 = ler('lote-1.geojson');
+    const lote2 = ler('lote-2.geojson');
     const linhas = indice?.linhas || [];
     const porLote = {};
     const porCategoria = {};
@@ -424,6 +426,78 @@ function criarPainel(opcoes) {
       somar(porLote, `Lote ${l.lote || '?'}`);
       somar(porCategoria, l.categoria || l.tipo || 'Outras');
     }
+
+    // Saúde da rede: linhas sem traçado, sem paradas vinculadas ou em "traçado em atualização"
+    const temGeometriaValida = f => {
+      const g = f?.geometry;
+      if (!g || !Array.isArray(g.coordinates)) return false;
+      if (g.type === 'LineString') return g.coordinates.length >= 2;
+      if (g.type === 'MultiLineString') return g.coordinates.some(c => Array.isArray(c) && c.length >= 2);
+      return false;
+    };
+    const diasPorLinha = new Map();
+    const alteradaNoGeo = new Set();
+    for (const geo of [lote1, lote2]) {
+      for (const f of geo?.features || []) {
+        const num = String(f?.properties?.numero || f?.properties?.linha_id || '').trim().toUpperCase();
+        if (!num) continue;
+        if (f?.properties?.situacao_rota === 'alterada') alteradaNoGeo.add(num);
+        if (!temGeometriaValida(f)) continue;
+        const dia = String(f?.properties?.dia_semana || 'dias_uteis_sabados');
+        if (!diasPorLinha.has(num)) diasPorLinha.set(num, new Set());
+        diasPorLinha.get(num).add(dia);
+      }
+    }
+    const linhasComParada = new Set();
+    if (Array.isArray(vinculos)) {
+      for (const v of vinculos) {
+        const num = String(v?.linha_id || '').trim().toUpperCase();
+        if (num) linhasComParada.add(num);
+      }
+    }
+
+    const semTracado = [];
+    const semTracadoDia = [];
+    const semParadas = [];
+    const emAtualizacao = [];
+    let completas = 0;
+
+    for (const l of linhas) {
+      const numero = String(l.numero || l.id || '').trim().toUpperCase();
+      if (!numero) continue;
+      const situacao = String(l.situacao_rota || '').trim().toLowerCase();
+      const diasGeo = diasPorLinha.get(numero) || new Set();
+      const temTracado = diasGeo.size > 0 && situacao !== 'indisponivel';
+      const temParadas = linhasComParada.has(numero);
+      const atualizando = situacao === 'alterada' || alteradaNoGeo.has(numero);
+      const itemBase = {
+        numero,
+        nome: String(l.nome || ''),
+        lote: String(l.lote || ''),
+        situacao: situacao || 'disponivel',
+        temTracado
+      };
+
+      if (!temTracado) {
+        semTracado.push(itemBase);
+      } else {
+        const diasEsperados = Array.isArray(l.dias_disponiveis) ? l.dias_disponiveis : [];
+        const faltando = diasEsperados.filter(d => (d === 'dias_uteis_sabados' || d === 'domingos_feriados') && !diasGeo.has(d));
+        if (faltando.length > 0) {
+          semTracadoDia.push({ ...itemBase, diasFaltando: faltando });
+        }
+      }
+      if (!temParadas) semParadas.push(itemBase);
+      if (atualizando) emAtualizacao.push(itemBase);
+      if (temTracado && temParadas && !atualizando) completas += 1;
+    }
+
+    const ordenarLinhas = arr => arr.sort((a, b) => a.numero.localeCompare(b.numero, 'pt-BR', { numeric: true }));
+    ordenarLinhas(semTracado);
+    ordenarLinhas(semTracadoDia);
+    ordenarLinhas(semParadas);
+    ordenarLinhas(emAtualizacao);
+
     const feats = paradas?.features || [];
     const valor = {
       totalLinhas: linhas.length,
@@ -432,6 +506,13 @@ function criarPainel(opcoes) {
       totalVinculos: Array.isArray(vinculos) ? vinculos.length : 0,
       porLote,
       porCategoria,
+      saudeRede: {
+        completas,
+        semTracado: { total: semTracado.length, linhas: semTracado },
+        semTracadoDia: { total: semTracadoDia.length, linhas: semTracadoDia },
+        semParadas: { total: semParadas.length, linhas: semParadas },
+        emAtualizacao: { total: emAtualizacao.length, linhas: emAtualizacao }
+      },
       versaoDados: indice?.versao || '',
       atualizadoEm: indice?.atualizado_em || '',
       arquivos: infos

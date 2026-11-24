@@ -2304,6 +2304,14 @@
     montarMapa();
     montarUI();
     renderTudo();
+    const paramsUrl = new URLSearchParams(location.search);
+    const diaUrl = paramsUrl.get('dia');
+    if (diaUrl && DIAS[diaUrl]) definirDia(diaUrl);
+    const linhaUrl = paramsUrl.get('linha');
+    if (linhaUrl) {
+      const alvoLinha = linhaDe(linhaUrl.trim().toUpperCase());
+      if (alvoLinha) selecionarLinha(alvoLinha.numero, true);
+    }
     atualizarStatusRascunho();
     diagnosticar();
     if (D.obterStatusRascunho().pendente) {

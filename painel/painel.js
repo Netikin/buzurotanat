@@ -261,11 +261,53 @@
   };
   const nomeAcao = a => NOMES_ACOES[a] || a;
 
+  function cartaoSaude(icone, titulo, total, linhas, opcoes = {}) {
+    const { nivel = 'alerta', vazioTexto = 'Nenhuma pendência encontrada.', subtexto = '', mostrarNotaSemTracado = false } = opcoes;
+    const classeEtiqueta = total === 0 ? 'etiqueta--ok' : nivel === 'perigo' ? 'etiqueta--perigo' : 'etiqueta--alerta';
+    const rotuloEtiqueta = total === 0 ? 'Tudo certo' : `${fmtNum(total)} ${total === 1 ? 'linha' : 'linhas'}`;
+    const lista = linhas.length
+      ? `<div class="saude-chips">${linhas
+          .map(l => {
+            const extra = mostrarNotaSemTracado && !l.temTracado ? ' (também sem traçado)' : '';
+            const tituloLink = `${l.numero}${l.nome ? ` — ${l.nome}` : ''}${extra} • Abrir no editor`;
+            const classeChip = mostrarNotaSemTracado && !l.temTracado ? 'saude-chip saude-chip--secundario' : 'saude-chip';
+            return `<a class="${classeChip}" href="editor?linha=${encodeURIComponent(l.numero)}" title="${esc(tituloLink)}">${esc(l.numero)}</a>`;
+          })
+          .join('')}</div>`
+      : `<p class="saude-vazio"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> ${esc(vazioTexto)}</p>`;
+    return `
+      <div class="saude-bloco">
+        <div class="saude-bloco__topo">
+          <span class="saude-bloco__rotulo"><i class="bi ${icone}" aria-hidden="true"></i>${esc(titulo)}</span>
+          <span class="etiqueta ${classeEtiqueta}">${rotuloEtiqueta}</span>
+        </div>
+        <div class="saude-bloco__numero">${fmtNum(total)}</div>
+        ${subtexto ? `<p class="saude-bloco__sub">${esc(subtexto)}</p>` : ''}
+        ${lista}
+      </div>`;
+  }
+
   // ---------------------------------------------------------------- abas
   async function abaVisao() {
     const r = await api('/api/painel/resumo');
     const i = r.interacoes;
     const d = r.dados;
+    const s = d.saudeRede || {
+      completas: 0,
+      semTracado: { total: 0, linhas: [] },
+      semTracadoDia: { total: 0, linhas: [] },
+      semParadas: { total: 0, linhas: [] },
+      emAtualizacao: { total: 0, linhas: [] }
+    };
+    const pctCompletas = d.totalLinhas ? Math.round((s.completas / d.totalLinhas) * 100) : 0;
+    const subSemTracado = s.semTracadoDia?.total
+      ? `Mais ${fmtNum(s.semTracadoDia.total)} ${s.semTracadoDia.total === 1 ? 'linha com traçado faltando' : 'linhas com traçado faltando'} em um dos dias.`
+      : 'Sem geometria publicada nos mapas.';
+    const semParadasComTracado = s.semParadas.linhas.filter(l => l.temTracado).length;
+    const subSemParadas =
+      s.semParadas.total > 0 && semParadasComTracado > 0
+        ? `${fmtNum(semParadasComTracado)} ${semParadasComTracado === 1 ? 'já tem traçado, mas está sem paradas ligadas.' : 'já têm traçado, mas estão sem paradas ligadas.'}`
+        : 'Linhas sem nenhum vínculo em linha_paradas.json.';
     alvo.innerHTML = `
       ${cabecalho(`Olá, ${usuarioAtual.nome}!`, 'Resumo do site, dos dados publicados e do servidor.')}
       <div class="grade grade--4">
@@ -274,6 +316,33 @@
         ${indicador('bi-bus-front', 'Linhas consultadas hoje', fmtNum(i.linhasHoje))}
         ${indicador('bi-signpost-split', 'Buscas "Como chegar" hoje', fmtNum(i.viagensHoje), `${fmtNum(i.viagens7)} em 7 dias`)}
       </div>
+      <section class="cartao mt" aria-labelledby="t-saude">
+        <div class="saude-cabecalho">
+          <div>
+            <h2 id="t-saude"><i class="bi bi-heart-pulse" aria-hidden="true"></i>Saúde da rede publicada</h2>
+            <p class="saude-sub">${fmtNum(s.completas)} de ${fmtNum(d.totalLinhas)} linhas (${pctCompletas}%) com traçado, paradas vinculadas e situação regular. Clique em uma linha para abrir direto no editor.</p>
+          </div>
+          <a href="editor" class="btn btn--peq"><i class="bi bi-map" aria-hidden="true"></i> Abrir editor</a>
+        </div>
+        <div class="grade grade--3 saude-grade">
+          ${cartaoSaude('bi-slash-circle', 'Sem traçado', s.semTracado.total, s.semTracado.linhas, {
+            nivel: 'perigo',
+            subtexto: subSemTracado,
+            vazioTexto: 'Todas as linhas possuem traçado.'
+          })}
+          ${cartaoSaude('bi-geo-alt', 'Sem paradas vinculadas', s.semParadas.total, s.semParadas.linhas, {
+            nivel: 'alerta',
+            subtexto: subSemParadas,
+            vazioTexto: 'Todas as linhas possuem paradas vinculadas.',
+            mostrarNotaSemTracado: true
+          })}
+          ${cartaoSaude('bi-arrow-repeat', 'Traçado em atualização', s.emAtualizacao.total, s.emAtualizacao.linhas, {
+            nivel: 'alerta',
+            subtexto: 'Exibidas tracejadas no mapa público.',
+            vazioTexto: 'Nenhuma linha marcada como em atualização.'
+          })}
+        </div>
+      </section>
       <div class="grade grade--3 mt">
         <section class="cartao" aria-labelledby="t-visitas30">
           <h2 id="t-visitas30"><i class="bi bi-bar-chart" aria-hidden="true"></i>Visitas por dia (30 dias)</h2>

@@ -416,3 +416,89 @@ tbody tr:hover { background: var(--superficie-2); }
 
 .menu-lateral a.menu-lateral__destaque { background: var(--primario); color: #fff; margin-bottom: 6px; }
 .menu-lateral a.menu-lateral__destaque:hover { background: var(--primario-claro); }
+
+/* ---------- Saúde da rede (Visão geral) ---------- */
+.saude-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 14px;
+  margin-bottom: 14px;
+}
+.saude-cabecalho h2 { margin: 0; }
+.saude-sub { margin: 4px 0 0; color: var(--texto-sec); font-size: 0.86rem; }
+.saude-grade { gap: 12px; }
+.saude-bloco {
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 13px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.saude-bloco__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.saude-bloco__rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--texto);
+}
+.saude-bloco__rotulo i { color: var(--texto-sec); }
+.saude-bloco__numero {
+  font-size: 1.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.saude-bloco__sub {
+  margin: 0;
+  color: var(--texto-sec);
+  font-size: 0.8rem;
+}
+.saude-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.saude-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--borda);
+  background: var(--superficie);
+  color: var(--texto);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+.saude-chip:hover {
+  border-color: var(--destaque);
+  background: var(--destaque-suave);
+  color: var(--destaque);
+}
+.saude-chip--secundario {
+  opacity: 0.78;
+  border-style: dashed;
+}
+.saude-vazio {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: var(--sucesso);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
