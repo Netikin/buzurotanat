@@ -206,18 +206,131 @@ function responderJson(res, status, payload, headersExtras = {}) {
   res.end(JSON.stringify(payload));
 }
 
+// ---------- Proteção anti-abuso: IP real via proxy + Rate Limit global ----------
+const RATE_JANELA_MS = 60 * 1000;
+const RATE_PENALIDADE_MS = 2 * 60 * 1000;
+const RATE_LIMITE_GERAL = Math.max(30, Number(process.env.BUZU_RATE_LIMIT_GERAL) || 180);
+const RATE_LIMITE_API = Math.max(20, Number(process.env.BUZU_RATE_LIMIT_API) || 90);
+const RATE_MAX_ENTRADAS = 10000;
+const baldesRateLimit = new Map(); // ip -> { inicio, geral, api, bloqueadoAte }
+
+function normalizarIp(valor) {
+  const limpo = String(valor || '')
+    .trim()
+    .replace(/^::ffff:/i, '')
+    .slice(0, 64);
+  return limpo || 'desconhecido';
+}
+
+function obterIpCliente(req) {
+  const cfIp = req.headers['cf-connecting-ip'];
+  if (typeof cfIp === 'string' && cfIp.trim()) return normalizarIp(cfIp.split(',')[0]);
+  const realIp = req.headers['x-real-ip'];
+  if (typeof realIp === 'string' && realIp.trim()) return normalizarIp(realIp.split(',')[0]);
+  const xff = req.headers['x-forwarded-for'];
+  if (typeof xff === 'string' && xff.trim()) return normalizarIp(xff.split(',')[0]);
+  return normalizarIp(req.socket?.remoteAddress);
+}
+
+function verificarRateLimit(ip, pathname) {
+  const agora = Date.now();
+  let b = baldesRateLimit.get(ip);
+  if (!b) {
+    if (baldesRateLimit.size >= RATE_MAX_ENTRADAS) {
+      // Remove entradas expiradas primeiro; se ainda lotado, limpa para impedir exaustão de memória
+      for (const [k, v] of baldesRateLimit) {
+        if (agora - v.inicio >= RATE_JANELA_MS && agora >= v.bloqueadoAte) baldesRateLimit.delete(k);
+      }
+      if (baldesRateLimit.size >= RATE_MAX_ENTRADAS) baldesRateLimit.clear();
+    }
+    b = { inicio: agora, geral: 0, api: 0, bloqueadoAte: 0 };
+    baldesRateLimit.set(ip, b);
+  }
+
+  if (b.bloqueadoAte > agora) {
+    return { permitido: false, limite: RATE_LIMITE_GERAL, restante: 0, retryAfter: Math.max(1, Math.ceil((b.bloqueadoAte - agora) / 1000)) };
+  }
+
+  if (agora - b.inicio >= RATE_JANELA_MS) {
+    b.inicio = agora;
+    b.geral = 0;
+    b.api = 0;
+    b.bloqueadoAte = 0;
+  }
+
+  const ehRotaPesada = pathname.startsWith('/api/') || pathname.startsWith('/dados/');
+  b.geral += 1;
+  if (ehRotaPesada) b.api += 1;
+
+  const limiteAtivo = ehRotaPesada ? RATE_LIMITE_API : RATE_LIMITE_GERAL;
+  const contagemAtiva = ehRotaPesada ? b.api : b.geral;
+  const estourouGeral = b.geral > RATE_LIMITE_GERAL;
+  const estourouApi = ehRotaPesada && b.api > RATE_LIMITE_API;
+
+  if (estourouGeral || estourouApi) {
+    // Se insistir em floodar além de 2x o limite, aplica bloqueio temporário de 2 minutos
+    if (b.geral > RATE_LIMITE_GERAL * 2 || (ehRotaPesada && b.api > RATE_LIMITE_API * 2)) {
+      b.bloqueadoAte = agora + RATE_PENALIDADE_MS;
+    }
+    const ate = Math.max(b.inicio + RATE_JANELA_MS, b.bloqueadoAte);
+    return {
+      permitido: false,
+      limite: limiteAtivo,
+      restante: 0,
+      retryAfter: Math.max(1, Math.ceil((ate - agora) / 1000))
+    };
+  }
+
+  return {
+    permitido: true,
+    limite: limiteAtivo,
+    restante: Math.max(0, limiteAtivo - contagemAtiva),
+    retryAfter: 0
+  };
+}
+
+const timerLimpezaRate = setInterval(() => {
+  const agora = Date.now();
+  for (const [k, v] of baldesRateLimit) {
+    if (agora - v.inicio >= RATE_JANELA_MS && agora >= v.bloqueadoAte) {
+      baldesRateLimit.delete(k);
+    }
+  }
+}, RATE_JANELA_MS);
+timerLimpezaRate.unref();
+
 const servidor = http.createServer(async (req, res) => {
   // Cabeçalhos de proteção (sem wildcard CORS)
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-  const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const xff = req.headers['x-forwarded-for'];
-  const ipCliente =
-    (typeof xff === 'string' && xff.split(',')[0].trim()) ||
-    req.socket.remoteAddress ||
-    'desconhecido';
+  let urlObj;
+  try {
+    urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  } catch (_e) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Requisição inválida');
+    return;
+  }
+  const ipCliente = obterIpCliente(req);
+
+  // 0. Rate limit global por IP (administrador autenticado fica isento para trabalhar no editor)
+  if (!sessaoEstaValida(req)) {
+    const rl = verificarRateLimit(ipCliente, urlObj.pathname);
+    res.setHeader('X-RateLimit-Limit', String(rl.limite));
+    res.setHeader('X-RateLimit-Remaining', String(rl.restante));
+    if (!rl.permitido) {
+      const headers429 = { 'Retry-After': String(rl.retryAfter), 'Cache-Control': 'no-store' };
+      if (urlObj.pathname.startsWith('/api/')) {
+        responderJson(res, 429, { ok: false, erro: 'Muitas requisições deste endereço. Tente novamente em instantes.' }, headers429);
+      } else {
+        res.writeHead(429, { 'Content-Type': 'text/plain; charset=utf-8', ...headers429 });
+        res.end('429 Too Many Requests — Muitas requisições em pouco tempo. Aguarde alguns segundos.');
+      }
+      return;
+    }
+  }
 
   // 1. Painel administrativo (login, endereço oculto, avisos, estatísticas anônimas)
   if (await painel.tratar(req, res, urlObj, ipCliente)) return;
@@ -324,6 +437,8 @@ const servidor = http.createServer(async (req, res) => {
       responderJson(res, 401, { ok: false, erro: 'Não autorizado. Autentique-se como administrador.' });
       return;
     }
+    // Permite mais tempo apenas para upload autenticado de publicação grande
+    req.setTimeout(120 * 1000);
 
     try {
       const pacote = await lerCorpoJson(req, 50 * 1024 * 1024);
@@ -389,7 +504,14 @@ const servidor = http.createServer(async (req, res) => {
   }
 
   // 4. Bloqueio de acesso direto a arquivos/pastas sensíveis do servidor
-  let caminhoRelativo = decodeURIComponent(urlObj.pathname);
+  let caminhoRelativo;
+  try {
+    caminhoRelativo = decodeURIComponent(urlObj.pathname);
+  } catch (_e) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Caminho inválido');
+    return;
+  }
   if (caminhoRelativo === '/') caminhoRelativo = '/index.html';
 
   const segmentos = caminhoRelativo.split('/').filter(Boolean);
@@ -610,6 +732,13 @@ function obterComprimido(caminho, stats, codificacao, cb) {
     }
   });
 }
+
+// Timeouts rígidos contra ataques de conexões lentas (Slowloris)
+servidor.headersTimeout = 15 * 1000;
+servidor.requestTimeout = 30 * 1000;
+servidor.keepAliveTimeout = 5 * 1000;
+servidor.maxHeadersCount = 60;
+servidor.maxRequestsPerSocket = 100;
 
 function iniciarServidor(porta) {
   servidor.once('error', err => {
