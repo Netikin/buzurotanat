@@ -1,6 +1,6 @@
 # Área administrativa
 
-O painel fica em `https://rotasnatal.vertraweb.app/use-admin` (no computador: `http://localhost:8080/use-admin/`).
+O painel fica em `https://rotasnatal.com.br/use-admin` (no computador: `http://localhost:8080/use-admin/`).
 O endereço pode ser trocado com `BUZU_PAINEL_CAMINHO` no servidor.
 
 O **editor do mapa** fica em `/use-admin/editor` (link "Editor do mapa" no menu do painel). Ele é feito para
