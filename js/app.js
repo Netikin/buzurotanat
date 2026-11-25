@@ -781,7 +781,7 @@
     atualizarFeedbackViagem('Calculando as linhas que atendem este trajeto...', 'info');
 
     const maxBaldeacoes = Number(
-      document.getElementById('select-max-baldeacoes')?.value ?? 3
+      document.getElementById('select-max-baldeacoes')?.value ?? 2
     );
 
     const horario = obterHorarioViagem();
@@ -805,6 +805,13 @@
       } else if (madrugada) {
         atualizarFeedbackViagem(
           `Às ${horario.texto} (madrugada) só circulam as linhas Corujão, e nenhuma delas atende este trajeto a até 1,2 km dos pontos informados. As linhas regulares voltam a partir das 04:00.`,
+          'alerta'
+        );
+      } else if (maxBaldeacoes < 2) {
+        atualizarFeedbackViagem(
+          maxBaldeacoes === 0
+            ? 'Nenhuma linha faz este trajeto sozinha (sem integração). Escolha "Melhor rota" em Integrações para ver as opções com integração.'
+            : 'Não há opção com até 1 integração para este trajeto. Escolha "Melhor rota" em Integrações para ver mais opções.',
           'alerta'
         );
       } else {
@@ -910,7 +917,7 @@
         )}${viagem.horario?.agora ? ' (agora, Brasília)' : ''} — ${
           viagem.madrugada ? 'somente linhas Corujão' : 'linhas regulares (sem Corujão)'
         }<br>` +
-        `<span class="nota-algoritmo">Limite de 1,2 km a pé • penalidade de 7 min por baldeação.</span>` +
+        `<span class="nota-algoritmo">Priorizamos a parada mais perto de você e o menor número de integrações. Tempo estimado inclui caminhada, espera média no ponto e viagem.</span>` +
         `<button type="button" id="btn-ver-volta" class="btn-ver-volta">` +
         `<i class="bi bi-arrow-left-right" aria-hidden="true"></i> Ver a volta: ${window.BuzuUtils.escaparHtml(
           viagem.destino.rotulo
@@ -929,6 +936,20 @@
         </li>`;
       return;
     }
+
+    const SELOS = {
+      recomendada: ['bi-star-fill', 'Recomendada'],
+      menos_caminhada: ['bi-person-walking', 'Menos caminhada'],
+      menos_integracoes: ['bi-arrow-repeat', 'Menos integrações'],
+      mais_rapida: ['bi-lightning-charge-fill', 'Mais rápida']
+    };
+    const seloHtml = r =>
+      (r.selos || []).length
+        ? `<div class="selos-viagem">${r.selos
+            .filter(s => SELOS[s])
+            .map(s => `<span class="selo-viagem selo-viagem--${s}"><i class="bi ${SELOS[s][0]}" aria-hidden="true"></i> ${SELOS[s][1]}</span>`)
+            .join('')}</div>`
+        : '';
 
     const passo = (letra, classe, fundo, titulo, descricao) => `
       <div class="passo-viagem">
@@ -994,7 +1015,10 @@
                 'letra-linha',
                 window.BuzuUtils.escaparHtml(linhaInfo.cor || '#0d63c9'),
                 `Embarque na linha ${window.BuzuUtils.escaparHtml(linhaInfo.numero || '')}${
-                  tr.sentido ? ` (${window.BuzuUtils.escaparHtml(tr.sentido)})` : ''
+                  // embarcou no terminal e o ônibus segue no outro sentido: mostra o sentido em que ele sai
+                  tr.sentidoDesembarque || tr.sentido
+                    ? ` (sentido ${window.BuzuUtils.escaparHtml(tr.sentidoDesembarque || tr.sentido)})`
+                    : ''
                 }`,
                 `Siga até ${window.BuzuUtils.escaparHtml(destinoTrechoNome)} (~${window.BuzuUtils.formatarDistancia(
                   tr.distanciaMetros || 0
@@ -1011,7 +1035,7 @@
                   `Integração ${listaTrans.length > 1 ? iTrecho + 1 : ''} em ${window.BuzuUtils.escaparHtml(
                     proxTrans.nome || 'ponto de integração'
                   )}`,
-                  'Troque para a próxima linha (+7 min penalidade de transbordo)'
+                  'Desça e pegue a próxima linha no mesmo ponto ou bem perto (o tempo estimado já inclui a espera média)'
                 )
               );
             }
@@ -1072,26 +1096,33 @@
           )
           .join('');
 
-        return `
+        const separador =
+          idx === 1
+            ? `<li class="separador-opcoes" aria-hidden="true"><span>Outras opções (${resultados.length - 1})</span><small>Com mais integrações ou um pouco mais demoradas — escolha a que preferir</small></li>`
+            : '';
+        return `${separador}
           <li class="cartao-item ${ehSelecionado ? 'destacado cartao-trajeto-ativo' : ''}" data-card-trajeto="${idx}">
             <div class="cabecalho-cartao">
               <div>
+                ${seloHtml(r)}
                 <div class="linha-badges-viagem">${badges}</div>
                 <span class="badge-tipo" style="margin-top:6px;display:inline-block;">
                   ${
                     r.tipo === 'direta'
-                      ? 'Trajeto direto (sem baldeação)'
-                      : `Com ${r.numTransferencias || Math.max(1, (r.linhas?.length || 2) - 1)} ${
+                      ? 'Linha direta (sem integração)'
+                      : `${r.numTransferencias || Math.max(1, (r.linhas?.length || 2) - 1)} ${
                           (r.numTransferencias || Math.max(1, (r.linhas?.length || 2) - 1)) === 1
-                            ? 'transferência'
-                            : 'transferências'
+                            ? 'integração'
+                            : 'integrações'
                         }`
                   }
                 </span>
               </div>
-              <span class="badge-distancia" title="Distância total e tempo ponderado">
-                ~${window.BuzuUtils.formatarDistancia(r.totalMetros || 0)}${
-          r.custoDijkstraMin ? ` • ~${Math.round(r.custoDijkstraMin)} min` : ''
+              <span class="badge-distancia" title="Tempo estimado (caminhada + espera média + viagem) e distância total">
+                ${r.tempoEstimadoMin ? `~${r.tempoEstimadoMin} min • ` : ''}${window.BuzuUtils.formatarDistancia(r.totalMetros || 0)}${
+          (r.acessoEmbarqueMetros || 0) + (r.acessoDesembarqueMetros || 0) > 0
+            ? ` • ${window.BuzuUtils.formatarDistancia((r.acessoEmbarqueMetros || 0) + (r.acessoDesembarqueMetros || 0))} a pé`
+            : ''
         }
               </span>
             </div>

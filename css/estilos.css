@@ -2848,3 +2848,54 @@ body.alto-contraste .btn-menu.active {
   color: var(--c-link);
   font-weight: 600;
 }
+
+/* Selos das opções do "Como chegar" */
+.selos-viagem {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+
+.selo-viagem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  background: var(--c-fundo-destaque);
+  color: var(--c-texto);
+}
+
+.selo-viagem--recomendada { background: #15803d; color: #ffffff; }
+.selo-viagem--menos_caminhada { background: #e0f2fe; color: #075985; }
+.selo-viagem--menos_integracoes { background: #ede9fe; color: #5b21b6; }
+.selo-viagem--mais_rapida { background: #fef3c7; color: #92400e; }
+:root[data-tema="escuro"] .selo-viagem--menos_caminhada { background: #0c3550; color: #bae6fd; }
+:root[data-tema="escuro"] .selo-viagem--menos_integracoes { background: #2e1f5e; color: #ddd6fe; }
+:root[data-tema="escuro"] .selo-viagem--mais_rapida { background: #3d2e07; color: #fde68a; }
+
+.separador-opcoes {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 14px 0 6px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--c-borda);
+  color: var(--c-texto-sec);
+}
+
+.separador-opcoes span {
+  font-weight: 800;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-texto);
+}
+
+.separador-opcoes small {
+  font-size: 0.78rem;
+}

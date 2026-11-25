@@ -44,6 +44,15 @@ for (const linha of indice.linhas || []) {
   <meta name="description" content="Consulte o traçado, paradas e integrações da Linha ${linha.numero} (${linha.nome}) na nova rede de ônibus de Natal — Concorrência Pública nº 11.001/2026.">
   <meta property="og:title" content="Linha ${linha.numero} - ${linha.nome} (Concorrência 11.001/2026 - Natal)">
   <meta property="og:description" content="Veja o itinerário de dias úteis/sábados e domingos/feriados, paradas e conexões no mapa interativo.">
+  <link rel="canonical" href="https://rotasnatal.com.br/linhas/${encodeURIComponent(linha.numero)}.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="BuzuRota Natal">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:url" content="https://rotasnatal.com.br/linhas/${encodeURIComponent(linha.numero)}.html">
+  <meta property="og:image" content="https://rotasnatal.com.br/img/icone-512.png">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="apple-touch-icon" href="../img/apple-touch-icon.png">
   <link rel="stylesheet" href="../css/estilos.css">
   <script src="../js/tema.js"></script>
 </head>

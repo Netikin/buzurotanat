@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /use-admin
+Disallow: /api/
+
+Sitemap: https://rotasnatal.com.br/sitemap.xml
