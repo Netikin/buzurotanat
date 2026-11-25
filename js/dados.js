@@ -1014,14 +1014,35 @@ window.BuzuDados = (function () {
   // =========================================================================
   const LIMITE_CAMINHADA_PADRAO_METROS = 1200; // 1,2 km máximo de caminhada até a parada
   const VELOCIDADE_CAMINHADA_M_S = 1.2; // 1,2 m/s (~4,32 km/h = 72 m/min)
-  const FATOR_DESCONFORTO_CAMINHADA = 1.3; // 300m custam ~5,4 min; 1,2 km custam ~21,6 min
-  const PENALIDADE_BALDEACAO_MIN = 7.0; // Penalidade fixa de troca de ônibus (~6 a 8 min)
   const VELOCIDADE_ONIBUS_M_MIN = 333.3; // ~20 km/h em operação urbana
   const RAIO_RECALCULO_LINHA_METROS = 40; // Raio de vínculo automático parada <-> linha
 
+  // ---- Modelo de "custo" do Como chegar: pensa como o passageiro ----
+  // Caminhada: até 400 m é tranquila; cada metro além disso pesa o dobro (prefere a parada perto de casa).
+  const CAMINHADA_CONFORTAVEL_METROS = 400;
+  const FATOR_CAMINHADA_CURTA = 1.5;
+  const FATOR_CAMINHADA_LONGA = 3.0;
+  // Integração: incômodo fixo de 10 min (descer, atravessar, risco de perder o ônibus) + a espera da próxima linha.
+  const PENALIDADE_INTEGRACAO_MIN = 10;
+  const TEMPO_REAL_INTEGRACAO_MIN = 3; // tempo de troca considerado no tempo estimado exibido
+  // Espera no ponto: metade do intervalo da linha (dados do edital), entre 2 e 15 min.
+  const ESPERA_PADRAO_MIN = 8;
+  const ESPERA_MAXIMA_MIN = 15;
+
   function custoCaminhadaMinutos(distanciaMetros) {
-    const tempoRealMin = distanciaMetros / (VELOCIDADE_CAMINHADA_M_S * 60);
-    return Number((tempoRealMin * FATOR_DESCONFORTO_CAMINHADA).toFixed(2));
+    const mPorMin = VELOCIDADE_CAMINHADA_M_S * 60;
+    const curta = Math.min(distanciaMetros, CAMINHADA_CONFORTAVEL_METROS);
+    const longa = Math.max(0, distanciaMetros - CAMINHADA_CONFORTAVEL_METROS);
+    return Number(((curta / mPorMin) * FATOR_CAMINHADA_CURTA + (longa / mPorMin) * FATOR_CAMINHADA_LONGA).toFixed(2));
+  }
+
+  /** Espera média no ponto (min): metade do intervalo da linha no dia, pelos dados do edital */
+  function esperaMediaLinhaMin(numero, diaSemana) {
+    const linha = (estado.indice?.linhas || []).find(l => String(l.numero).toUpperCase() === String(numero).toUpperCase());
+    const op = linha?.operacao || {};
+    const intervalo = Number(diaSemana === 'domingos_feriados' ? op.intervalo_dom : op.intervalo_du || op.intervalo_sab);
+    if (!Number.isFinite(intervalo) || intervalo <= 0) return ESPERA_PADRAO_MIN;
+    return Math.min(ESPERA_MAXIMA_MIN, Math.max(2, intervalo / 2));
   }
 
   function tempoRealCaminhadaMinutos(distanciaMetros) {
@@ -1091,10 +1112,10 @@ window.BuzuDados = (function () {
         const noParada = `P:${atual.parada_id}`;
         const noEmbarcado = `L:${linhaId}:${sentido}:${atual.parada_id}`;
 
-        // Embarque na parada (a penalidade de baldeação de 7 min é aplicada quando já se utilizou um ônibus antes)
+        // Embarque na parada: custa a espera média da linha (linhas frequentes ganham)
         adicionarAresta(noParada, {
           destino: noEmbarcado,
-          custoMin: 0,
+          custoMin: esperaMediaLinhaMin(linhaId, chaveDia),
           distanciaMetros: 0,
           tipoAresta: 'embarque',
           linhaId,
@@ -1102,10 +1123,10 @@ window.BuzuDados = (function () {
           paradaId: String(atual.parada_id)
         });
 
-        // Desembarque na parada (aplica penalidade de baldeação de 7 min caso o passageiro pegue outro ônibus em seguida)
+        // Descer para pegar outro ônibus: penalidade de integração (o desembarque final não passa por aqui)
         adicionarAresta(noEmbarcado, {
           destino: noParada,
-          custoMin: PENALIDADE_BALDEACAO_MIN,
+          custoMin: PENALIDADE_INTEGRACAO_MIN,
           distanciaMetros: 0,
           tipoAresta: 'baldeacao_desembarque',
           linhaId,
@@ -1134,6 +1155,33 @@ window.BuzuDados = (function () {
           });
         }
       }
+    }
+
+    // O ônibus continua: no fim da VOLTA ele sai de novo na IDA (terminal) e no fim da IDA segue na VOLTA
+    // (retorno). Quem embarca no terminal (última parada da volta) segue viagem na ida, como na vida real.
+    // Sem isso, linhas cuja 1ª parada da ida fica longe do terminal pareciam "não sair" do terminal.
+    for (const [ch, lista] of sequenciasPorLinhaSentido.entries()) {
+      const [linhaId, sentido] = ch.split('|');
+      const outro = sentido === 'IDA' ? 'VOLTA' : 'IDA';
+      const seguinte = sequenciasPorLinhaSentido.get(`${linhaId}|${outro}`);
+      if (!lista.length || !seguinte?.length) continue;
+      const ultima = lista[lista.length - 1];
+      const primeira = seguinte[0];
+      const pU = paradasAtivas.get(String(ultima.parada_id));
+      const pP = paradasAtivas.get(String(primeira.parada_id));
+      if (!pU || !pP) continue;
+      const metros = Math.max(30, window.BuzuUtils.calcularDistanciaGeodesica(pU.lat, pU.lng, pP.lat, pP.lng) * 1.3);
+      if (metros > 3000) continue; // ponta muito distante: provável erro de cadastro, não liga
+      adicionarAresta(`L:${linhaId}:${sentido}:${ultima.parada_id}`, {
+        destino: `L:${linhaId}:${outro}:${primeira.parada_id}`,
+        custoMin: Number((metros / VELOCIDADE_ONIBUS_M_MIN).toFixed(2)),
+        distanciaMetros: Math.round(metros),
+        tipoAresta: 'onibus',
+        continuacao: true,
+        linhaId,
+        sentido: outro,
+        paradaId: String(primeira.parada_id)
+      });
     }
 
     // Conexão a pé curta (<= 85m) entre paradas vizinhas (ex: integração no mesmo cruzamento sem atravessar longe)
@@ -1367,6 +1415,8 @@ window.BuzuDados = (function () {
         trechosOnibus.push(trechoAtual);
       } else if (a.tipoAresta === 'onibus' && trechoAtual) {
         trechoAtual.distanciaMetros += a.distanciaMetros;
+        // passou pelo terminal/retorno sem descer: o trecho termina no outro sentido da linha
+        if (a.continuacao) trechoAtual.sentidoDesembarque = a.sentido;
         trechoAtual.paradaDesembarqueId = a.paradaId;
         const pDes = parAtivas.get(a.paradaId);
         if (pDes) {
@@ -1425,10 +1475,22 @@ window.BuzuDados = (function () {
 
     const numTransferencias = Math.max(0, trechosOnibus.length - 1);
 
+    // Tempo estimado de verdade (o que aparece para o passageiro): a pé + espera + ônibus + trocas
+    const esperaTotalMin = trechosOnibus.reduce((soma, t) => soma + esperaMediaLinhaMin(t.numero, diaSemana), 0);
+    const tempoEstimadoMin = Math.round(
+      acessoOrigem.tempoRealMin +
+        infoDest.tempoRealMin +
+        esperaTotalMin +
+        distanciaTrechoMetros / VELOCIDADE_ONIBUS_M_MIN +
+        numTransferencias * TEMPO_REAL_INTEGRACAO_MIN
+    );
+
     solucoesPorAssinatura.set(assinatura, {
       tipo: numTransferencias === 0 ? 'direta' : 'transferencia',
       numTransferencias,
       custoDijkstraMin: Number(custoTotalMin.toFixed(1)),
+      tempoEstimadoMin,
+      esperaEstimadaMin: Math.round(esperaTotalMin),
       totalMetros: Math.round(totalMetros),
       distanciaTrechoMetros: Math.round(distanciaTrechoMetros),
       acessoEmbarqueMetros: acessoOrigem.distanciaPeMetros,
@@ -1549,14 +1611,20 @@ window.BuzuDados = (function () {
   const VIZINHAS = 3;
   function paradasEmVoltaDoTrecho(trecho, coordsLinha, dia) {
     if (!trecho.paradaEmbarqueId || !trecho.paradaDesembarqueId || !trecho.sentido) return null;
-    const seq = (estado.linhaParadas || [])
-      .filter(
-        lp =>
-          String(lp.linha_id).toUpperCase() === String(trecho.numero).toUpperCase() &&
-          lp.sentido === trecho.sentido &&
-          (!lp.dia_semana || lp.dia_semana === dia || lp.dia_semana === 'todos')
-      )
-      .sort((a, b) => a.ordem_sequencial - b.ordem_sequencial);
+    const sequenciaDoSentido = sentido =>
+      (estado.linhaParadas || [])
+        .filter(
+          lp =>
+            String(lp.linha_id).toUpperCase() === String(trecho.numero).toUpperCase() &&
+            lp.sentido === sentido &&
+            (!lp.dia_semana || lp.dia_semana === dia || lp.dia_semana === 'todos')
+        )
+        .sort((a, b) => a.ordem_sequencial - b.ordem_sequencial);
+    // Se a viagem passou pelo terminal/retorno sem descer, a sequência continua no outro sentido
+    const seq =
+      trecho.sentidoDesembarque && trecho.sentidoDesembarque !== trecho.sentido
+        ? [...sequenciaDoSentido(trecho.sentido), ...sequenciaDoSentido(trecho.sentidoDesembarque)]
+        : sequenciaDoSentido(trecho.sentido);
     const iE = seq.findIndex(lp => String(lp.parada_id) === String(trecho.paradaEmbarqueId));
     const iD = seq.findIndex((lp, i) => i > iE && String(lp.parada_id) === String(trecho.paradaDesembarqueId));
     if (iE < 0 || iD < 0) return null;
@@ -1677,7 +1745,7 @@ window.BuzuDados = (function () {
   function buscarAlternativasDijkstra(origem, destino, diaSemana, limiteCaminhadaMetros, maxBaldeacoes, linhaPermitida) {
     const todas = new Map();
     const proibidas = new Set();
-    for (let rodada = 0; rodada < 6; rodada++) {
+    for (let rodada = 0; rodada < 8; rodada++) {
       const sols = executarDijkstraViagem(
         origem,
         destino,
@@ -1710,15 +1778,72 @@ window.BuzuDados = (function () {
 
     // Variedade: no máximo 2 opções começando pela mesma linha
     const porPrimeiraLinha = new Map();
-    return uteis
-      .filter(s => {
-        const primeira = s.trechos[0].numero;
-        const qtd = porPrimeiraLinha.get(primeira) || 0;
-        if (qtd >= 2) return false;
-        porPrimeiraLinha.set(primeira, qtd + 1);
-        return true;
-      })
-      .slice(0, 15);
+    const variadas = uteis.filter(s => {
+      const primeira = s.trechos[0].numero;
+      const qtd = porPrimeiraLinha.get(primeira) || 0;
+      if (qtd >= 2) return false;
+      porPrimeiraLinha.set(primeira, qtd + 1);
+      return true;
+    });
+    return classificarOpcoesViagem(variadas);
+  }
+
+  const caminhadaTotal = s => (s.acessoEmbarqueMetros || 0) + (s.acessoDesembarqueMetros || 0);
+
+  /**
+   * Ordena as opções para o passageiro e marca as melhores:
+   * - 1º lugar: a recomendada (menor custo: parada perto, poucas integrações, pouca espera);
+   * - depois, as outras alternativas (mais integrações ou um pouco mais demoradas), para a pessoa escolher;
+   * - só ficam de fora opções absurdas (mais que o dobro do custo da recomendada + 20 min);
+   * - selos: Recomendada, Menos caminhada, Menos integrações e Mais rápida.
+   */
+  const MAX_OPCOES_VIAGEM = 10;
+  function classificarOpcoesViagem(opcoes) {
+    const ordenadas = [...opcoes].sort((a, b) => a.custoDijkstraMin - b.custoDijkstraMin);
+    if (!ordenadas.length) return [];
+    const limite = ordenadas[0].custoDijkstraMin * 2 + 20;
+    // Troca inútil: se uma opção mais curta já faz o mesmo começo de viagem e chega ao destino
+    // (ex.: B6B→E6 existe, então B6B→E6→N-60 só acrescenta uma integração à toa), fica de fora.
+    const chave = s => s.linhas.map(l => String(l.numero).toUpperCase()).join('>');
+    const existentes = new Map(ordenadas.map(s => [chave(s), s]));
+    const trocaInutil = s => {
+      const nums = s.linhas.map(l => String(l.numero).toUpperCase());
+      for (let n = 1; n < nums.length; n++) {
+        const menor = existentes.get(nums.slice(0, n).join('>'));
+        if (menor && menor.custoDijkstraMin <= s.custoDijkstraMin + 5) return true;
+      }
+      return false;
+    };
+    const viaveis = ordenadas.filter(s => s.custoDijkstraMin <= limite && !trocaInutil(s));
+    // Variedade: cada quantidade de integrações que existir (direta, 1, 2, 3) ganha até 2 lugares;
+    // o resto das vagas vai para as melhores opções no geral. A recomendada continua em 1º.
+    const lugares = new Set([viaveis[0]]);
+    const porIntegracoes = new Map();
+    for (const s of viaveis) {
+      const k = s.numTransferencias;
+      if ((porIntegracoes.get(k) || 0) < 2 && lugares.size < MAX_OPCOES_VIAGEM) {
+        lugares.add(s);
+        porIntegracoes.set(k, (porIntegracoes.get(k) || 0) + 1);
+      }
+    }
+    for (const s of viaveis) {
+      if (lugares.size >= MAX_OPCOES_VIAGEM) break;
+      lugares.add(s);
+    }
+    // Depois da recomendada: menos integrações primeiro e, entre iguais, a mais rápida
+    const [primeira, ...resto] = viaveis.filter(s => lugares.has(s));
+    resto.sort((a, b) => a.numTransferencias - b.numTransferencias || (a.tempoEstimadoMin ?? 0) - (b.tempoEstimadoMin ?? 0));
+    const escolhidas = [primeira, ...resto].map((s, i) => ({ ...s, selos: [], alternativa: i > 0 }));
+    const rec = escolhidas[0];
+    rec.selos.push('recomendada');
+    const marcar = (selo, valor, melhorQueRec) => {
+      const alvo = escolhidas.slice(1).reduce((m, s) => (!m || valor(s) < valor(m) ? s : m), null);
+      if (alvo && melhorQueRec(alvo)) alvo.selos.push(selo);
+    };
+    marcar('menos_caminhada', caminhadaTotal, s => caminhadaTotal(s) < caminhadaTotal(rec) - 100);
+    marcar('menos_integracoes', s => s.numTransferencias, s => s.numTransferencias < rec.numTransferencias);
+    marcar('mais_rapida', s => s.tempoEstimadoMin ?? Infinity, s => (s.tempoEstimadoMin ?? Infinity) < (rec.tempoEstimadoMin ?? Infinity) - 3);
+    return escolhidas;
   }
 
   /**
@@ -1757,7 +1882,7 @@ window.BuzuDados = (function () {
     if (!origem || !destino) return [];
 
     const limiteCaminhadaMetros = opcoes.limiteCaminhadaMetros || LIMITE_CAMINHADA_PADRAO_METROS;
-    const maxBaldeacoes = opcoes.maxBaldeacoes !== undefined ? Number(opcoes.maxBaldeacoes) : 3;
+    const maxBaldeacoes = opcoes.maxBaldeacoes !== undefined ? Number(opcoes.maxBaldeacoes) : 2;
 
     // Horário da viagem (padrão: agora, em Brasília). Madrugada => só Corujão; demais horários => sem Corujão.
     const horaViagem = Number.isInteger(opcoes.hora) ? opcoes.hora : obterHorarioBrasilia().hora;
@@ -1777,6 +1902,9 @@ window.BuzuDados = (function () {
       if (resultadosDijkstra.length > 0) {
         return resultadosDijkstra;
       }
+      // A rede de paradas está montada e não achou nada dentro do limite de integrações escolhido:
+      // não inventa opções com mais integrações (a tela sugere aumentar o limite).
+      if (maxBaldeacoes < 2) return [];
     }
 
     const distanciaMinimaTrechoMetros = 250;

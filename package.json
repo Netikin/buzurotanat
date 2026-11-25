@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node servidor.js",
     "admin:contas": "node scripts/admin/configurar-contas.js",
-    "admin:nova-conta": "node scripts/admin/criar-usuario.js"
+    "admin:nova-conta": "node scripts/admin/criar-usuario.js",
+    "sitemap": "node scripts/gerar-sitemap.js"
   },
   "engines": {
     "node": ">=18.0.0"

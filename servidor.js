@@ -157,8 +157,21 @@ const MIME_TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8'
 };
+
+// Endereço oficial do site. Visitas pelos endereços antigos são levadas para cá (301), para os links
+// antigos continuarem funcionando e o Google não ver dois sites iguais.
+const DOMINIO_PRINCIPAL = (process.env.BUZU_DOMINIO_PRINCIPAL || 'rotasnatal.com.br').trim().toLowerCase();
+const DOMINIOS_ANTIGOS = new Set(
+  (process.env.BUZU_DOMINIOS_ANTIGOS || 'rotasnatal.vertraweb.app,buzurotanat.vertraweb.app,www.rotasnatal.com.br')
+    .split(',')
+    .map(d => d.trim().toLowerCase())
+    .filter(Boolean)
+);
 
 function obterIpsDaRede() {
   const interfaces = os.networkInterfaces();
@@ -314,6 +327,21 @@ const servidor = http.createServer(async (req, res) => {
     return;
   }
   const ipCliente = obterIpCliente(req);
+
+  // 0a. Endereço antigo -> endereço oficial (só leitura de páginas; nunca redireciona APIs)
+  const hostPedido = String(req.headers.host || '').split(':')[0].toLowerCase();
+  if (
+    DOMINIOS_ANTIGOS.has(hostPedido) &&
+    (req.method === 'GET' || req.method === 'HEAD') &&
+    !urlObj.pathname.startsWith('/api/')
+  ) {
+    res.writeHead(301, {
+      Location: `https://${DOMINIO_PRINCIPAL}${urlObj.pathname}${urlObj.search}`,
+      'Cache-Control': 'public, max-age=3600'
+    });
+    res.end();
+    return;
+  }
 
   // 0. Rate limit global por IP (administrador autenticado fica isento para trabalhar no editor)
   if (!sessaoEstaValida(req)) {
