@@ -476,6 +476,8 @@ window.BuzuMapa = (function () {
       maxZoom: 19, // necessário para o agrupamento de paradas (markercluster)
       renderer: canvasRenderer,
       zoomControl: false,
+      // zoom em quartos: o enquadramento aproveita melhor a tela pequena do celular
+      zoomSnap: 0.25,
       preferCanvas: true
     });
 
@@ -501,6 +503,8 @@ window.BuzuMapa = (function () {
         style: temaEscuro ? ESTILO_MAPA_ESCURO : ESTILO_MAPA_CLARO,
         attribution: creditoMapa
       }).addTo(mapa);
+      const mlInicial = camadaMapaBase.getMaplibreMap?.();
+      mlInicial?.once('style.load', () => ajustarCoresMapaEscuro(mlInicial));
     } else {
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -571,6 +575,13 @@ window.BuzuMapa = (function () {
 
     // Clique no mapa durante o Modo Editor Administrativo (nova parada ou estender rota)
     mapa.on('click', e => {
+      // "Marcar no mapa" (Como chegar): o próximo toque escolhe o ponto de saída ou o destino
+      if (escolhaPontoPendente) {
+        const aoEscolher = escolhaPontoPendente;
+        cancelarEscolhaPonto();
+        aoEscolher(e.latlng.lat, e.latlng.lng);
+        return;
+      }
       if (modoEditorAtivo && criarParadaNoCliqueAtivo && typeof callbacks.aoClicarMapaEditor === 'function') {
         callbacks.aoClicarMapaEditor(e.latlng.lat, e.latlng.lng);
         return;
@@ -818,6 +829,7 @@ window.BuzuMapa = (function () {
         );
 
         polyline.on('click', e => {
+          if (escolhaPontoPendente) return; // o toque é para marcar a saída/destino
           L.popup({ maxWidth: 280 })
             .setLatLng(e.latlng)
             .setContent(
@@ -922,6 +934,7 @@ window.BuzuMapa = (function () {
       const marker = L.circleMarker([lat, lng], { renderer: renderParadas, ...estilo });
       marker.bindTooltip(textoTooltipParada(props), { direction: 'top', offset: [0, -6], className: 'tooltip-parada' });
       marker.on('click', () => {
+        if (escolhaPontoPendente) return;
         if (typeof callbacks.aoClicarParada === 'function') {
           callbacks.aoClicarParada(props.id);
         }
@@ -975,6 +988,7 @@ window.BuzuMapa = (function () {
       );
 
       marker.on('click', () => {
+        if (escolhaPontoPendente) return;
         if (typeof callbacks.aoClicarParada === 'function') {
           callbacks.aoClicarParada(props.id);
         }
@@ -1565,6 +1579,35 @@ window.BuzuMapa = (function () {
   /**
    * Troca o mapa base entre claro e escuro (chamado pelo botão de tema)
    */
+  /**
+   * O estilo escuro do OpenFreeMap é quase preto: recolore fundo, água e ruas com o azul-noite do site
+   * (mesmas cores do painel escuro), para as ruas aparecerem sem brigar com as linhas.
+   */
+  function ajustarCoresMapaEscuro(mlMap) {
+    if (!temaEscuro || !mlMap || typeof mlMap.getStyle !== 'function') return;
+    const estilo = mlMap.getStyle();
+    if (!estilo || !Array.isArray(estilo.layers)) return;
+    const pintar = (id, prop, valor) => {
+      try {
+        mlMap.setPaintProperty(id, prop, valor);
+      } catch (_e) {
+        /* camada sem essa propriedade */
+      }
+    };
+    for (const camada of estilo.layers) {
+      const id = camada.id || '';
+      if (camada.type === 'background') pintar(id, 'background-color', '#0C1B2E');
+      else if (camada.type === 'fill' && /water/.test(id)) pintar(id, 'fill-color', '#0B2A4A');
+      else if (camada.type === 'fill' && /landuse|landcover|park|building/.test(id)) pintar(id, 'fill-color', '#10233A');
+      else if (camada.type === 'line' && /highway|road|street|transportation|bridge|tunnel/.test(id) && !/casing|rail/.test(id)) {
+        pintar(id, 'line-color', /major|primary|trunk|motorway|secondary/.test(id) ? '#2A4D7A' : '#1C3557');
+      } else if (camada.type === 'symbol') {
+        pintar(id, 'text-color', '#8FA6C4');
+        pintar(id, 'text-halo-color', '#0C1B2E');
+      }
+    }
+  }
+
   function definirTemaMapa(escuro) {
     temaEscuro = Boolean(escuro);
     const mlMap = camadaMapaBase && typeof camadaMapaBase.getMaplibreMap === 'function'
@@ -1572,6 +1615,7 @@ window.BuzuMapa = (function () {
       : null;
     if (mlMap) {
       mlMap.setStyle(temaEscuro ? ESTILO_MAPA_ESCURO : ESTILO_MAPA_CLARO);
+      mlMap.once('style.load', () => ajustarCoresMapaEscuro(mlMap));
     }
   }
 
@@ -1621,31 +1665,64 @@ window.BuzuMapa = (function () {
   /**
    * Marcadores "A" (origem), "B" (destino) e pontos de transferência (T1, T2, T3...) da busca De → Para.
    */
+  // ---------- "Marcar no mapa": escolher a saída ou o destino tocando no mapa ----------
+  let escolhaPontoPendente = null;
+
+  function escolherPontoNoMapa(aoEscolher) {
+    if (!mapa) return;
+    escolhaPontoPendente = aoEscolher;
+    mapa.getContainer().classList.add('mapa--escolhendo-ponto');
+  }
+
+  function cancelarEscolhaPonto() {
+    escolhaPontoPendente = null;
+    mapa?.getContainer().classList.remove('mapa--escolhendo-ponto');
+  }
+
   function definirPontosViagem(origem, destino, transferenciaOuLista = null) {
     if (!mapa || !camadaViagem) return;
     camadaViagem.clearLayers();
 
-    const criarMarcador = (ponto, rotulo, classe, sigla) => {
+    const criarMarcador = (ponto, rotulo, classe, sigla, tipoArrastavel = null) => {
       if (!ponto || typeof ponto.lat !== 'number' || typeof ponto.lng !== 'number') return;
 
       const icone = L.divIcon({
         className: '',
-        html: `<div class="marcador-mapa marcador-viagem ${classe}" 
+        html: `<div class="marcador-mapa marcador-viagem ${classe}${tipoArrastavel ? ' marcador-arrastavel' : ''}"
 style="width:30px;height:30px;font-size:13px;">${sigla}</div>`,
         iconSize: [30, 30],
         iconAnchor: [15, 15]
       });
 
-      L.marker([ponto.lat, ponto.lng], { icon: icone, title: rotulo, alt: rotulo })
-        .bindTooltip(`<strong>${sigla}: ${window.BuzuUtils.escaparHtml(rotulo)}</strong>`, {
-          direction: 'top',
-          offset: [0, -16]
-        })
+      const marcador = L.marker([ponto.lat, ponto.lng], {
+        icon: icone,
+        title: rotulo,
+        alt: rotulo,
+        // A e B podem ser arrastados até o ponto exato (o mapa aberto nem sempre tem o número da casa)
+        draggable: Boolean(tipoArrastavel),
+        autoPan: true,
+        zIndexOffset: tipoArrastavel ? 800 : 0
+      })
+        .bindTooltip(
+          `<strong>${sigla}: ${window.BuzuUtils.escaparHtml(rotulo)}</strong>${
+            tipoArrastavel ? '<br><small>Arraste para ajustar o ponto</small>' : ''
+          }`,
+          { direction: 'top', offset: [0, -16] }
+        )
         .addTo(camadaViagem);
+
+      if (tipoArrastavel) {
+        marcador.on('dragend', () => {
+          const pos = marcador.getLatLng();
+          if (typeof callbacks.aoMoverPontoViagem === 'function') {
+            callbacks.aoMoverPontoViagem(tipoArrastavel, pos.lat, pos.lng);
+          }
+        });
+      }
     };
 
-    criarMarcador(origem, origem?.rotulo || origem?.titulo || 'Origem', 'marcador-origem', 'A');
-    criarMarcador(destino, destino?.rotulo || destino?.titulo || 'Destino', 'marcador-destino', 'B');
+    criarMarcador(origem, origem?.rotulo || origem?.titulo || 'Origem', 'marcador-origem', 'A', 'origem');
+    criarMarcador(destino, destino?.rotulo || destino?.titulo || 'Destino', 'marcador-destino', 'B', 'destino');
 
     const listaTrans = Array.isArray(transferenciaOuLista)
       ? transferenciaOuLista
@@ -1813,6 +1890,8 @@ style="width:30px;height:30px;font-size:13px;">${sigla}</div>`,
     definirPontosViagem,
     limparPontosViagem,
     enquadrarPontosViagem,
+    escolherPontoNoMapa,
+    cancelarEscolhaPonto,
     definirModoEditorParadas,
     definirModoEditorRota,
     definirAdicionarVerticeCliqueRota,

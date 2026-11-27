@@ -738,23 +738,28 @@ window.BuzuDados = (function () {
     paradasAchadas.sort((a, b) => Number(b.terminal) - Number(a.terminal));
     resultados.push(...paradasAchadas.slice(0, 4));
 
-    // 2. Bairros, CEPs e referências de Natal
+    // 2. Lugares conhecidos (com a entrada certa), bairros e CEPs de Natal.
+    // Os lugares conhecidos vêm antes das paradas: quem digita "bosque dos namorados" quer a entrada do parque.
+    const palavras = qNorm.split(/\s+/).filter(Boolean);
+    const lugaresDestaque = [];
     for (const local of estado.locaisNatal) {
       const textoLocal = window.BuzuUtils.normalizarTexto(
-        `${local.nome} ${local.bairro} ${local.cep}`
+        `${local.nome} ${local.bairro} ${local.cep || ''} ${(local.apelidos || []).join(' ')}`
       );
-      if (textoLocal.includes(qNorm)) {
-        resultados.push({
-          titulo: local.nome,
-          subtitulo: `${local.bairro} • CEP ${local.cep} (${local.tipo})`,
-          lat: local.lat,
-          lng: local.lng,
-          origem: 'Base Natal'
-        });
-      }
+      if (!palavras.every(p => textoLocal.includes(p))) continue;
+      const item = {
+        titulo: local.nome,
+        subtitulo: [local.tipo, local.bairro, local.cep ? `CEP ${local.cep}` : ''].filter(Boolean).join(' • '),
+        lat: local.lat,
+        lng: local.lng,
+        origem: 'Base Natal',
+        tipoLugar: 'lugar'
+      };
+      if (local.destaque) lugaresDestaque.push(item);
+      else resultados.push(item);
     }
 
-    return resultados;
+    return [...lugaresDestaque.slice(0, 3), ...resultados];
   }
 
   /**
@@ -814,6 +819,162 @@ window.BuzuDados = (function () {
     };
   }
 
+  // ---------------------------------------------------------------------------
+  // Busca de endereço online
+  // 1) Photon (OpenStreetMap, feito para "digitar e achar"): lugares, ruas e números de casa
+  // 2) ViaCEP quando a pessoa digita um CEP
+  // 3) Nominatim (OpenStreetMap) como reserva
+  // Os mapas abertos de Natal têm poucos números de casa: quando o número não existe no mapa,
+  // a sugestão aponta a rua e avisa que é aproximado — a pessoa ajusta o pino no mapa.
+  // ---------------------------------------------------------------------------
+  const BBOX_PHOTON = '-35.45,-6.05,-35.10,-5.60';
+
+  async function buscarJson(url, msTimeout = 4500) {
+    const controlador = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controlador ? setTimeout(() => controlador.abort(), msTimeout) : null;
+    try {
+      const res = await fetch(url, {
+        headers: { 'Accept-Language': 'pt-BR' },
+        signal: controlador ? controlador.signal : undefined
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (_e) {
+      return null; // sem internet ou serviço fora do ar: a base local continua funcionando
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  /** "Rua Tal, 123" / "Rua Tal 123" / "Rua Tal nº 123" → { rua: 'Rua Tal', numero: '123' } */
+  function separarNumeroDaCasa(texto) {
+    const m = /^(.*\D)[,\s]+(?:n[º°o.]?\s*)?(\d{1,5})\s*[a-zA-Z]?\s*$/.exec(String(texto || '').trim());
+    if (!m || m[1].trim().length < 3) return { rua: String(texto || '').trim(), numero: null };
+    return { rua: m[1].replace(/[,\s]+$/, '').trim(), numero: m[2] };
+  }
+
+  function descreverPhoton(f, numeroDigitado) {
+    const p = f.properties || {};
+    const bairro = p.district || p.locality || p.suburb || null;
+    const municipio = p.city || p.county || null;
+    const foraDeNatal = municipio && !/^natal\b/i.test(municipio);
+    const sufixoCidade = foraDeNatal ? ` — ${municipio}` : '';
+    const ehRua = p.osm_key === 'highway' || (p.type === 'street' && !p.housenumber);
+
+    if (ehRua) {
+      const aproximado = Boolean(numeroDigitado);
+      return {
+        titulo: `${p.name || p.street}${numeroDigitado ? `, ${numeroDigitado}` : ''}${sufixoCidade}`,
+        subtitulo: [bairro, aproximado ? 'número aproximado: confira o pino no mapa' : 'Rua'].filter(Boolean).join(' • '),
+        aproximado,
+        tipoLugar: 'rua',
+        chaveRua: `${p.name || p.street}|${bairro || ''}`
+      };
+    }
+    const endereco = p.street ? `${p.street}${p.housenumber ? `, ${p.housenumber}` : ''}` : null;
+    if (!p.name && endereco) {
+      return {
+        titulo: `${endereco}${sufixoCidade}`,
+        subtitulo: [bairro, municipio].filter(Boolean).join(' • '),
+        tipoLugar: 'endereco'
+      };
+    }
+    return {
+      titulo: `${p.name || endereco || 'Local'}${sufixoCidade}`,
+      subtitulo: [endereco, bairro].filter(Boolean).join(' • ') || municipio || '',
+      tipoLugar: 'lugar'
+    };
+  }
+
+  async function buscarNoPhoton(texto, numeroDigitado) {
+    const url =
+      `https://photon.komoot.io/api/?q=${encodeURIComponent(texto)}` +
+      `&lat=-5.80&lon=-35.21&limit=12&lang=default&bbox=${BBOX_PHOTON}`;
+    const json = await buscarJson(url);
+    if (!json || !Array.isArray(json.features)) return null;
+    const itens = [];
+    const ruasVistas = new Set();
+    for (const f of json.features) {
+      const p = f.properties || {};
+      // pontos de ônibus do OpenStreetMap e áreas enormes (o centro de um parque não serve) ficam de fora
+      if (p.osm_value === 'bus_stop' || p.osm_value === 'platform' || p.osm_key === 'boundary') continue;
+      const [lng, lat] = f.geometry?.coordinates || [];
+      if (typeof lat !== 'number' || !estaNaAreaDeAtendimento(lat, lng)) continue;
+      const d = descreverPhoton(f, numeroDigitado);
+      // a mesma rua vem em vários pedaços: um por bairro basta
+      if (d.chaveRua) {
+        if (ruasVistas.has(d.chaveRua)) continue;
+        ruasVistas.add(d.chaveRua);
+      }
+      const exato = Boolean(numeroDigitado) && String(p.housenumber || '') === numeroDigitado;
+      itens.push({ ...d, lat, lng, origem: 'OpenStreetMap', exato });
+    }
+    // número de casa encontrado de verdade vai para o topo
+    itens.sort((a, b) => Number(b.exato) - Number(a.exato));
+    return itens;
+  }
+
+  async function buscarPorCep(cep) {
+    const dadosCep = await buscarJson(`https://viacep.com.br/ws/${cep}/json/`);
+    if (!dadosCep || dadosCep.erro) return [];
+    const rua = dadosCep.logradouro || '';
+    const bairro = dadosCep.bairro || '';
+    const cidade = dadosCep.localidade || 'Natal';
+    const achados = (await buscarNoPhoton([rua, bairro, cidade].filter(Boolean).join(', '), null)) || [];
+    const cepFormatado = `${cep.slice(0, 5)}-${cep.slice(5)}`;
+    return achados.slice(0, 2).map(r => ({
+      ...r,
+      titulo: rua ? `${rua}${bairro ? ` — ${bairro}` : ''}` : r.titulo,
+      subtitulo: `CEP ${cepFormatado} • confira o pino no mapa`,
+      aproximado: true
+    }));
+  }
+
+  async function buscarNoNominatim(texto, vistos) {
+    const variantes = [
+      { q: texto, extra: `&viewbox=${VIEWBOX_METROPOLITANA}&bounded=1` },
+      // o Nominatim às vezes só acha a rua quando a cidade está no texto
+      { q: `${texto}, Natal`, extra: `&viewbox=${VIEWBOX_METROPOLITANA}&bounded=0` }
+    ];
+    const itens = [];
+    let respondeu = false;
+    for (const v of variantes) {
+      if (itens.length >= 3) break;
+      const lista = await buscarJson(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=8&countrycodes=br&addressdetails=1${v.extra}&q=${encodeURIComponent(v.q)}`
+      );
+      if (!Array.isArray(lista)) continue;
+      respondeu = true;
+      for (const item of lista) {
+        const lat = parseFloat(item.lat);
+        const lng = parseFloat(item.lon);
+        const chave = `${lat.toFixed(3)}|${lng.toFixed(3)}`;
+        if (vistos.has(chave) || item.class === 'boundary' || !estaNaAreaDeAtendimento(lat, lng)) continue;
+        vistos.add(chave);
+        itens.push({ ...descreverEnderecoOsm(item), lat, lng, origem: 'OpenStreetMap' });
+      }
+    }
+    return { itens, respondeu };
+  }
+
+  /** Nome do lugar onde a pessoa soltou o pino no mapa ("Rua Tal, 123 — Bairro") */
+  async function descreverPontoNoMapa(lat, lng) {
+    const json = await buscarJson(`https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}&limit=6&radius=0.3&lang=default`, 3500);
+    const candidatos = (json?.features || []).map(f => f.properties || {});
+    // prefere endereço com rua ou uma rua de carro (não ciclovia, calçada ou trilha)
+    const RUAS = /^(residential|primary|secondary|tertiary|unclassified|living_street|trunk|service|pedestrian)$/;
+    const p =
+      candidatos.find(c => c.street && c.osm_key !== 'highway') ||
+      candidatos.find(c => c.osm_key === 'highway' && RUAS.test(c.osm_value)) ||
+      candidatos.find(c => c.osm_key !== 'highway') ||
+      null;
+    if (!p) return 'Ponto marcado no mapa';
+    const rua = p.street ? `${p.street}${p.housenumber ? `, ${p.housenumber}` : ''}` : p.osm_key === 'highway' ? p.name : null;
+    const bairro = p.district || p.locality || p.suburb || null;
+    if (rua) return `${rua}${bairro ? ` — ${bairro}` : ''}`;
+    return p.name ? `Perto de ${p.name}` : 'Ponto marcado no mapa';
+  }
+
   async function buscarSugestoesEndereco(consulta) {
     const qNorm = window.BuzuUtils.normalizarTexto(consulta);
     if (!qNorm || qNorm.length < 2) return [];
@@ -822,55 +983,49 @@ window.BuzuDados = (function () {
       return cacheSugestoesEndereco.get(qNorm);
     }
 
-    const resultados = buscarSugestoesEnderecoLocal(consulta);
+    const locais = buscarSugestoesEnderecoLocal(consulta);
+    const texto = consulta.trim();
+    let consultaOnlineOk = texto.length < 3;
+    const online = [];
 
-    // 3. Complementa com o geocodificador público do OpenStreetMap (Nominatim) em toda a região
-    // metropolitana — inclui bairros de divisa de São Gonçalo do Amarante, Parnamirim, Macaíba e
-    // Extremoz. Só entram endereços dentro da área de atendimento (perto de alguma parada atendida).
-    let consultaOnlineOk = consulta.trim().length < 3;
-    if (consulta.trim().length >= 3) {
-      const texto = consulta.trim();
-      const variantes = [
-        { q: texto, extra: `&viewbox=${VIEWBOX_METROPOLITANA}&bounded=1` },
-        // o Nominatim às vezes só acha a rua quando a cidade está no texto
-        { q: `${texto}, Natal`, extra: `&viewbox=${VIEWBOX_METROPOLITANA}&bounded=0` }
-      ];
-      const vistos = new Set(resultados.map(r => `${r.lat.toFixed(4)}|${r.lng.toFixed(4)}`));
-      let encontrados = 0;
-      for (const v of variantes) {
-        if (encontrados >= 3) break;
-        let timerAbort = null;
-        let itensOsm = [];
-        try {
-          const url = `https://nominatim.openstreetmap.org/search?format=json&limit=8&countrycodes=br&addressdetails=1${v.extra}&q=${encodeURIComponent(v.q)}`;
-          const controlador = typeof AbortController !== 'undefined' ? new AbortController() : null;
-          if (controlador) timerAbort = setTimeout(() => controlador.abort(), 4000);
-          const res = await fetch(url, {
-            headers: { 'Accept-Language': 'pt-BR' },
-            signal: controlador ? controlador.signal : undefined
-          });
-          if (!res.ok) continue;
-          itensOsm = await res.json();
+    if (texto.length >= 3) {
+      const soDigitos = texto.replace(/\D/g, '');
+      if (/^\d{5}-?\d{3}$/.test(texto) && soDigitos.length === 8) {
+        online.push(...(await buscarPorCep(soDigitos)));
+        consultaOnlineOk = true;
+      } else {
+        const { numero } = separarNumeroDaCasa(texto);
+        const photon = await buscarNoPhoton(texto, numero);
+        if (photon) {
           consultaOnlineOk = true;
-        } catch (_e) {
-          // Se 3G falhar ou offline, os resultados locais continuam funcionando
-          continue;
-        } finally {
-          if (timerAbort) clearTimeout(timerAbort);
+          online.push(...photon);
         }
-        for (const item of itensOsm) {
-          const lat = parseFloat(item.lat);
-          const lng = parseFloat(item.lon);
-          const chave = `${lat.toFixed(4)}|${lng.toFixed(4)}`;
-          if (vistos.has(chave) || !estaNaAreaDeAtendimento(lat, lng)) continue;
-          vistos.add(chave);
-          encontrados++;
-          resultados.push({ ...descreverEnderecoOsm(item), lat, lng, origem: 'OpenStreetMap' });
+        if (!photon || photon.length < 2) {
+          const vistos = new Set([...locais, ...online].map(r => `${r.lat.toFixed(3)}|${r.lng.toFixed(3)}`));
+          const { itens, respondeu } = await buscarNoNominatim(texto, vistos);
+          if (respondeu) consultaOnlineOk = true;
+          online.push(...itens);
         }
       }
     }
 
-    const resultadoFinal = resultados.slice(0, 7);
+    // Ordem: lugares conhecidos da base local, endereços/lugares online, depois paradas e bairros locais
+    const destaque = locais.filter(r => r.tipoLugar === 'lugar').slice(0, 3);
+    const restoLocal = locais.filter(r => !destaque.includes(r));
+    const vistos = new Set();
+    // o mesmo lugar vindo do mapa aberto (a menos de 150 m de um lugar conhecido) não se repete
+    const onlineSemRepetir = online.filter(
+      r => !destaque.some(d => window.BuzuUtils.calcularDistanciaGeodesica(d.lat, d.lng, r.lat, r.lng) < 150)
+    );
+    const resultadoFinal = [...destaque, ...onlineSemRepetir.slice(0, 5), ...restoLocal]
+      .filter(r => {
+        const chave = `${window.BuzuUtils.normalizarTexto(r.titulo)}|${r.lat.toFixed(3)}|${r.lng.toFixed(3)}`;
+        if (vistos.has(chave)) return false;
+        vistos.add(chave);
+        return true;
+      })
+      .slice(0, 8);
+
     // só guarda em cache quando a consulta online respondeu (falha de rede não vira "sem resultado")
     if (consultaOnlineOk || resultadoFinal.length > 0) cacheSugestoesEndereco.set(qNorm, resultadoFinal);
 
@@ -3601,6 +3756,7 @@ window.BuzuDados = (function () {
     buscarParadasMaisProximas,
     buscarSugestoesEndereco,
     buscarSugestoesEnderecoLocal,
+    descreverPontoNoMapa,
     calcularLinhasViagem,
     estaNaAreaDeAtendimento,
     montarEtapasViagem,

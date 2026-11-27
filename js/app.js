@@ -25,7 +25,7 @@
     adminDesbloqueado: false,
     indiceTecladoEndereco: -1,
     indiceTecladoLinha: -1,
-    abaBusca: 'linha',
+    abaBusca: 'endereco',
     origemViagem: null,
     destinoViagem: null,
     viagemAtiva: null,
@@ -63,6 +63,9 @@
         }
         ajustarBottomSheetMobile('meio');
         window.location.hash = `#/linha/${encodeURIComponent(idLinha)}`;
+      },
+      aoMoverPontoViagem: (tipo, lat, lng) => {
+        void definirPontoViagemPeloMapa(tipo, lat, lng);
       },
       aoClicarParada: idParada => {
         ajustarBottomSheetMobile('meio');
@@ -376,6 +379,26 @@
       );
     }
 
+    if (alcaSheet) {
+      const alternar = () => {
+        const atual = document.getElementById('layout-principal')?.getAttribute('data-sheet') || 'meio';
+        ajustarBottomSheetMobile(atual === 'cheio' ? 'minimo' : atual === 'minimo' ? 'meio' : 'cheio');
+      };
+      alcaSheet.addEventListener('click', alternar);
+      alcaSheet.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          alternar();
+        }
+      });
+    }
+
+    // No celular, ao digitar nos campos de busca o painel ocupa a tela (o teclado cobre o resto)
+    document.getElementById('painel-controle')?.addEventListener('focusin', e => {
+      if (window.innerWidth >= 960) return;
+      if (e.target.matches('input[type="search"], input[type="time"]')) ajustarBottomSheetMobile('cheio');
+    });
+
     // Botão de recolher/expandir a legenda do mapa no celular
     const btnLegenda = document.getElementById('btn-toggle-legenda');
     const caixaLegenda = document.getElementById('legenda-mapa');
@@ -411,10 +434,20 @@
     const painelLinha = document.getElementById('painel-busca-linha');
     const painelEndereco = document.getElementById('painel-busca-endereco');
 
-    function ativar(nome) {
+    function ativar(nome, opcoesAtivar = {}) {
       const ehLinha = nome === 'linha';
       if (estadoUI.abaBusca !== (ehLinha ? 'linha' : 'endereco')) registrarEvento('aba', ehLinha ? 'itinerarios' : 'como_chegar');
       estadoUI.abaBusca = ehLinha ? 'linha' : 'endereco';
+      document.getElementById('layout-principal')?.setAttribute('data-aba', estadoUI.abaBusca);
+      if (opcoesAtivar.inicial) {
+        abaLinha?.classList.toggle('active', ehLinha);
+        abaLinha?.setAttribute('aria-selected', String(ehLinha));
+        abaEndereco?.classList.toggle('active', !ehLinha);
+        abaEndereco?.setAttribute('aria-selected', String(!ehLinha));
+        if (painelLinha) painelLinha.hidden = !ehLinha;
+        if (painelEndereco) painelEndereco.hidden = ehLinha;
+        return;
+      }
 
       if (abaLinha) {
         abaLinha.classList.toggle('ativa', ehLinha);
@@ -447,13 +480,20 @@
         renderizarResultadoViagem();
       }
 
-      if (!ehLinha) {
+      // Ao trocar de aba a busca e a lista ficam à vista (no celular o painel sobe)
+      ajustarBottomSheetMobile('meio');
+      if (!ehLinha && window.innerWidth >= 960) {
         setTimeout(() => document.getElementById('input-origem-viagem')?.focus(), 60);
       }
     }
 
     abaLinha?.addEventListener('click', () => ativar('linha'));
     abaEndereco?.addEventListener('click', () => ativar('endereco'));
+
+    // Aba inicial: "Como chegar"; um link direto para uma linha abre em "Linhas"
+    const abaInicial = /^#\/linha(s|\/)/.test(window.location.hash || '') ? 'linha' : 'endereco';
+    estadoUI.abaBusca = abaInicial;
+    ativar(abaInicial, { inicial: true });
   }
 
   function configurarAutocompleteViagem(input, lista, aoEscolher) {
@@ -471,7 +511,16 @@
       indice = -1;
     }
 
+    const tipoPonto = /origem/.test(input.id) ? 'origem' : 'destino';
+
     function escolher(idx) {
+      if (idx === sugestoes.length) {
+        // última opção da lista: marcar o ponto tocando no mapa
+        fechar();
+        input.blur();
+        escolherPontoViagemNoMapa(tipoPonto);
+        return;
+      }
       const sugestao = sugestoes[idx];
       if (!sugestao) return;
       input.value = sugestao.titulo;
@@ -479,21 +528,30 @@
       aoEscolher(sugestao);
     }
 
-    function renderizar() {
-      if (!sugestoes.length) {
-        fechar();
-        return;
-      }
+    const ICONES_SUGESTAO = { lugar: 'bi-geo-alt-fill', rua: 'bi-signpost-split', endereco: 'bi-geo-alt' };
 
-      lista.innerHTML = sugestoes
-        .map(
-          (s, idx) => `
-          <li class="item-autocomplete" role="option" tabindex="-1" data-idx="${idx}">
-            <strong>${window.BuzuUtils.escaparHtml(s.titulo)}</strong>
-            <span>${window.BuzuUtils.escaparHtml(s.subtitulo || '')}</span>
+    function renderizar() {
+      const esc = window.BuzuUtils.escaparHtml;
+      lista.innerHTML =
+        sugestoes
+          .map(
+            (s, idx) => `
+          <li class="item-autocomplete${s.aproximado ? ' item-autocomplete--aprox' : ''}" role="option" tabindex="-1" data-idx="${idx}">
+            <i class="bi ${ICONES_SUGESTAO[s.tipoLugar] || (s.origem === 'Parada atendida' ? 'bi-bus-front' : 'bi-geo-alt')}" aria-hidden="true"></i>
+            <span class="item-autocomplete__texto">
+              <strong>${esc(s.titulo)}</strong>
+              <span>${esc(s.subtitulo || '')}</span>
+            </span>
           </li>`
-        )
-        .join('');
+          )
+          .join('') +
+        `<li class="item-autocomplete item-autocomplete--mapa" role="option" tabindex="-1" data-idx="${sugestoes.length}">
+            <i class="bi bi-crosshair" aria-hidden="true"></i>
+            <span class="item-autocomplete__texto">
+              <strong>Marcar no mapa</strong>
+              <span>Não achou? Toque no lugar exato no mapa</span>
+            </span>
+          </li>`;
 
       lista.hidden = false;
       lista.querySelectorAll('.item-autocomplete').forEach(item => {
@@ -519,7 +577,7 @@
         sugestoes = completas;
         indice = -1;
         renderizar();
-      }, 200);
+      }, 350);
     });
 
     input.addEventListener('keydown', e => {
@@ -535,7 +593,7 @@
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (indice >= 0) escolher(indice);
-        else if (sugestoes.length > 0) escolher(0);
+        else if (sugestoes.length > 0 && !lista.hidden) escolher(0);
         else document.getElementById('btn-buscar-viagem')?.click();
       } else if (e.key === 'Escape') {
         fechar();
@@ -555,7 +613,52 @@
     };
   }
 
+  /**
+   * Ponto escolhido no mapa (tocando ou arrastando o pino A/B): vira a saída ou o destino,
+   * com o nome da rua quando o mapa aberto conhece, e as rotas são recalculadas.
+   */
+  async function definirPontoViagemPeloMapa(tipo, lat, lng) {
+    const input = document.getElementById(tipo === 'origem' ? 'input-origem-viagem' : 'input-destino-viagem');
+    const ponto = { lat, lng, rotulo: 'Ponto marcado no mapa' };
+    if (tipo === 'origem') estadoUI.origemViagem = ponto;
+    else estadoUI.destinoViagem = ponto;
+    if (input) input.value = 'Ponto marcado no mapa…';
+    window.BuzuMapa.definirPontosViagem(estadoUI.origemViagem, estadoUI.destinoViagem, null);
+
+    const rotulo = await window.BuzuDados.descreverPontoNoMapa(lat, lng);
+    ponto.rotulo = rotulo;
+    if (input) input.value = rotulo;
+
+    if (estadoUI.origemViagem && estadoUI.destinoViagem) {
+      await executarBuscaViagem();
+    } else {
+      window.BuzuMapa.definirPontosViagem(estadoUI.origemViagem, estadoUI.destinoViagem, null);
+      ajustarBottomSheetMobile('meio');
+      atualizarFeedbackViagem('', null);
+      document.getElementById(tipo === 'origem' ? 'input-destino-viagem' : 'input-origem-viagem')?.focus();
+    }
+  }
+
+  function escolherPontoViagemNoMapa(tipo) {
+    const aviso = document.getElementById('aviso-escolha-mapa');
+    const texto = document.getElementById('aviso-escolha-mapa-texto');
+    if (texto) texto.textContent = tipo === 'origem' ? 'Toque no mapa no ponto de saída' : 'Toque no mapa no seu destino';
+    if (aviso) aviso.hidden = false;
+    ajustarBottomSheetMobile('minimo');
+    window.BuzuMapa.escolherPontoNoMapa((lat, lng) => {
+      if (aviso) aviso.hidden = true;
+      void definirPontoViagemPeloMapa(tipo, lat, lng);
+    });
+  }
+
   function configurarBuscaViagem() {
+    document.getElementById('btn-cancelar-escolha-mapa')?.addEventListener('click', () => {
+      window.BuzuMapa.cancelarEscolhaPonto();
+      const aviso = document.getElementById('aviso-escolha-mapa');
+      if (aviso) aviso.hidden = true;
+      ajustarBottomSheetMobile('meio');
+    });
+
     const inputOrigem = document.getElementById('input-origem-viagem');
     const inputDestino = document.getElementById('input-destino-viagem');
     const listaOrigem = document.getElementById('lista-autocomplete-origem');
@@ -612,12 +715,12 @@
     });
 
     const autoOrigem = configurarAutocompleteViagem(inputOrigem, listaOrigem, sugestao => {
-      estadoUI.origemViagem = { lat: sugestao.lat, lng: sugestao.lng, rotulo: sugestao.titulo };
+      estadoUI.origemViagem = { lat: sugestao.lat, lng: sugestao.lng, rotulo: sugestao.titulo, aproximado: !!sugestao.aproximado };
       atualizarFeedbackViagem('', null);
     });
 
     const autoDestino = configurarAutocompleteViagem(inputDestino, listaDestino, sugestao => {
-      estadoUI.destinoViagem = { lat: sugestao.lat, lng: sugestao.lng, rotulo: sugestao.titulo };
+      estadoUI.destinoViagem = { lat: sugestao.lat, lng: sugestao.lng, rotulo: sugestao.titulo, aproximado: !!sugestao.aproximado };
       atualizarFeedbackViagem('', null);
     });
 
@@ -650,6 +753,14 @@
             rotulo: 'Minha localização atual'
           };
           if (inputOrigem) inputOrigem.value = 'Minha localização atual';
+          selecionarLocalizacao(latitude, longitude, 'Minha localização atual');
+          if (pos.coords.accuracy > 250) {
+            atualizarFeedbackViagem(
+              `Sua localização está com pouca precisão (cerca de ${Math.round(pos.coords.accuracy)} m). Confira o ponto de saída no mapa.`,
+              'alerta'
+            );
+            return;
+          }
 
           if (!window.BuzuDados.estaNaAreaDeAtendimento(latitude, longitude)) {
             atualizarFeedbackViagem(
@@ -657,12 +768,13 @@
               'alerta'
             );
           } else {
-            atualizarFeedbackViagem('Localização obtida com sucesso. Informe o destino (B).', 'sucesso');
+            atualizarFeedbackViagem('', null);
+            document.getElementById('input-destino-viagem')?.focus();
           }
         },
         () => {
           atualizarFeedbackViagem(
-            'Não foi possível obter a localização (permissão ou HTTPS). Digite a origem manualmente.',
+            'Sem permissão para usar sua localização. Você pode digitar o endereço de saída.',
             'erro'
           );
         },
@@ -742,7 +854,7 @@
     const sugestoes = await window.BuzuDados.buscarSugestoesEndereco(valor);
     if (!sugestoes.length) return null;
 
-    return { lat: sugestoes[0].lat, lng: sugestoes[0].lng, rotulo: sugestoes[0].titulo };
+    return { lat: sugestoes[0].lat, lng: sugestoes[0].lng, rotulo: sugestoes[0].titulo, aproximado: !!sugestoes[0].aproximado };
   }
 
   async function executarBuscaViagem(opcoes = {}) {
@@ -753,7 +865,7 @@
     if (!origem) {
       if (!opcoes.silencioso) {
         atualizarFeedbackViagem(
-          'Informe a origem (DE): endereço, bairro, terminal ou ponto de referência.',
+          'Diga de onde você sai: endereço, bairro, terminal ou um lugar conhecido.',
           'erro'
         );
         inputOrigem?.focus();
@@ -765,7 +877,7 @@
     if (!destino) {
       if (!opcoes.silencioso) {
         atualizarFeedbackViagem(
-          'Informe o destino (PARA): endereço, bairro, terminal ou ponto de referência.',
+          'Diga para onde você vai: endereço, bairro, terminal ou um lugar conhecido.',
           'erro'
         );
         inputDestino?.focus();
@@ -778,7 +890,7 @@
     if (inputOrigem) inputOrigem.value = origem.rotulo;
     if (inputDestino) inputDestino.value = destino.rotulo;
 
-    atualizarFeedbackViagem('Calculando as linhas que atendem este trajeto...', 'info');
+    atualizarFeedbackViagem('Procurando as melhores rotas…', 'info');
 
     const maxBaldeacoes = Number(
       document.getElementById('select-max-baldeacoes')?.value ?? 2
@@ -798,25 +910,34 @@
     estadoUI.viagemAtiva = { origem, destino, resultados, horario, madrugada };
     if (!opcoes.silencioso) registrarEvento('viagem');
     await selecionarTrajetoSugerido(0, { silencioso: opcoes.silencioso });
+    if (!opcoes.silencioso && resultados.length > 0) {
+      // mostra as rotas logo de cara (o formulário continua logo acima para editar)
+      const rolagem = document.querySelector('.painel__rolagem');
+      const secaoRotas = document.getElementById('secao-resultado-viagem');
+      if (rolagem && secaoRotas) {
+        const topo = secaoRotas.getBoundingClientRect().top - rolagem.getBoundingClientRect().top + rolagem.scrollTop - 8;
+        rolagem.scrollTo({ top: Math.max(0, topo), behavior: 'smooth' });
+      }
+    }
 
     if (!opcoes.silencioso) {
       if (resultados.length > 0) {
         atualizarFeedbackViagem('', null);
       } else if (madrugada) {
         atualizarFeedbackViagem(
-          `Às ${horario.texto} (madrugada) só circulam as linhas Corujão, e nenhuma delas atende este trajeto a até 1,2 km dos pontos informados. As linhas regulares voltam a partir das 04:00.`,
+          'Das 0h às 4h só circulam as linhas Corujão, e nenhuma atende esse trajeto. As linhas comuns voltam às 4h.',
           'alerta'
         );
       } else if (maxBaldeacoes < 2) {
         atualizarFeedbackViagem(
           maxBaldeacoes === 0
-            ? 'Nenhuma linha faz este trajeto sozinha (sem integração). Escolha "Melhor rota" em Integrações para ver as opções com integração.'
+            ? 'Nenhuma linha faz esse trajeto sozinha. Escolha “Melhor rota” para ver as opções com integração.'
             : 'Não há opção com até 1 integração para este trajeto. Escolha "Melhor rota" em Integrações para ver mais opções.',
           'alerta'
         );
       } else {
         atualizarFeedbackViagem(
-          'Não encontramos linhas com acesso a até 1,2 km dos pontos informados. Tente um terminal/bairro próximo ou selecione outro dia de operação.',
+          'Nenhuma linha passa a até 1,2 km da origem e do destino. Tente um ponto de referência mais perto de uma avenida.',
           'alerta'
         );
       }
@@ -870,9 +991,32 @@
     renderizarResultadoViagem();
     window.BuzuMapa.enquadrarPontosViagem(viagem.origem, viagem.destino, pontosTransferencia);
 
-    if (opcoes.focarMapaNoCelular && window.innerWidth <= 960) {
-      document.getElementById('mapa')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+    if (window.innerWidth < 960 && !opcoes.silencioso) ajustarBottomSheetMobile('meio');
+  }
+
+  // ---------- Pedaços visuais reaproveitados (letreiro e etiqueta colorida da linha) ----------
+  function corTextoSobre(hex) {
+    const n = String(hex || '').replace('#', '');
+    if (n.length < 6) return '#FFFFFF';
+    const [r, g, b] = [0, 2, 4].map(i => parseInt(n.slice(i, i + 2), 16) / 255);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.55 ? '#12355B' : '#FFFFFF';
+  }
+
+  function placaLinhaHtml(numero, cor, tamanho = 'p') {
+    const esc = window.BuzuUtils.escaparHtml;
+    return `<span class="placa placa--${tamanho}" style="--cor-linha:${esc(cor || '#FFC94A')}">${esc(numero)}</span>`;
+  }
+
+  function etiquetaLinhaHtml(numero, cor, href) {
+    const esc = window.BuzuUtils.escaparHtml;
+    const estilo = `--cor-linha:${esc(cor || '#12355B')};--cor-texto-linha:${corTextoSobre(cor || '#12355B')}`;
+    return href
+      ? `<a href="${esc(href)}" class="etiqueta-linha" style="${estilo}">${esc(numero)}</a>`
+      : `<span class="etiqueta-linha" style="${estilo}">${esc(numero)}</span>`;
+  }
+
+  function nomeParadaLimpo(nome) {
+    return String(nome || '').replace(/\s*\((IDA|VOLTA)\)\s*$/i, '').trim();
   }
 
   function renderizarResultadoViagem() {
@@ -881,9 +1025,16 @@
     const contador = document.getElementById('contador-viagem');
     const resumo = document.getElementById('resumo-viagem');
     const secaoLista = document.getElementById('secao-lista-linhas');
+    const secaoPerto = document.getElementById('secao-paradas-proximas');
     const viagem = estadoUI.viagemAtiva && estadoUI.abaBusca === 'endereco' ? estadoUI.viagemAtiva : null;
+    const esc = window.BuzuUtils.escaparHtml;
+    const dist = window.BuzuUtils.formatarDistancia;
 
     if (!secao || !lista) return;
+
+    if (secaoPerto) {
+      secaoPerto.hidden = !(estadoUI.abaBusca === 'endereco' && !viagem && estadoUI.localizacaoUsuario);
+    }
 
     if (!viagem) {
       secao.hidden = true;
@@ -897,7 +1048,7 @@
     const resultados = viagem.resultados || [];
 
     if (contador) {
-      contador.textContent = `${resultados.length} ${resultados.length === 1 ? 'OPÇÃO' : 'OPÇÕES'}`;
+      contador.textContent = `${resultados.length} ${resultados.length === 1 ? 'opção' : 'opções'}`;
     }
 
     if (resumo) {
@@ -910,18 +1061,20 @@
 
       resumo.hidden = false;
       resumo.innerHTML =
-        `<strong>A:</strong> ${window.BuzuUtils.escaparHtml(viagem.origem.rotulo)} → ` +
-        `<strong>B:</strong> ${window.BuzuUtils.escaparHtml(viagem.destino.rotulo)}<br>` +
-        `Operação: ${window.BuzuUtils.escaparHtml(diaRotulo)} • Horário: ${window.BuzuUtils.escaparHtml(
-          viagem.horario?.texto || '--:--'
-        )}${viagem.horario?.agora ? ' (agora, Brasília)' : ''} — ${
-          viagem.madrugada ? 'somente linhas Corujão' : 'linhas regulares (sem Corujão)'
-        }<br>` +
-        `<span class="nota-algoritmo">Priorizamos a parada mais perto de você e o menor número de integrações. Tempo estimado inclui caminhada, espera média no ponto e viagem.</span>` +
+        `<span class="resumo-viagem__trajeto">${esc(viagem.origem.rotulo)} → ${esc(viagem.destino.rotulo)}</span>` +
+        `<span>${esc(diaRotulo)} • saída ${esc(viagem.horario?.texto || '--:--')}${
+          viagem.horario?.agora ? ' (agora)' : ''
+        }${viagem.madrugada ? ' • madrugada: só linhas Corujão' : ''}</span>` +
+        (viagem.origem.aproximado || viagem.destino.aproximado
+          ? `<span class="alerta-edital">O número da casa não está no mapa aberto, então o ponto ${[
+              viagem.origem.aproximado && 'A (saída)',
+              viagem.destino.aproximado && 'B (destino)'
+            ]
+              .filter(Boolean)
+              .join(' e ')} é aproximado. Arraste o pino no mapa até o lugar exato e as rotas se atualizam.</span>`
+          : '') +
         `<button type="button" id="btn-ver-volta" class="btn-ver-volta">` +
-        `<i class="bi bi-arrow-left-right" aria-hidden="true"></i> Ver a volta: ${window.BuzuUtils.escaparHtml(
-          viagem.destino.rotulo
-        )} → ${window.BuzuUtils.escaparHtml(viagem.origem.rotulo)}</button>`;
+        `<i class="bi bi-arrow-left-right" aria-hidden="true"></i> Ver a volta</button>`;
       document.getElementById('btn-ver-volta')?.addEventListener('click', () => {
         document.getElementById('btn-inverter-viagem')?.click();
       });
@@ -929,220 +1082,157 @@
 
     if (resultados.length === 0) {
       lista.innerHTML = `
-        <li class="cartao-item">
-          Nenhuma linha atende aos dois pontos para o dia selecionado.
-          Tente buscar por um terminal ou bairro próximo, confira o dia de operação
-          ou use um ponto de referência mais próximo do traçado.
+        <li class="cartao">
+          Nenhuma rota encontrada para esse trajeto no dia escolhido. Tente um ponto de referência
+          mais perto de uma avenida, outro dia ou “Melhor rota” em Integrações.
         </li>`;
       return;
     }
 
     const SELOS = {
-      recomendada: ['bi-star-fill', 'Recomendada'],
-      menos_caminhada: ['bi-person-walking', 'Menos caminhada'],
-      menos_integracoes: ['bi-arrow-repeat', 'Menos integrações'],
-      mais_rapida: ['bi-lightning-charge-fill', 'Mais rápida']
+      recomendada: ['bi-star-fill', 'Recomendada', 'selo--sol'],
+      menos_caminhada: ['bi-person-walking', 'Menos caminhada', ''],
+      menos_integracoes: ['bi-arrow-repeat', 'Menos integrações', ''],
+      mais_rapida: ['bi-lightning-charge-fill', 'Mais rápida', '']
     };
-    const seloHtml = r =>
-      (r.selos || []).length
-        ? `<div class="selos-viagem">${r.selos
-            .filter(s => SELOS[s])
-            .map(s => `<span class="selo-viagem selo-viagem--${s}"><i class="bi ${SELOS[s][0]}" aria-hidden="true"></i> ${SELOS[s][1]}</span>`)
-            .join('')}</div>`
-        : '';
+    const selosHtml = r =>
+      (r.selos || [])
+        .filter(s => SELOS[s])
+        .map(s => `<span class="selo ${SELOS[s][2]}"><i class="bi ${SELOS[s][0]}" aria-hidden="true"></i>${SELOS[s][1]}</span>`)
+        .join('');
 
-    const passo = (letra, classe, fundo, titulo, descricao) => `
-      <div class="passo-viagem">
-        <span class="letra-passo ${classe}" ${fundo ? `style="background:${fundo};"` : ''}>${letra}</span>
-        <div class="passo-conteudo">
-          <strong>${titulo}</strong>
-          <span>${descricao}</span>
-        </div>
-      </div>`;
+    const minutosAPe = metros => Math.max(1, Math.round((metros || 0) / 75));
+
+    const passosHtml = r => {
+      const linhas = r.linhas || [];
+      const trechos =
+        Array.isArray(r.trechos) && r.trechos.length
+          ? r.trechos
+          : [
+              {
+                numero: linhas[0]?.numero,
+                sentido: linhas[0]?.sentido,
+                paradaDesembarqueNome: r.desembarque?.nome,
+                distanciaMetros: r.distanciaTrechoMetros
+              }
+            ];
+      const corDe = num => (linhas.find(l => l.numero === num) || {}).cor || '#12355B';
+      const passos = [];
+      const embarqueNome = nomeParadaLimpo(r.embarque?.nome) || 'a parada de embarque';
+      const peIni = r.acessoEmbarqueMetros || 0;
+      passos.push(
+        `<li class="passo"><span class="passo__marca" aria-hidden="true"></span><span class="passo__texto">${
+          peIni > 30
+            ? `Caminhe ${dist(peIni)} (${r.embarque?.tempoMinutos || minutosAPe(peIni)} min) até a parada <b>${esc(embarqueNome)}</b>.`
+            : `Vá até a parada <b>${esc(embarqueNome)}</b>.`
+        }</span></li>`
+      );
+
+      trechos.forEach((tr, i) => {
+        const cor = corDe(tr.numero);
+        const sentido = tr.sentido ? `, sentido ${esc(String(tr.sentido).toLowerCase())}` : '';
+        const segue = tr.sentidoDesembarque && tr.sentidoDesembarque !== tr.sentido
+          ? ` (o ônibus passa pelo retorno e segue no sentido ${esc(String(tr.sentidoDesembarque).toLowerCase())})`
+          : '';
+        const desce = nomeParadaLimpo(tr.paradaDesembarqueNome) || nomeParadaLimpo(r.desembarque?.nome) || 'a parada indicada';
+        if (i > 0) {
+          passos.push(
+            `<li class="passo passo--troca"><span class="passo__marca" aria-hidden="true"></span><span class="passo__texto">Integração em <b>${esc(
+              nomeParadaLimpo(trechos[i - 1].paradaDesembarqueNome) || 'ponto de integração'
+            )}</b>: desça e pegue a linha <b>${esc(tr.numero)}</b> no mesmo ponto ou bem perto.</span></li>`
+          );
+        }
+        passos.push(
+          `<li class="passo passo--onibus" style="--cor-linha:${esc(cor)}"><span class="passo__marca" aria-hidden="true"></span><span class="passo__texto">Pegue a linha <b>${esc(
+            tr.numero
+          )}</b>${sentido}${segue}.<span class="passo__detalhe">Desça em <b>${esc(desce)}</b> — cerca de ${dist(
+            tr.distanciaMetros || 0
+          )} de ônibus.</span></span></li>`
+        );
+      });
+
+      const peFim = r.acessoDesembarqueMetros || 0;
+      passos.push(
+        `<li class="passo passo--fim"><span class="passo__marca" aria-hidden="true"></span><span class="passo__texto">${
+          peFim > 30 ? `Caminhe ${dist(peFim)} até o destino.` : 'Você chegou ao destino.'
+        }</span></li>`
+      );
+      return `<ol class="passos">${passos.join('')}</ol>`;
+    };
 
     lista.innerHTML = resultados
       .map((r, idx) => {
         const linhas = r.linhas || [];
-        const badges = linhas
-          .map(l => {
-            const cor = window.BuzuUtils.escaparHtml(l.cor || '#0d63c9');
-            return `<span class="badge-numero-linha" style="background:${cor};">${window.BuzuUtils.escaparHtml(
-              l.numero
-            )}</span>`;
-          })
-          .join('<span class="seta-viagem" aria-hidden="true">→</span>');
+        const ehSelecionado = idx === estadoUI.indiceTrajetoEscolhido;
+        const numInteg = r.tipo === 'direta' ? 0 : r.numTransferencias || Math.max(1, linhas.length - 1);
+        const aPe = (r.acessoEmbarqueMetros || 0) + (r.acessoDesembarqueMetros || 0);
+        const resumoTxt = [
+          `${dist(aPe)} a pé`,
+          numInteg === 0 ? 'sem integração' : `${numInteg} ${numInteg === 1 ? 'integração' : 'integrações'}`
+        ].join(' • ');
+        const identLinhas = linhas
+          .map(l => (ehSelecionado ? placaLinhaHtml(l.numero, l.cor) : etiquetaLinhaHtml(l.numero, l.cor)))
+          .join('<span class="cartao-rota__mais" aria-hidden="true">+</span>');
+        const tempo = r.tempoEstimadoMin
+          ? `<span class="cartao-rota__tempo">${r.tempoEstimadoMin} <small>min</small></span>`
+          : '';
 
-        const nomesLinhas = linhas
-          .map(
-            l =>
-              `${window.BuzuUtils.escaparHtml(l.numero)} — ${window.BuzuUtils.escaparHtml(l.nome)}`
-          )
-          .join(' • ');
+        const separador =
+          idx === 1
+            ? `<li class="separador-opcoes" aria-hidden="true"><span>Outras opções</span><small>Com mais integrações ou um pouco mais demoradas. Toque em uma para ver no mapa.</small></li>`
+            : '';
 
-        const passos = [];
-
-        passos.push(
-          passo(
-            'A',
-            'letra-origem',
-            '',
-            `Caminhe até ${window.BuzuUtils.escaparHtml(r.embarque?.nome || 'o ponto de embarque')}`,
-            `${window.BuzuUtils.formatarDistancia(r.acessoEmbarqueMetros || 0)} • ~${
-              r.embarque?.tempoMinutos || 0
-            } min a pé`
-          )
-        );
-
-        if (r.tipo === 'transferencia') {
-          const trechos = r.trechos || [];
-          const listaTrans =
-            Array.isArray(r.transferencias) && r.transferencias.length > 0
-              ? r.transferencias
-              : r.transferencia
-              ? [r.transferencia]
-              : [];
-
-          trechos.forEach((tr, iTrecho) => {
-            const linhaInfo = linhas[iTrecho] || { numero: tr.numero, cor: '#0d63c9' };
-            const proxTrans = listaTrans[iTrecho];
-            const destinoTrechoNome = proxTrans
-              ? proxTrans.nome
-              : tr.paradaDesembarqueNome || r.desembarque?.nome || 'o ponto de desembarque';
-
-            passos.push(
-              passo(
-                window.BuzuUtils.escaparHtml(linhaInfo.numero || String(iTrecho + 1)),
-                'letra-linha',
-                window.BuzuUtils.escaparHtml(linhaInfo.cor || '#0d63c9'),
-                `Embarque na linha ${window.BuzuUtils.escaparHtml(linhaInfo.numero || '')}${
-                  // embarcou no terminal e o ônibus segue no outro sentido: mostra o sentido em que ele sai
-                  tr.sentidoDesembarque || tr.sentido
-                    ? ` (sentido ${window.BuzuUtils.escaparHtml(tr.sentidoDesembarque || tr.sentido)})`
-                    : ''
-                }`,
-                `Siga até ${window.BuzuUtils.escaparHtml(destinoTrechoNome)} (~${window.BuzuUtils.formatarDistancia(
-                  tr.distanciaMetros || 0
-                )})`
-              )
-            );
-
-            if (proxTrans && iTrecho < trechos.length - 1) {
-              passos.push(
-                passo(
-                  listaTrans.length > 1 ? `↻${iTrecho + 1}` : '↻',
-                  'letra-transferencia',
-                  '',
-                  `Integração ${listaTrans.length > 1 ? iTrecho + 1 : ''} em ${window.BuzuUtils.escaparHtml(
-                    proxTrans.nome || 'ponto de integração'
-                  )}`,
-                  'Desça e pegue a próxima linha no mesmo ponto ou bem perto (o tempo estimado já inclui a espera média)'
-                )
-              );
-            }
-          });
-        } else {
-          passos.push(
-            passo(
-              window.BuzuUtils.escaparHtml(linhas[0]?.numero || '1'),
-              'letra-linha',
-              window.BuzuUtils.escaparHtml(linhas[0]?.cor || '#0d63c9'),
-              `Siga na linha ${window.BuzuUtils.escaparHtml(linhas[0]?.numero || '')}`,
-              `Trecho de ~${window.BuzuUtils.formatarDistancia(
-                r.distanciaTrechoMetros || 0
-              )} no traçado proposto até ${window.BuzuUtils.escaparHtml(
-                r.desembarque?.nome || 'o destino'
-              )}`
-            )
-          );
+        if (!ehSelecionado) {
+          const troca = (r.transferencias || []).map(t => nomeParadaLimpo(t.nome)).filter(Boolean);
+          return `${separador}
+          <li class="cartao cartao-rota cartao-rota--compacto" data-card-trajeto="${idx}" role="button" tabindex="0" aria-pressed="false" aria-label="Ver esta rota no mapa: ${esc(
+            linhas.map(l => l.numero).join(' + ')
+          )}${r.tempoEstimadoMin ? `, cerca de ${r.tempoEstimadoMin} minutos` : ''}">
+            <div class="cartao-rota__topo">
+              <div class="cartao-rota__linhas">${identLinhas}${selosHtml(r)}</div>
+              ${tempo}
+            </div>
+            <span class="cartao-rota__resumo">${
+              troca.length ? `Troca em ${esc(troca.join(' e '))} • ` : ''
+            }${esc(resumoTxt)}</span>
+          </li>`;
         }
 
-        passos.push(
-          passo(
-            'B',
-            'letra-destino',
-            '',
-            `Desembarque em ${window.BuzuUtils.escaparHtml(
-              r.desembarque?.nome || 'o ponto mais próximo'
-            )}`,
-            `Caminhe ${window.BuzuUtils.formatarDistancia(
-              r.acessoDesembarqueMetros || 0
-            )} até o destino • ~${r.desembarque?.tempoMinutos || 0} min a pé`
-          )
-        );
-
-        const ehSelecionado = idx === estadoUI.indiceTrajetoEscolhido;
-
-        const btnEscolherTrajeto = `
-          <button
-            type="button"
-            class="${ehSelecionado ? 'btn-primario btn-trajeto-ativo' : 'btn-secundario'} btn-escolher-trajeto"
-            data-idx-trajeto="${idx}"
-            aria-pressed="${ehSelecionado}"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">${
-              ehSelecionado ? 'check_circle' : 'route'
-            }</span>
-            <span>${ehSelecionado ? 'Trajeto selecionado no mapa' : 'Escolher este trajeto'}</span>
-          </button>`;
-
-        const links = linhas
+        const linksLinhas = linhas
           .map(
             l =>
-              `<a href="#/linha/${encodeURIComponent(l.numero)}" class="btn-secundario" title="Abrir ficha completa da linha ${window.BuzuUtils.escaparHtml(
-                l.numero
-              )}">Detalhes ${window.BuzuUtils.escaparHtml(
+              `<a href="#/linha/${encodeURIComponent(l.numero)}" class="btn-secundario"><i class="bi bi-bus-front" aria-hidden="true"></i> Ver linha ${esc(
                 l.numero
               )}</a>`
           )
           .join('');
 
-        const separador =
-          idx === 1
-            ? `<li class="separador-opcoes" aria-hidden="true"><span>Outras opções (${resultados.length - 1})</span><small>Com mais integrações ou um pouco mais demoradas — escolha a que preferir</small></li>`
-            : '';
         return `${separador}
-          <li class="cartao-item ${ehSelecionado ? 'destacado cartao-trajeto-ativo' : ''}" data-card-trajeto="${idx}">
-            <div class="cabecalho-cartao">
-              <div>
-                ${seloHtml(r)}
-                <div class="linha-badges-viagem">${badges}</div>
-                <span class="badge-tipo" style="margin-top:6px;display:inline-block;">
-                  ${
-                    r.tipo === 'direta'
-                      ? 'Linha direta (sem integração)'
-                      : `${r.numTransferencias || Math.max(1, (r.linhas?.length || 2) - 1)} ${
-                          (r.numTransferencias || Math.max(1, (r.linhas?.length || 2) - 1)) === 1
-                            ? 'integração'
-                            : 'integrações'
-                        }`
-                  }
-                </span>
-              </div>
-              <span class="badge-distancia" title="Tempo estimado (caminhada + espera média + viagem) e distância total">
-                ${r.tempoEstimadoMin ? `~${r.tempoEstimadoMin} min • ` : ''}${window.BuzuUtils.formatarDistancia(r.totalMetros || 0)}${
-          (r.acessoEmbarqueMetros || 0) + (r.acessoDesembarqueMetros || 0) > 0
-            ? ` • ${window.BuzuUtils.formatarDistancia((r.acessoEmbarqueMetros || 0) + (r.acessoDesembarqueMetros || 0))} a pé`
-            : ''
-        }
-              </span>
+          <li class="cartao cartao-rota cartao-rota--ativo" data-card-trajeto="${idx}" aria-current="true">
+            <div class="cartao-rota__topo">
+              <div class="cartao-rota__linhas">${identLinhas}${selosHtml(r)}</div>
+              ${tempo}
             </div>
-            <p style="margin:6px 0 0 0;font-size:0.9rem;font-weight:700;">
-              ${nomesLinhas}
-            </p>
-            <div class="viagem-passos">${passos.join('')}</div>
-            <div class="acoes-cartao">
-              ${btnEscolherTrajeto}
-              ${links}
-            </div>
+            <span class="cartao-rota__resumo">${esc(resumoTxt)} • ${linhas.length} ${linhas.length === 1 ? 'linha' : 'linhas'}</span>
+            ${passosHtml(r)}
+            <div class="ao-vivo"><span>Próximo ${esc(linhas[0]?.numero || 'ônibus')}</span><span><i class="bi bi-broadcast" aria-hidden="true"></i> ao vivo em breve</span></div>
+            <div class="acoes-cartao">${linksLinhas}</div>
           </li>`;
       })
-      .join('');
+      .join('') +
+      `<li class="nota-algoritmo">O tempo estimado soma a caminhada, a espera média no ponto e a viagem. A espera usa o intervalo previsto no edital para cada linha. Damos preferência à parada mais perto de você e ao menor número de integrações.</li>`;
 
-    // Eventos dos botões "Escolher este trajeto"
-    lista.querySelectorAll('.btn-escolher-trajeto').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = Number(btn.getAttribute('data-idx-trajeto'));
+    lista.querySelectorAll('[data-card-trajeto][role="button"]').forEach(card => {
+      const escolher = () => {
+        const idx = Number(card.getAttribute('data-card-trajeto'));
         void selecionarTrajetoSugerido(idx, { focarMapaNoCelular: true });
+      };
+      card.addEventListener('click', escolher);
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          escolher();
+        }
       });
     });
   }
@@ -1396,57 +1486,34 @@
     secao.hidden = false;
 
     const loc = estadoUI.localizacaoUsuario;
-    if (subtitulo && loc) {
-      subtitulo.textContent = `Referência: ${loc.rotulo} • Caminhada estimada (distância geodésica × 1,3 a 4,5 km/h)`;
-    }
+    const esc = window.BuzuUtils.escaparHtml;
+    if (subtitulo && loc) subtitulo.textContent = `A partir de: ${loc.rotulo}`;
+    secao.hidden = estadoUI.abaBusca !== 'endereco' || !!estadoUI.viagemAtiva;
 
     if (estadoUI.paradasProximas.length === 0) {
-      lista.innerHTML = `<li class="cartao-item">Nenhuma parada localizada para o dia selecionado.</li>`;
+      lista.innerHTML = '<li class="cartao">Nenhuma parada perto para o dia escolhido.</li>';
       return;
     }
 
     lista.innerHTML = estadoUI.paradasProximas
-      .map(
-        (p, idx) => `
-        <li class="cartao-item ${idx === 0 ? 'destacado' : ''}">
-          <div class="cabecalho-cartao">
-            <div>
-              <span class="badge-tipo">${window.BuzuUtils.escaparHtml(p.tipo)}</span>
-              <span class="badge-tipo">${window.BuzuUtils.escaparHtml(p.dia_rotulo)}</span>
-              <h3 style="margin:6px 0 0 0;font-size:1rem;font-weight:800;">
-                ${idx + 1}. ${window.BuzuUtils.escaparHtml(p.nome)}
-              </h3>
-            </div>
-            <span class="badge-distancia" title="Distância e tempo estimado a pé">
-              ${window.BuzuUtils.formatarDistancia(p.distanciaPeMetros)} (~${p.tempoMinutos} min a pé)
-            </span>
+      .slice(0, 4)
+      .map(p => {
+        const linhasParada = window.BuzuDados.obterLinhasDaParadaNoDia(p.id, estadoUI.diaSemana);
+        const etiquetas = linhasParada
+          .map(num => {
+            const l = window.BuzuDados.obterLinhaPorId(num, estadoUI.diaSemana);
+            return etiquetaLinhaHtml(num, l?.cor, `#/linha/${encodeURIComponent(num)}`);
+          })
+          .join('');
+        return `
+        <li class="cartao cartao-parada">
+          <div class="cartao-parada__topo">
+            <a href="#/parada/${encodeURIComponent(p.id)}" class="cartao-parada__nome">${esc(p.nome)}</a>
+            <span class="cartao-parada__dist">${window.BuzuUtils.formatarDistancia(p.distanciaPeMetros)}<small>~${p.tempoMinutos} min a pé</small></span>
           </div>
-          <div class="metadados-item">
-            <span><strong>Sentido:</strong> ${window.BuzuUtils.escaparHtml(p.textoSentido)}</span>
-            <span>| <strong>Acessível:</strong> ${p.acessivel === 'sim' ? 'Sim' : 'Consultar edital'}</span>
-          </div>
-          <div style="margin-top:8px;font-size:0.88rem;">
-            <strong>Linhas propostas que passam aqui:</strong>
-            ${window.BuzuDados.obterLinhasDaParadaNoDia(p.id, estadoUI.diaSemana)
-              .map(
-                r =>
-                  `<a href="#/linha/${encodeURIComponent(
-                    r
-                  )}" class="badge-numero-linha" style="text-decoration:none;margin-left:6px;padding:2px 8px;font-size:0.85rem;">${window.BuzuUtils.escaparHtml(
-                    r
-                  )}</a>`
-              )
-              .join('')}
-          </div>
-          <div class="acoes-cartao">
-            <a href="#/parada/${encodeURIComponent(p.id)}" class="btn-secundario">
-              <span class="material-symbols-outlined" aria-hidden="true">place</span>
-              Selecionar ponto e ver conexões
-            </a>
-          </div>
-        </li>
-      `
-      )
+          ${etiquetas ? `<div class="cartao-parada__linhas" aria-label="Linhas que passam aqui">${etiquetas}</div>` : ''}
+        </li>`;
+      })
       .join('');
   }
 
@@ -1532,7 +1599,7 @@
       redeAtualGeoJson: estadoDados.redeAtualGeoJson,
       mostrarSentido: modoViagem,
       // filtro Ida/Volta no canto do mapa: só na aba "Itinerários"
-      filtroSentido: estadoUI.abaBusca === 'linha'
+      filtroSentido: !modoViagem
     });
 
     const linhasComTracadoNoDia = new Set();
@@ -1612,6 +1679,22 @@
     if (valorAtual) {
       sel.value = valorAtual;
     }
+  }
+
+  /** "Linha de Bairro (B)", "Linha Estrutural (E)"… a partir do número da linha */
+  function categoriaComLetra(linha) {
+    const num = String(linha.numero || '').toUpperCase();
+    const letra = /^[BEDRC]\d/.test(num) ? num[0] : '';
+    const nomes = { B: 'Linha de Bairro', E: 'Linha Estrutural', D: 'Linha Direta', R: 'Linha Regional', C: 'Corujão' };
+    if (letra) return `${nomes[letra]} (${letra})`;
+    if (linha.tipo === 'atual' || /^(N|O|L)-|^58[57]$/.test(num)) return 'Linha atual mantida';
+    return linha.categoria_edital || linha.tipo || 'Linha';
+  }
+
+  function regiaoDaLinha(linha, curta = false) {
+    if (String(linha.lote) === '1') return curta ? 'Zona Norte' : 'Zona Norte — Lote 1';
+    if (String(linha.lote) === '2') return curta ? 'Sul, Leste e Oeste' : 'Sul, Leste e Oeste — Lote 2';
+    return '—';
   }
 
   function formatarNumero(valor) {
@@ -1713,76 +1796,31 @@
     }
 
     if (contadorEl) {
-      contadorEl.textContent = `${linhas.length} ${linhas.length === 1 ? 'LINHA' : 'LINHAS'}`;
+      contadorEl.textContent = `${linhas.length} ${linhas.length === 1 ? 'linha' : 'linhas'}`;
     }
 
     if (linhas.length === 0) {
       listaEl.innerHTML = `
-        <li class="cartao-item">
-          Nenhuma linha localizada para os critérios selecionados.
-        </li>
+        <li class="cartao">Nenhuma linha encontrada com esses filtros.</li>
       `;
       return;
     }
 
-    const montarHtmlCartao = linha => {
-      const varUtil = linha.variantes_dia?.dias_uteis_sabados;
-      const varDom = linha.variantes_dia?.domingos_feriados;
-      const temVariacaoDomingo =
-        varUtil &&
-        varDom &&
-        (varUtil.nome !== varDom.nome || varUtil.extensao_km !== varDom.extensao_km);
-
-      return `
-        <li class="cartao-item">
-          <div class="cabecalho-cartao">
-            <div style="display:flex;align-items:flex-start;gap:10px;">
-              <span class="badge-numero-linha" style="background:${window.BuzuUtils.escaparHtml(
-                linha.cor || '#172554'
-              )};">
-                ${window.BuzuUtils.escaparHtml(linha.numero)}
+    const montarHtmlCartao = linha => `
+        <li>
+          <a href="#/linha/${encodeURIComponent(linha.numero)}" class="cartao cartao-linha">
+            ${placaLinhaHtml(linha.numero, linha.cor)}
+            <span class="cartao-linha__texto">
+              <span class="cartao-linha__nome">${window.BuzuUtils.escaparHtml(linha.nome)}</span>
+              <span class="cartao-linha__meta">
+                <span>${window.BuzuUtils.escaparHtml(categoriaComLetra(linha))}</span>
+                <span>${window.BuzuUtils.escaparHtml(regiaoDaLinha(linha, true))}</span>
+                ${badgeSituacaoRota(linha)}
               </span>
-              <div>
-                <strong style="font-size:0.98rem;display:block;font-weight:700;">
-                  ${window.BuzuUtils.escaparHtml(linha.nome)}
-                </strong>
-                <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">
-                  <span class="badge-tipo">${window.BuzuUtils.escaparHtml(
-                    linha.categoria_edital || linha.tipo
-                  )}</span>
-                  <span class="badge-tipo">Lote ${window.BuzuUtils.escaparHtml(linha.lote)}</span>
-                  ${badgeSituacaoRota(linha)}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="metadados-item">
-            <span><strong>Operação:</strong> ${window.BuzuUtils.escaparHtml(linha.dia_ativo_rotulo)}</span>
-            ${
-              linha.extensao_km
-                ? `<span>| <strong>Extensão:</strong> ${Number(linha.extensao_km).toLocaleString('pt-BR')} km</span>`
-                : ''
-            }
-          </div>
-
-          ${
-            temVariacaoDomingo
-              ? `<p style="margin:6px 0 0 0;font-size:0.8rem;color:#162652;font-weight:700;">
-                  Possui itinerário diferenciado entre Dias úteis/sábados e Domingos/feriados.
-                 </p>`
-              : ''
-          }
-
-          <div class="acoes-cartao">
-            <a href="#/linha/${encodeURIComponent(linha.numero)}" class="btn-primario">
-              <i class="bi bi-signpost-split"></i>
-              <span>Ver itinerário e dados da linha</span>
-            </a>
-          </div>
-        </li>
-      `;
-    };
+            </span>
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </a>
+        </li>`;
 
     // Renderização incremental / virtualizada em lotes de 20 itens para manter fluidez no celular
     const TAM_LOTE = 20;
@@ -1805,7 +1843,7 @@
         liSentinela.style.listStyle = 'none';
         liSentinela.style.textAlign = 'center';
         liSentinela.style.padding = '8px 0';
-        liSentinela.innerHTML = `<button type="button" class="btn-rumo-secondary">Mostrar mais linhas (${renderizados} de ${linhas.length})</button>`;
+        liSentinela.innerHTML = `<button type="button" class="btn-secundario">Mostrar mais linhas (${renderizados} de ${linhas.length})</button>`;
         liSentinela.querySelector('button')?.addEventListener('click', renderizarProximoLote);
         listaEl.appendChild(liSentinela);
 
@@ -1837,6 +1875,10 @@
     const faixaItinerario = document.getElementById('faixa-itinerario-topo');
 
     const [caminhoHash, queryString] = hash.split('?');
+    document
+      .getElementById('layout-principal')
+      ?.setAttribute('data-vista', /^#\/(linha|parada)\//.test(caminhoHash) ? 'detalhe' : 'inicio');
+    document.getElementById('painel-controle')?.querySelector('.painel__rolagem')?.scrollTo(0, 0);
     if (queryString) {
       const params = new URLSearchParams(queryString);
       const diaParam = params.get('dia');
@@ -1905,9 +1947,7 @@
       if (faixaTopo) faixaTopo.hidden = true;
       container.innerHTML = `
         <div class="bloco-secao">
-          <a href="#/" class="btn-secundario" style="margin-bottom:12px;">
-            <i class="bi bi-arrow-left"></i> Voltar à consulta geral
-          </a>
+          <a href="#/" class="btn-secundario"><i class="bi bi-arrow-left" aria-hidden="true"></i> Voltar</a>
           <div class="alerta-erro">Linha "${window.BuzuUtils.escaparHtml(idLinha)}" não localizada.</div>
         </div>
       `;
@@ -1918,7 +1958,7 @@
     if (faixaTopo && faixaNum && faixaTexto) {
       faixaTopo.hidden = false;
       faixaNum.textContent = linha.numero;
-      faixaNum.style.backgroundColor = linha.cor || '#172554';
+      faixaNum.style.setProperty('--cor-linha', linha.cor || '#FFC94A');
       faixaTexto.textContent = linha.nome;
     }
 
@@ -1929,7 +1969,7 @@
     if (pillMapa && pillNum && pillNome) {
       pillMapa.hidden = false;
       pillNum.textContent = linha.numero;
-      pillNum.style.backgroundColor = linha.cor || '#162652';
+      pillNum.style.setProperty('--cor-linha', linha.cor || '#FFC94A');
       pillNome.textContent = linha.nome;
     }
 
@@ -2005,291 +2045,167 @@
         ? linha.itinerario_ruas.volta
         : extrairRuasDeVinculosFallback('VOLTA');
 
-    function montarLinhasTabela(modoSentido) {
-      const itens = modoSentido === 'VOLTA' ? ruasVolta : ruasIda;
+    const esc = window.BuzuUtils.escaparHtml;
+    const corLinha = linha.cor || '#12355B';
+    const empresaLinha = linha.empresa ? String(linha.empresa).trim() : '';
+    const vd = op?.viagens_dia || null;
 
-      if (!itens || itens.length === 0) {
-        return linha.situacao_rota === 'indefinida' || (linha.situacao_rota === 'parcial' && !linha.itinerario_ruas)
-          ? `<tr><td colspan="3" style="padding:12px;">Itinerário ainda não divulgado pela STTU${
-              linha.situacao_rota === 'parcial' ? ' para este dia' : ''
-            }.</td></tr>`
-          : `<tr><td colspan="3" style="padding:12px;">Consulte o traçado da linha no mapa ao lado.</td></tr>`;
+    // Funcionamento: dias úteis, sábado e domingo (une dias úteis e sábado quando os números são iguais)
+    const linhasFunc = [];
+    if (op) {
+      const dia = (rotulo, frota, intervalo, viagens) => ({ rotulo, frota, intervalo, viagens });
+      const du = dia('Dias úteis', op.frota_du, op.intervalo_du, vd?.du);
+      const sab = dia('Sábado', op.frota_sab, op.intervalo_sab, vd?.sab);
+      const dom = dia('Domingo e feriado', op.frota_dom, op.intervalo_dom, vd?.dom);
+      if (du.frota === sab.frota && du.intervalo === sab.intervalo && du.viagens === sab.viagens) {
+        linhasFunc.push({ ...du, rotulo: 'Dias úteis e sábado' }, dom);
+      } else {
+        linhasFunc.push(du, sab, dom);
       }
+    }
+    const celulaIntervalo = v => (v === null ? 'madrugada' : v ? `${Math.round(v)} <small>min</small>` : '—');
+    const tabelaFuncionamento = op
+      ? `
+        <table class="tabela-func">
+          <caption class="sr-only">Funcionamento da linha ${esc(linha.numero)} por dia</caption>
+          <thead>
+            <tr><th scope="col"><span class="sr-only">Dia</span></th><th scope="col">Ônibus em operação</th><th scope="col">Um ônibus a cada</th><th scope="col">Viagens no dia (ida e volta)</th></tr>
+          </thead>
+          <tbody>
+            ${linhasFunc
+              .map(f =>
+                !f.frota && !f.intervalo
+                  ? `<tr><th scope="row">${esc(f.rotulo)}</th><td colspan="3" class="nao-opera">Não opera</td></tr>`
+                  : `<tr><th scope="row">${esc(f.rotulo)}</th><td>${formatarNumero(f.frota)}</td><td>${celulaIntervalo(
+                      f.intervalo
+                    )}</td><td>${typeof f.viagens === 'number' ? formatarNumero(f.viagens) : '—'}</td></tr>`
+              )
+              .join('')}
+          </tbody>
+        </table>
+        <p class="nota-fonte">${
+          linha.tipo === 'noturna' ? 'Linha Corujão: viagens na madrugada, todos os dias. ' : ''
+        }Fonte: edital, Anexo I.3, Tabela 17. Nos dias úteis, os números são do horário de pico da manhã. Viagens no dia = quilômetros rodados no dia ÷ extensão de ida e volta.</p>`
+      : `
+        <table class="tabela-func">
+          <caption class="sr-only">Dias de funcionamento da linha ${esc(linha.numero)}</caption>
+          <tbody>
+            <tr><th scope="row">Dias úteis e sábado</th><td>${operaUtilSab ? 'Opera' : '<span class="nao-opera">Não opera</span>'}</td></tr>
+            <tr><th scope="row">Domingo e feriado</th><td>${operaDom ? 'Opera' : '<span class="nao-opera">Não opera</span>'}</td></tr>
+          </tbody>
+        </table>`;
 
+    function montarListaRuas(modoSentido) {
+      const itens = modoSentido === 'VOLTA' ? ruasVolta : ruasIda;
+      if (!itens || itens.length === 0) {
+        return `<li class="rua rua--vazia"><span class="rua__texto">${
+          linha.situacao_rota === 'indefinida' || (linha.situacao_rota === 'parcial' && !linha.itinerario_ruas)
+            ? `Itinerário ainda não divulgado pela STTU${linha.situacao_rota === 'parcial' ? ' para este dia' : ''}.`
+            : 'Veja o traçado da linha no mapa.'
+        }</span></li>`;
+      }
       return itens
         .map(
-          (it, idx) => `
-          <tr class="tr-parada-clicavel" data-lat="${it.lat}" data-lng="${it.lng}" title="Clique para focar este logradouro no mapa">
-            <td class="col-num">${it.ordem || idx + 1}</td>
-            <td class="col-logradouro">${window.BuzuUtils.escaparHtml(it.logradouro)}</td>
-            <td class="col-bairro">${window.BuzuUtils.escaparHtml(it.bairro || 'Natal')}</td>
-          </tr>
-        `
+          it => `
+          <li class="rua tr-parada-clicavel" data-lat="${it.lat}" data-lng="${it.lng}" tabindex="0" role="button" aria-label="Mostrar ${esc(it.logradouro)} no mapa">
+            <span class="rua__ponto" aria-hidden="true"></span>
+            <span class="rua__texto"><span class="rua__nome">${esc(it.logradouro)}</span><span class="rua__bairro">${esc(it.bairro || 'Natal')}</span></span>
+          </li>`
         )
         .join('');
     }
 
-    const sentidoInicial = 'IDA';
-    const tarifaCurta =
-      linha.tarifa && linha.tarifa.length <= 22 ? linha.tarifa : 'Sistema Natal';
-    const empresaLinha = linha.empresa ? String(linha.empresa).trim() : '';
-
     container.innerHTML = `
-      <div class="barra-acoes-detalhe-rumo">
-        <a href="#/" class="btn-rumo-voltar">
-          <i class="bi bi-arrow-left"></i>
-          <span>Todas as linhas</span>
-        </a>
-        <button type="button" id="btn-copiar-link-linha" class="btn-rumo-voltar" data-url="${window.BuzuUtils.escaparHtml(
-          urlCompartilhavel
-        )}">
-          <i class="bi bi-share"></i>
-          <span>Compartilhar linha</span>
-        </button>
-      </div>
-
-      ${avisoSituacaoRota(linha)}
-
-      <!-- Estrutura exata de 2 sub-colunas (.colunas-conteudo-linha) do /rumo/itinerarios/ -->
-      <div class="colunas-conteudo-linha">
-
-        <!-- SUB-COLUNA 1: DADOS DA LINHA + QUILOMETRAGEM -->
-        <div class="sub-coluna-1">
-          <div class="linha-informacoes-gerais">
-            <div class="coluna-informacao-gerais">
-              <div class="linha1-informacao-gerais">
-                <span class="icone-titulos"><i class="bi bi-file-earmark-text"></i></span>
-                <span class="titulo-informacao-gerais">DADOS DA LINHA</span>
-              </div>
-
-              <div class="container-interno-informacao-tempo-funcionamento">
-                <div class="linha2-informacao-gerais">
-                  <div class="coluna1-linha2-informacao-gerais">
-                    <div class="titulo-colunas-informacao-gerais">Lote</div>
-                  </div>
-                  <div class="coluna2-linha2-informacao-gerais">
-                    <div class="titulo-colunas-informacao-gerais">Categoria</div>
-                  </div>
-                  <div class="coluna3-linha2-informacao-gerais">
-                    <div class="titulo-colunas-informacao-gerais">Tarifa</div>
-                  </div>
-                </div>
-
-                <div class="linha3-informacao-gerais">
-                  <div class="coluna1-linha3-informacao-gerais">
-                    <div class="subtitulo-colunas-informacao-gerais">Lote ${window.BuzuUtils.escaparHtml(
-                      linha.lote
-                    )}</div>
-                  </div>
-                  <div class="coluna2-linha3-informacao-gerais">
-                    <div class="subtitulo-colunas-informacao-gerais">${window.BuzuUtils.escaparHtml(
-                      linha.categoria_edital || linha.tipo
-                    )}</div>
-                  </div>
-                  <div class="coluna3-linha3-informacao-gerais">
-                    <div class="subtitulo-colunas-informacao-gerais">${window.BuzuUtils.escaparHtml(
-                      tarifaCurta
-                    )}</div>
-                  </div>
-                </div>
-
-                <div class="linha-empresa-informacao-gerais">
-                  <span class="titulo-colunas-informacao-gerais">
-                    <i class="bi bi-building" aria-hidden="true"></i> Empresa operadora
-                  </span>
-                  <span class="subtitulo-colunas-informacao-gerais${
-                    empresaLinha ? '' : ' subtitulo-colunas-informacao-gerais--vazio'
-                  }">${empresaLinha ? window.BuzuUtils.escaparHtml(empresaLinha) : 'Não informada'}</span>
-                </div>
-
-                <button type="button" id="btn-expandir-dados-rumo" class="btn-expandir">
-                  <span>Mais informações</span>
-                  <i class="bi bi-chevron-down" id="icone-expandir-rumo"></i>
-                </button>
-
-                <div id="dados-extras-rumo" class="dados-extras">
-                  <div class="linha1-informacao-gerais" style="margin-top:4px;">
-                    <span class="icone-titulos"><i class="bi bi-speedometer2"></i></span>
-                    <span class="titulo-informacao-gerais" style="font-size:13px;">QUILOMETRAGEM E OPERAÇÃO</span>
-                  </div>
-
-                  <div class="container-interno-informacao-tempo-funcionamento">
-                    <div class="linha2-informacao-gerais">
-                      <div class="coluna1-linha2-informacao-gerais">
-                        <div class="titulo-colunas-informacao-gerais">Ida (est.)</div>
-                      </div>
-                      <div class="coluna2-linha2-informacao-gerais">
-                        <div class="titulo-colunas-informacao-gerais">Volta (est.)</div>
-                      </div>
-                      <div class="coluna3-linha2-informacao-gerais">
-                        <div class="titulo-colunas-informacao-gerais">Total</div>
-                      </div>
-                    </div>
-                    <div class="linha3-informacao-gerais">
-                      <div class="coluna1-linha3-informacao-gerais">
-                        <div class="subtitulo-colunas-informacao-gerais">${kmMeiaViagem} km</div>
-                      </div>
-                      <div class="coluna2-linha3-informacao-gerais">
-                        <div class="subtitulo-colunas-informacao-gerais">${kmMeiaViagem} km</div>
-                      </div>
-                      <div class="coluna3-linha3-informacao-gerais">
-                        <div class="subtitulo-colunas-informacao-gerais">${kmTotalFormatado} km</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="info-operacao-edital">
-                    ${
-                      op
-                        ? `
-                    <div><strong>Veículo:</strong> ${window.BuzuUtils.escaparHtml(op.veiculo || '-')}</div>
-                    <div><strong>Ônibus no pico (dias úteis):</strong> ${formatarNumero(op.frota_du)}</div>
-                    <div><strong>Tempo de uma volta completa:</strong> ${
-                      op.tempo_ciclo_min ? `${Math.round(op.tempo_ciclo_min)} min` : '-'
-                    }</div>
-                    <div><strong>Viagens por mês:</strong> ${formatarNumero(op.viagens_mes)}</div>`
-                        : ''
-                    }
-                    <div><strong>Frota acessível:</strong> ${
-                      linha.acessivel ? 'Sim (100% acessível)' : 'Consultar edital'
-                    }</div>
-                    ${op ? '<div class="fonte-edital">Fonte: edital da Concorrência nº 11.001/2026, Anexo I.3, Tabela 17.</div>' : ''}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div class="bloco" style="--cor-linha:${esc(corLinha)}">
+        <div class="barra-detalhe">
+          <a href="#/" class="btn-secundario"><i class="bi bi-arrow-left" aria-hidden="true"></i> Voltar</a>
+          <button type="button" id="btn-copiar-link-linha" class="btn-secundario" data-url="${esc(urlCompartilhavel)}">
+            <i class="bi bi-share" aria-hidden="true"></i> <span>Compartilhar</span>
+          </button>
         </div>
 
-        <!-- SUB-COLUNA 2: FUNCIONAMENTO (SEG-SEX / SÁB / DOM) + TABELA DE ITINERÁRIO POR RUAS -->
-        <div class="sub-coluna-2">
-          <div class="linha-tempo-funcionamento">
-            <div class="coluna-tempo-funcionamento">
-              <div class="linha1-tempo-funcionamento">
-                <span class="icone-titulos"><i class="bi bi-clock"></i></span>
-                <span class="titulo-tempo-funcionamento">FUNCIONAMENTO</span>
-              </div>
+        ${avisoSituacaoRota(linha)}
 
-              <div class="container-interno-informacao-tempo-funcionamento">
-                <div class="linha2-tempo-funcionamento">
-                  <div class="coluna1-linha2-tempo-funcionamento">
-                    <div class="titulo-colunas-tempo-funcionamento">Seg. a Sex.</div>
-                  </div>
-                  <div class="coluna2-linha2-tempo-funcionamento">
-                    <div class="titulo-colunas-tempo-funcionamento">Sábado</div>
-                  </div>
-                  <div class="coluna3-linha2-tempo-funcionamento">
-                    <div class="titulo-colunas-tempo-funcionamento">Dom. / Feriado</div>
-                  </div>
-                </div>
-
-                <div class="linha3-tempo-funcionamento">
-                  <div class="coluna1-linha3-tempo-funcionamento">
-                    ${celulaFuncionamento(op ? op.intervalo_du : undefined, operaUtilSab)}
-                  </div>
-                  <div class="coluna2-linha3-tempo-funcionamento">
-                    ${celulaFuncionamento(op ? op.intervalo_sab : undefined, operaUtilSab)}
-                  </div>
-                  <div class="coluna3-linha3-tempo-funcionamento">
-                    ${celulaFuncionamento(op ? op.intervalo_dom : undefined, operaDom)}
-                  </div>
-                </div>
-                ${
-                  op
-                    ? `<p class="nota-funcionamento">${
-                        linha.tipo === 'noturna'
-                          ? 'Linha Corujão: viagens na madrugada, todos os dias.'
-                          : 'Intervalo máximo entre ônibus no horário de pico, conforme o edital (Tabela 17).'
-                      }</p>`
-                    : ''
-                }
-              </div>
-            </div>
-          </div>
-
-          <!-- Tabela Zebrada de Itinerário por Logradouros / Ruas (.tabela-itinerario do RUMO) -->
-          <div class="linha-itinerario-partidas">
-            <div class="coluna-itinerario-partidas">
-              <div class="linha1-itinerario-partidas">
-                <div class="titulo-itinerario-partidas">
-                  <i class="bi bi-signpost-split"></i>
-                  <span>ITINERÁRIO</span>
-                </div>
-
-                <select id="itinerario-sentido-select" class="itinerario-select" aria-label="Selecionar sentido do itinerário">
-                  <option value="IDA" selected>Sentido IDA (${ruasIda.length} vias)</option>
-                  <option value="VOLTA">Sentido VOLTA (${ruasVolta.length} vias)</option>
-                </select>
-              </div>
-
-              <div class="tabela-wrapper">
-                <table class="tabela-itinerario">
-                  <thead>
-                    <tr>
-                      <th class="col-num">ORD</th>
-                      <th class="col-logradouro">LOGRADOURO</th>
-                      <th class="col-bairro">BAIRRO</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tbody-itinerario-rumo">
-                    ${montarLinhasTabela(sentidoInicial)}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+        <div class="ficha">
+          <div class="ficha__item"><span class="ficha__rotulo">Tarifa</span><span class="ficha__valor ficha__valor--grande">R$ 5,20</span></div>
+          <div class="ficha__item"><span class="ficha__rotulo">Tipo</span><span class="ficha__valor">${esc(categoriaComLetra(linha))}</span></div>
+          <div class="ficha__item"><span class="ficha__rotulo">Região</span><span class="ficha__valor">${esc(regiaoDaLinha(linha))}</span></div>
+          <div class="ficha__item"><span class="ficha__rotulo">Ônibus</span><span class="ficha__valor">${esc(op?.veiculo || '—')}</span></div>
+          <div class="ficha__item"><span class="ficha__rotulo">Extensão</span><span class="ficha__valor">${
+            kmTotal > 0 ? `${kmTotalFormatado} km <small>(ida e volta)</small>` : '—'
+          }</span></div>
+          <div class="ficha__item"><span class="ficha__rotulo">Empresa</span><span class="ficha__valor">${
+            empresaLinha ? esc(empresaLinha) : 'Ainda não definida'
+          }</span></div>
         </div>
 
+        <section class="bloco" aria-labelledby="titulo-funcionamento">
+          <h3 class="bloco__titulo" id="titulo-funcionamento">Funcionamento</h3>
+          ${tabelaFuncionamento}
+        </section>
+
+        <section class="itinerario" aria-labelledby="titulo-itinerario">
+          <div class="itinerario__topo">
+            <h3 class="bloco__titulo" id="titulo-itinerario">Itinerário</h3>
+            <div class="sentidos" role="group" aria-label="Sentido do itinerário">
+              <button type="button" data-sentido-itinerario="IDA" aria-pressed="true">Ida (${ruasIda.length})</button>
+              <button type="button" data-sentido-itinerario="VOLTA" aria-pressed="false">Volta (${ruasVolta.length})</button>
+            </div>
+          </div>
+          <ol class="ruas" id="tbody-itinerario-rumo">${montarListaRuas('IDA')}</ol>
+          <p class="nota-fonte">A ordem das paradas foi calculada a partir do traçado de cada sentido. Confira sempre a sinalização no ponto. Toque em uma rua para vê-la no mapa.</p>
+        </section>
       </div>
     `;
 
-    // Botão "Mais informações" (expande QUILOMETRAGEM igual ao RUMO)
-    const btnExpandir = document.getElementById('btn-expandir-dados-rumo');
-    const dadosExtras = document.getElementById('dados-extras-rumo');
-    const iconeExpandir = document.getElementById('icone-expandir-rumo');
-    btnExpandir?.addEventListener('click', () => {
-      if (!dadosExtras) return;
-      const aberto = dadosExtras.classList.toggle('aberto');
-      if (iconeExpandir) {
-        iconeExpandir.className = aberto ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
-      }
-    });
-
-    // Troca de sentido na tabela de itinerário (Ida / Volta / Principais)
-    const selectSentido = document.getElementById('itinerario-sentido-select');
-    const tbodyItinerario = document.getElementById('tbody-itinerario-rumo');
+    const listaRuas = document.getElementById('tbody-itinerario-rumo');
     function vincularCliquesTabela() {
-      tbodyItinerario?.querySelectorAll('.tr-parada-clicavel').forEach(tr => {
-        tr.addEventListener('click', () => {
-          const lat = Number(tr.getAttribute('data-lat'));
-          const lng = Number(tr.getAttribute('data-lng'));
-          const pid = tr.getAttribute('data-parada-id');
+      listaRuas?.querySelectorAll('.tr-parada-clicavel').forEach(item => {
+        const focar = () => {
+          const lat = Number(item.getAttribute('data-lat'));
+          const lng = Number(item.getAttribute('data-lng'));
           if (Number.isFinite(lat) && Number.isFinite(lng)) {
-            window.BuzuMapa.focarParada(lat, lng, pid);
-            if (window.innerWidth <= 960) {
-              document.getElementById('mapa')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            window.BuzuMapa.focarParada(lat, lng, item.getAttribute('data-parada-id'));
+            ajustarBottomSheetMobile('meio');
+          }
+        };
+        item.addEventListener('click', focar);
+        item.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            focar();
           }
         });
       });
     }
     vincularCliquesTabela();
 
-    selectSentido?.addEventListener('change', () => {
-      if (!tbodyItinerario) return;
-      tbodyItinerario.innerHTML = montarLinhasTabela(selectSentido.value);
-      vincularCliquesTabela();
+    container.querySelectorAll('[data-sentido-itinerario]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sentido = btn.getAttribute('data-sentido-itinerario');
+        container.querySelectorAll('[data-sentido-itinerario]').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+        if (listaRuas) listaRuas.innerHTML = montarListaRuas(sentido);
+        vincularCliquesTabela();
+      });
     });
 
     const btnCopiar = document.getElementById('btn-copiar-link-linha');
     btnCopiar?.addEventListener('click', async () => {
       const url = btnCopiar.getAttribute('data-url') || window.location.href;
+      registrarEvento('compartilhar');
+      if (navigator.share && window.matchMedia?.('(pointer: coarse)').matches) {
+        try {
+          await navigator.share({ title: `Linha ${linha.numero} — BuzuRota`, text: `Linha ${linha.numero}: ${linha.nome}`, url });
+          return;
+        } catch (_e) {
+          /* cancelado: tenta copiar */
+        }
+      }
       try {
         await navigator.clipboard.writeText(url);
-        registrarEvento('compartilhar');
-        btnCopiar.innerHTML = '<i class="bi bi-check2"></i> <span>Copiado!</span>';
+        btnCopiar.innerHTML = '<i class="bi bi-check2" aria-hidden="true"></i> <span>Link copiado</span>';
       } catch (_e) {
-        window.prompt('Copie o link direto desta linha:', url);
+        window.prompt('Copie o link desta linha:', url);
       }
     });
   }
@@ -2365,11 +2281,11 @@
             </label>
             <div class="acoes-cartao" style="margin-top:12px;">
               <button type="button" id="btn-salvar-edicao-parada" class="btn-primario">
-                <span class="material-symbols-outlined" aria-hidden="true">save</span>
+                <i class="bi bi-check2" aria-hidden="true"></i>
                 Salvar e Recalcular Grafo (40m)
               </button>
               <button type="button" id="btn-excluir-parada" class="btn-secundario" style="color:#b91c1c;border-color:#f3b4b4;">
-                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
                 Excluir Parada
               </button>
             </div>
@@ -2385,7 +2301,7 @@
     container.innerHTML = `
       <div class="bloco-secao">
         <a href="#/" class="btn-secundario" style="margin-bottom:12px;">
-          <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          <i class="bi bi-arrow-left" aria-hidden="true"></i>
           Voltar para busca e linhas
         </a>
 
@@ -2413,7 +2329,7 @@
 
         <h3 class="titulo-secao" style="margin-top:16px;">
           <span>Linhas propostas que atendem este ponto</span>
-          <span class="material-symbols-outlined" aria-hidden="true">directions_bus</span>
+          <i class="bi bi-bus-front" aria-hidden="true"></i>
         </h3>
         <ul class="lista-cartoes">
           ${(() => {
@@ -2449,7 +2365,7 @@
             ? `
               <h3 class="titulo-secao" style="margin-top:16px;">
                 <span>Conexões tarifárias previstas neste ponto</span>
-                <span class="material-symbols-outlined" aria-hidden="true">sync_alt</span>
+                <i class="bi bi-arrow-left-right" aria-hidden="true"></i>
               </h3>
               <ul class="lista-cartoes">
                 ${props.integracoes_descricao

@@ -177,7 +177,12 @@
         "frota_sab": 2,
         "frota_dom": 1,
         "viagens_mes": 960,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 32,
+          "sab": 40,
+          "dom": 24
+        }
       }
     },
     {
@@ -334,7 +339,12 @@
         "frota_sab": 2,
         "frota_dom": 1,
         "viagens_mes": 1334,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 49,
+          "sab": 40,
+          "dom": 24
+        }
       }
     },
     {
@@ -493,7 +503,12 @@
         "frota_sab": 3,
         "frota_dom": 2,
         "viagens_mes": 1048,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 36,
+          "sab": 40,
+          "dom": 24
+        }
       }
     },
     {
@@ -650,7 +665,12 @@
         "frota_sab": 3,
         "frota_dom": 2,
         "viagens_mes": 1048,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 36,
+          "sab": 40,
+          "dom": 24
+        }
       }
     },
     {
@@ -797,7 +817,12 @@
         "frota_sab": 2,
         "frota_dom": 1,
         "viagens_mes": 760,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 24,
+          "sab": 39,
+          "dom": 19
+        }
       }
     },
     {
@@ -993,7 +1018,12 @@
         "frota_sab": 3,
         "frota_dom": 2,
         "viagens_mes": 1048,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 36,
+          "sab": 40,
+          "dom": 24
+        }
       }
     },
     {
@@ -1494,7 +1524,12 @@
         "frota_sab": 3.36,
         "frota_dom": 2,
         "viagens_mes": 828,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 26,
+          "sab": 40,
+          "dom": 24
+        }
       }
     },
     {
@@ -1739,7 +1774,12 @@
         "frota_sab": 1,
         "frota_dom": 0,
         "viagens_mes": 1136,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 48,
+          "sab": 20,
+          "dom": 0
+        }
       }
     },
     {
@@ -1829,7 +1869,12 @@
         "frota_sab": 0,
         "frota_dom": 0,
         "viagens_mes": 1584,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 72,
+          "sab": 0,
+          "dom": 0
+        }
       }
     },
     {
@@ -1918,7 +1963,12 @@
         "frota_sab": 0,
         "frota_dom": 0,
         "viagens_mes": 1584,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 72,
+          "sab": 0,
+          "dom": 0
+        }
       }
     },
     {
@@ -2076,7 +2126,12 @@
         "frota_sab": 3,
         "frota_dom": 0,
         "viagens_mes": 996,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 40,
+          "sab": 29,
+          "dom": 0
+        }
       }
     },
     {
@@ -2284,7 +2339,12 @@
         "frota_sab": 5,
         "frota_dom": 0,
         "viagens_mes": 1262,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 51,
+          "sab": 35,
+          "dom": 0
+        }
       }
     },
     {
@@ -2605,7 +2665,12 @@
         "frota_sab": 5,
         "frota_dom": 3,
         "viagens_mes": 1366,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 51,
+          "sab": 35,
+          "dom": 26
+        }
       }
     },
     {
@@ -2990,7 +3055,12 @@
         "frota_sab": 10,
         "frota_dom": 4,
         "viagens_mes": 2452,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 90,
+          "sab": 66,
+          "dom": 52
+        }
       }
     },
     {
@@ -3286,7 +3356,12 @@
         "frota_sab": 2.52,
         "frota_dom": 2,
         "viagens_mes": 1292,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 48,
+          "sab": 30,
+          "dom": 29
+        }
       }
     },
     {
@@ -3498,7 +3573,12 @@
         "frota_sab": 3,
         "frota_dom": 3,
         "viagens_mes": 1621,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 60,
+          "sab": 53,
+          "dom": 23
+        }
       }
     },
     {
@@ -3720,7 +3800,12 @@
         "frota_sab": 3,
         "frota_dom": 3,
         "viagens_mes": 1621,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 60,
+          "sab": 53,
+          "dom": 23
+        }
       }
     },
     {
@@ -3947,7 +4032,12 @@
         "frota_sab": 2,
         "frota_dom": 3,
         "viagens_mes": 1402,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 51,
+          "sab": 35,
+          "dom": 35
+        }
       }
     },
     {
@@ -4173,7 +4263,12 @@
         "frota_sab": 3.11,
         "frota_dom": 2,
         "viagens_mes": 1388,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 52,
+          "sab": 37,
+          "dom": 24
+        }
       }
     },
     {
@@ -4375,7 +4470,12 @@
         "frota_sab": 2,
         "frota_dom": 2,
         "viagens_mes": 808,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 26,
+          "sab": 35,
+          "dom": 24
+        }
       }
     },
     {
@@ -4550,7 +4650,12 @@
         "frota_sab": 3,
         "frota_dom": 1,
         "viagens_mes": 2074,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 78,
+          "sab": 56,
+          "dom": 34
+        }
       }
     },
     {
@@ -4738,7 +4843,12 @@
         "frota_sab": 2,
         "frota_dom": 1,
         "viagens_mes": 1184,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 44,
+          "sab": 37,
+          "dom": 17
+        }
       }
     },
     {
@@ -4920,7 +5030,12 @@
         "frota_sab": 3.36,
         "frota_dom": 2,
         "viagens_mes": 1114,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 39,
+          "sab": 40,
+          "dom": 24
+        }
       }
     },
     {
@@ -5115,7 +5230,12 @@
         "frota_sab": 3,
         "frota_dom": 2,
         "viagens_mes": 836,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 26,
+          "sab": 40,
+          "dom": 26
+        }
       }
     },
     {
@@ -5309,7 +5429,12 @@
         "frota_sab": 2,
         "frota_dom": 2,
         "viagens_mes": 1114,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 39,
+          "sab": 40,
+          "dom": 24
+        }
       }
     },
     {
@@ -5464,7 +5589,12 @@
         "frota_sab": 2,
         "frota_dom": 2,
         "viagens_mes": 792,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 26,
+          "sab": 36,
+          "dom": 19
+        }
       }
     },
     {
@@ -5629,7 +5759,12 @@
         "frota_sab": 1,
         "frota_dom": 1,
         "viagens_mes": 1036,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 38,
+          "sab": 32,
+          "dom": 18
+        }
       }
     },
     {
@@ -5784,7 +5919,12 @@
         "frota_sab": 1,
         "frota_dom": 1,
         "viagens_mes": 1036,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 38,
+          "sab": 32,
+          "dom": 18
+        }
       }
     },
     {
@@ -5977,7 +6117,12 @@
         "frota_sab": 2,
         "frota_dom": 2,
         "viagens_mes": 1004,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 36,
+          "sab": 34,
+          "dom": 19
+        }
       }
     },
     {
@@ -6171,7 +6316,12 @@
         "frota_sab": 2,
         "frota_dom": 2,
         "viagens_mes": 1098,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 39,
+          "sab": 37,
+          "dom": 23
+        }
       }
     },
     {
@@ -6373,7 +6523,12 @@
         "frota_sab": 2,
         "frota_dom": 1,
         "viagens_mes": 884,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 30,
+          "sab": 37,
+          "dom": 19
+        }
       }
     },
     {
@@ -6545,7 +6700,12 @@
         "frota_sab": 2,
         "frota_dom": 1,
         "viagens_mes": 792,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 26,
+          "sab": 36,
+          "dom": 19
+        }
       }
     },
     {
@@ -6767,7 +6927,12 @@
         "frota_sab": 2,
         "frota_dom": 1,
         "viagens_mes": 1078,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 39,
+          "sab": 37,
+          "dom": 18
+        }
       }
     },
     {
@@ -6975,7 +7140,12 @@
         "frota_sab": 2,
         "frota_dom": 1,
         "viagens_mes": 1078,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 39,
+          "sab": 37,
+          "dom": 18
+        }
       }
     },
     {
@@ -7159,7 +7329,12 @@
         "frota_sab": 2.08,
         "frota_dom": 1,
         "viagens_mes": 1324,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 52,
+          "sab": 27,
+          "dom": 18
+        }
       }
     },
     {
@@ -7323,7 +7498,12 @@
         "frota_sab": 2,
         "frota_dom": 1,
         "viagens_mes": 792,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 26,
+          "sab": 37,
+          "dom": 18
+        }
       }
     },
     {
@@ -7497,7 +7677,12 @@
         "frota_sab": 2,
         "frota_dom": 2,
         "viagens_mes": 1084,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 38,
+          "sab": 37,
+          "dom": 25
+        }
       }
     },
     {
@@ -7702,7 +7887,12 @@
         "frota_sab": 3.03,
         "frota_dom": 2,
         "viagens_mes": 816,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 26,
+          "sab": 36,
+          "dom": 25
+        }
       }
     },
     {
@@ -8035,7 +8225,12 @@
         "frota_sab": 4,
         "frota_dom": 2,
         "viagens_mes": 868,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 30,
+          "sab": 35,
+          "dom": 17
+        }
       }
     },
     {
@@ -8227,7 +8422,12 @@
         "frota_sab": 4,
         "frota_dom": 0,
         "viagens_mes": 932,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 36,
+          "sab": 35,
+          "dom": 0
+        }
       }
     },
     {
@@ -8356,7 +8556,12 @@
         "frota_sab": 1,
         "frota_dom": 1,
         "viagens_mes": 752,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 26,
+          "sab": 27,
+          "dom": 18
+        }
       }
     },
     {
@@ -8529,7 +8734,12 @@
         "frota_sab": 2,
         "frota_dom": 2,
         "viagens_mes": 812,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 26,
+          "sab": 35,
+          "dom": 25
+        }
       }
     },
     {
@@ -8824,7 +9034,12 @@
         "frota_sab": 4,
         "frota_dom": 2,
         "viagens_mes": 712,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 24,
+          "sab": 30,
+          "dom": 16
+        }
       }
     },
     {
@@ -12392,7 +12607,12 @@
         "frota_sab": 1,
         "frota_dom": 1,
         "viagens_mes": 800,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 26,
+          "sab": 38,
+          "dom": 19
+        }
       }
     },
     {
@@ -13340,7 +13560,12 @@
         "frota_sab": 4,
         "frota_dom": 3,
         "viagens_mes": 1397,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 55,
+          "sab": 35,
+          "dom": 12
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "OSO STTU",
@@ -13817,7 +14042,12 @@
         "frota_sab": 5,
         "frota_dom": 0,
         "viagens_mes": 1098,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 45,
+          "sab": 27,
+          "dom": 0
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -14433,7 +14663,12 @@
         "frota_sab": 6,
         "frota_dom": 3,
         "viagens_mes": 967,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 36,
+          "sab": 36,
+          "dom": 8
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -15046,7 +15281,12 @@
         "frota_sab": 3,
         "frota_dom": 3,
         "viagens_mes": 1472,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 60,
+          "sab": 26,
+          "dom": 12
+        }
       },
       "aviso_rota": "Conforme a OSO nº 0181/2024 da STTU (vigência 06/10/2024): Pajuçara/Ribeira, via Petrópolis. Aos domingos a tarifa é gratuita e o itinerário pode ser diferente do de dias úteis. A rota de dias úteis e sábados na Rede de Transição ainda não foi divulgada.",
       "fonte_rota": {
@@ -15424,7 +15664,12 @@
         "frota_sab": 3,
         "frota_dom": 0,
         "viagens_mes": 720,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 28,
+          "sab": 26,
+          "dom": 0
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -17025,7 +17270,12 @@
         "frota_sab": 3,
         "frota_dom": 3,
         "viagens_mes": 1470,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 60,
+          "sab": 29,
+          "dom": 8
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -17947,7 +18197,12 @@
         "frota_sab": 4,
         "frota_dom": 4,
         "viagens_mes": 816,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 28,
+          "sab": 27,
+          "dom": 9
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -18396,7 +18651,12 @@
         "frota_sab": 5,
         "frota_dom": 0,
         "viagens_mes": 1433,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 60,
+          "sab": 35,
+          "dom": 0
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -19104,7 +19364,12 @@
         "frota_sab": 3,
         "frota_dom": 3,
         "viagens_mes": 1950,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 42,
+          "sab": 27,
+          "dom": 22
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -19826,7 +20091,12 @@
         "frota_sab": 7,
         "frota_dom": 5,
         "viagens_mes": 1450,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 55,
+          "sab": 35,
+          "dom": 25
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -20426,7 +20696,12 @@
         "frota_sab": 5,
         "frota_dom": 4,
         "viagens_mes": 1454,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 55,
+          "sab": 36,
+          "dom": 25
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -20841,7 +21116,12 @@
         "frota_sab": 4,
         "frota_dom": 0,
         "viagens_mes": 1230,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 51,
+          "sab": 27,
+          "dom": 0
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -20885,7 +21165,12 @@
         "frota_sab": 2,
         "frota_dom": 2,
         "viagens_mes": 816,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 26,
+          "sab": 37,
+          "dom": 24
+        }
       }
     },
     {
@@ -21058,7 +21343,12 @@
         "frota_sab": 0,
         "frota_dom": 0,
         "viagens_mes": 286,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 13,
+          "sab": 0,
+          "dom": 0
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -22045,7 +22335,12 @@
         "frota_sab": 3,
         "frota_dom": 3,
         "viagens_mes": 1330,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 51,
+          "sab": 30,
+          "dom": 22
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -22888,7 +23183,12 @@
         "frota_sab": 5,
         "frota_dom": 4,
         "viagens_mes": 724,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 24,
+          "sab": 27,
+          "dom": 22
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -23862,7 +24162,12 @@
         "frota_sab": 7,
         "frota_dom": 5,
         "viagens_mes": 1418,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 51,
+          "sab": 48,
+          "dom": 26
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -25698,7 +26003,12 @@
         "frota_sab": 5,
         "frota_dom": 4,
         "viagens_mes": 1000,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 36,
+          "sab": 29,
+          "dom": 23
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -26974,7 +27284,12 @@
         "frota_sab": 8,
         "frota_dom": 4,
         "viagens_mes": 1892,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 72,
+          "sab": 55,
+          "dom": 22
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -27718,7 +28033,12 @@
         "frota_sab": 3,
         "frota_dom": 3,
         "viagens_mes": 844,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 28,
+          "sab": 34,
+          "dom": 23
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -28389,7 +28709,12 @@
         "frota_sab": 3,
         "frota_dom": 3,
         "viagens_mes": 855,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 32,
+          "sab": 27,
+          "dom": 9
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -29297,7 +29622,12 @@
         "frota_sab": 3,
         "frota_dom": 0,
         "viagens_mes": 1528,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 60,
+          "sab": 29,
+          "dom": 23
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -30107,7 +30437,12 @@
         "frota_sab": 3,
         "frota_dom": 2,
         "viagens_mes": 984,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 36,
+          "sab": 35,
+          "dom": 13
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -30502,7 +30837,12 @@
         "frota_sab": 4,
         "frota_dom": 0,
         "viagens_mes": 2007,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 36,
+          "sab": 27,
+          "dom": 0
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
@@ -30545,7 +30885,12 @@
         "frota_sab": 7,
         "frota_dom": 0,
         "viagens_mes": 1064,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 42,
+          "sab": 35,
+          "dom": 0
+        }
       },
       "aviso_rota": "A N-79 terá alterações em relação ao trajeto atual que ainda não foram descritas em mapa."
     },
@@ -31651,7 +31996,12 @@
         "frota_sab": 4,
         "frota_dom": 3,
         "viagens_mes": 1100,
-        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17"
+        "fonte": "Edital CP 11.001/2026 — Anexo I.3, Tabela 17",
+        "viagens_dia": {
+          "du": 42,
+          "sab": 26,
+          "dom": 18
+        }
       },
       "fonte_rota_uteis": {
         "tipo": "Dados abertos STTU 2018",
