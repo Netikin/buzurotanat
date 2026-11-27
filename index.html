@@ -45,7 +45,7 @@
     <a href="#mapa">Ir para o mapa</a>
   </nav>
 
-  <div class="app" id="layout-principal" data-sheet="meio" data-aba="endereco" data-vista="inicio">
+  <div class="app" id="layout-principal" data-sheet="meio" data-aba="endereco" data-vista="inicio" data-subaba-linhas="linhas">
 
     <!-- Topo: marca, abas e botões de tema -->
     <header class="topo">
@@ -213,7 +213,18 @@
           <!-- LINHAS -->
           <div id="painel-busca-linha" class="busca__painel" role="tabpanel" aria-labelledby="aba-busca-linha" hidden>
             <h1 class="titulo-painel" id="titulo-busca-linha">Linhas</h1>
-            <p class="sr-only" id="descricao-busca-linha">Procure uma linha pelo número, pelo nome ou pelo bairro.</p>
+            <p class="sr-only" id="descricao-busca-linha">Procure uma linha pelo número, pelo nome ou pelo bairro, ou consulte os terminais e pontos de integração.</p>
+
+            <div class="subabas-linhas segmentado" role="tablist" aria-label="Modo de consulta de linhas e terminais">
+              <button type="button" id="subaba-todas-linhas" class="btn-subaba-linhas" role="tab" aria-selected="true" data-subaba-linhas="linhas">
+                <i class="bi bi-bus-front" aria-hidden="true"></i>
+                <span>Todas as linhas</span>
+              </button>
+              <button type="button" id="subaba-terminais" class="btn-subaba-linhas" role="tab" aria-selected="false" data-subaba-linhas="terminais">
+                <i class="bi bi-building" aria-hidden="true"></i>
+                <span>Terminais e integrações</span>
+              </button>
+            </div>
 
             <div class="campo campo--auto campo--busca">
               <label for="filtro-busca-linha" class="sr-only">Número, nome ou bairro da linha</label>
@@ -308,6 +319,15 @@
             </div>
             <ul id="lista-linhas-propostas" class="lista-cartoes"></ul>
           </section>
+
+          <section id="secao-terminais" class="bloco" aria-labelledby="titulo-terminais" hidden>
+            <div class="bloco__topo">
+              <h2 class="bloco__titulo" id="titulo-terminais">Terminais e integrações</h2>
+              <span id="contador-terminais" class="contador" aria-live="polite">0 locais</span>
+            </div>
+            <p class="bloco__sub">Veja todas as linhas que chegam e saem de cada terminal no modelo tronco-alimentador. Toque em uma linha para ver o trajeto ou use “Como chegar aqui”.</p>
+            <ul id="lista-terminais" class="lista-cartoes"></ul>
+          </section>
         </div>
 
         <div id="visao-detalhe" hidden aria-live="polite"></div>
@@ -333,6 +353,7 @@
   <script src="js/utils.js"></script>
   <script src="js/dados.js"></script>
   <script src="js/mapa.js"></script>
+  <script src="js/card-linha.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

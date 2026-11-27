@@ -25,6 +25,7 @@
     indiceTecladoEndereco: -1,
     indiceTecladoLinha: -1,
     abaBusca: 'endereco',
+    subabaLinhas: 'linhas',
     origemViagem: null,
     destinoViagem: null,
     viagemAtiva: null,
@@ -39,6 +40,7 @@
     configurarToggleLinhas();
     configurarBottomSheetMobile();
     configurarAbasBusca();
+    configurarSubabasLinhas();
     configurarBuscaViagem();
     configurarBuscaDiretaLinhaEFiltros();
 
@@ -445,10 +447,56 @@
     abaLinha?.addEventListener('click', () => ativar('linha'));
     abaEndereco?.addEventListener('click', () => ativar('endereco'));
 
-    // Aba inicial: "Como chegar"; um link direto para uma linha abre em "Linhas"
-    const abaInicial = /^#\/linha(s|\/)/.test(window.location.hash || '') ? 'linha' : 'endereco';
+    // Aba inicial: "Como chegar"; um link direto para uma linha ou terminais abre em "Linhas"
+    const abaInicial = /^#\/(linha(s|\/)|terminais)/.test(window.location.hash || '') ? 'linha' : 'endereco';
     estadoUI.abaBusca = abaInicial;
     ativar(abaInicial, { inicial: true });
+  }
+
+  function definirSubabaLinhas(modo, opcoes = {}) {
+    const ehTerminais = modo === 'terminais';
+    const mudou = estadoUI.subabaLinhas !== (ehTerminais ? 'terminais' : 'linhas');
+    estadoUI.subabaLinhas = ehTerminais ? 'terminais' : 'linhas';
+    document.getElementById('layout-principal')?.setAttribute('data-subaba-linhas', estadoUI.subabaLinhas);
+
+    document.querySelectorAll('.btn-subaba-linhas[data-subaba-linhas]').forEach(btn => {
+      btn.setAttribute('aria-selected', String(btn.getAttribute('data-subaba-linhas') === estadoUI.subabaLinhas));
+    });
+
+    const inputBusca = document.getElementById('filtro-busca-linha');
+    if (inputBusca) {
+      inputBusca.placeholder = ehTerminais
+        ? 'Buscar terminal, bairro ou linha (ex.: Mirassol, Soledade, E4)'
+        : 'Número, nome ou bairro da linha';
+    }
+
+    const listaAuto = document.getElementById('lista-autocomplete-linha');
+    if (ehTerminais && listaAuto) {
+      listaAuto.hidden = true;
+      listaAuto.innerHTML = '';
+    }
+
+    const secaoTerminais = document.getElementById('secao-terminais');
+    if (secaoTerminais) secaoTerminais.hidden = !ehTerminais;
+
+    if (!opcoes.inicial) {
+      if (mudou && ehTerminais) registrarEvento('aba', 'terminais');
+      if (ehTerminais) {
+        renderizarListaTerminais();
+      } else {
+        void atualizarMapaEListagens();
+      }
+    }
+  }
+
+  function configurarSubabasLinhas() {
+    document.querySelectorAll('.btn-subaba-linhas[data-subaba-linhas]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        definirSubabaLinhas(btn.getAttribute('data-subaba-linhas'));
+      });
+    });
+    const modoInicial = window.location.hash === '#/terminais' ? 'terminais' : 'linhas';
+    definirSubabaLinhas(modoInicial, { inicial: true });
   }
 
   function configurarAutocompleteViagem(input, lista, aoEscolher) {
@@ -1247,6 +1295,11 @@
 
     inputBuscaLinha?.addEventListener('input', async () => {
       estadoUI.termoBuscaLinha = inputBuscaLinha.value;
+      if (estadoUI.subabaLinhas === 'terminais') {
+        fecharAutocompleteLinha();
+        renderizarListaTerminais();
+        return;
+      }
       window.BuzuMapa.solicitarEnquadramentoNaProximaRenderizacao();
       await atualizarMapaEListagens();
 
@@ -1276,13 +1329,18 @@
         e.preventDefault();
         estadoUI.indiceTecladoLinha = (estadoUI.indiceTecladoLinha - 1 + itens.length) % itens.length;
         atualizarDestaqueTeclado(itens, estadoUI.indiceTecladoLinha);
-      } else if (e.key === 'Enter' && linhasSugeridas.length > 0) {
-        e.preventDefault();
-        const idx = estadoUI.indiceTecladoLinha >= 0 ? estadoUI.indiceTecladoLinha : 0;
-        const linhaEscolhida = linhasSugeridas[idx];
-        if (linhaEscolhida) {
-          fecharAutocompleteLinha();
-          window.location.hash = `#/linha/${encodeURIComponent(linhaEscolhida.numero)}`;
+      } else if (e.key === 'Enter') {
+        if (estadoUI.subabaLinhas === 'terminais') {
+          e.preventDefault();
+          renderizarListaTerminais();
+        } else if (linhasSugeridas.length > 0) {
+          e.preventDefault();
+          const idx = estadoUI.indiceTecladoLinha >= 0 ? estadoUI.indiceTecladoLinha : 0;
+          const linhaEscolhida = linhasSugeridas[idx];
+          if (linhaEscolhida) {
+            fecharAutocompleteLinha();
+            window.location.hash = `#/linha/${encodeURIComponent(linhaEscolhida.numero)}`;
+          }
         }
       } else if (e.key === 'Escape') {
         fecharAutocompleteLinha();
@@ -1290,6 +1348,10 @@
     });
 
     btnBuscarLinha?.addEventListener('click', () => {
+      if (estadoUI.subabaLinhas === 'terminais') {
+        renderizarListaTerminais();
+        return;
+      }
       const termo = inputBuscaLinha?.value.trim() || '';
       if (!termo) {
         inputBuscaLinha?.focus();
@@ -1610,6 +1672,7 @@
 
     atualizarSelectLinhaRapida();
     renderizarListaLinhasTextual(linhasFiltradas);
+    renderizarListaTerminais();
   }
 
   function atualizarSelectLinhaRapida() {
@@ -1829,6 +1892,169 @@
   }
 
   /**
+   * Guia de Terminais e Integrações (agrupa terminais estruturais, terminais de bairro e pontos de integração)
+   */
+  function obterTerminaisEIntegracoes(diaSemana, termo = '') {
+    const estadoDados = window.BuzuDados.obterEstado();
+    const paradas = estadoDados?.paradas?.features || [];
+    const norm = window.BuzuUtils.normalizarTexto;
+    const distGeo = window.BuzuUtils.calcularDistanciaGeodesica;
+    const termoNorm = norm(termo);
+
+    const brutos = [];
+    for (const feat of paradas) {
+      const p = feat?.properties || {};
+      const coords = feat?.geometry?.coordinates;
+      if (p.ativo === false || !Array.isArray(coords) || coords.length < 2) continue;
+      const tipoLower = String(p.tipo || '').toLowerCase();
+      const ehTerminal = tipoLower.includes('terminal');
+      const ehIntegracao = tipoLower.includes('integra') || tipoLower.includes('estação') || tipoLower.includes('estacao');
+      if (!ehTerminal && !ehIntegracao) continue;
+
+      const rotasDia = window.BuzuDados.obterLinhasDaParadaNoDia(p.id, diaSemana);
+      brutos.push({
+        id: p.id,
+        nome: String(p.nome || 'Terminal').trim(),
+        nomeNorm: norm(p.nome || ''),
+        bairro: String(p.bairro || '').trim(),
+        ehTerminal,
+        ehEstrutural: /estrutural/i.test(String(p.nome || '')),
+        tipoRotulo: /estrutural/i.test(String(p.nome || ''))
+          ? 'Terminal Estrutural'
+          : ehTerminal
+          ? 'Terminal'
+          : 'Ponto de integração',
+        lat: coords[1],
+        lng: coords[0],
+        rotasSet: new Set(rotasDia.map(r => String(r).toUpperCase()))
+      });
+    }
+
+    // Mescla eventuais duplicatas com o mesmo nome a menos de 250 m (ex.: Terminal Gramoré)
+    const unificados = [];
+    for (const item of brutos) {
+      const existente = unificados.find(
+        u => u.nomeNorm === item.nomeNorm && distGeo(u.lat, u.lng, item.lat, item.lng) < 250
+      );
+      if (existente) {
+        item.rotasSet.forEach(r => existente.rotasSet.add(r));
+        if (!existente.bairro && item.bairro) existente.bairro = item.bairro;
+      } else {
+        unificados.push(item);
+      }
+    }
+
+    const resultado = unificados
+      .map(u => {
+        const rotas = Array.from(u.rotasSet).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { numeric: true })
+        );
+        return { ...u, rotas };
+      })
+      .filter(u => {
+        if (!termoNorm) return true;
+        if (norm(`${u.nome} ${u.bairro} ${u.tipoRotulo}`).includes(termoNorm)) return true;
+        return u.rotas.some(num => {
+          if (norm(num).includes(termoNorm)) return true;
+          const obj = window.BuzuDados.obterLinhaPorId(num, diaSemana);
+          return obj ? norm(obj.nome).includes(termoNorm) : false;
+        });
+      })
+      .sort((a, b) => {
+        if (b.rotas.length !== a.rotas.length) return b.rotas.length - a.rotas.length;
+        if (Number(b.ehEstrutural) !== Number(a.ehEstrutural)) return Number(b.ehEstrutural) - Number(a.ehEstrutural);
+        return a.nome.localeCompare(b.nome, 'pt-BR');
+      });
+
+    return resultado;
+  }
+
+  function renderizarListaTerminais() {
+    const secao = document.getElementById('secao-terminais');
+    const listaEl = document.getElementById('lista-terminais');
+    const contadorEl = document.getElementById('contador-terminais');
+    if (!secao || !listaEl) return;
+
+    secao.hidden = estadoUI.subabaLinhas !== 'terminais';
+    if (estadoUI.subabaLinhas !== 'terminais') return;
+
+    const terminais = obterTerminaisEIntegracoes(estadoUI.diaSemana, estadoUI.termoBuscaLinha);
+    const esc = window.BuzuUtils.escaparHtml;
+
+    if (contadorEl) {
+      contadorEl.textContent = `${terminais.length} ${terminais.length === 1 ? 'local' : 'locais'}`;
+    }
+
+    if (terminais.length === 0) {
+      listaEl.innerHTML = '<li class="cartao">Nenhum terminal ou ponto de integração encontrado para essa busca.</li>';
+      return;
+    }
+
+    listaEl.innerHTML = terminais
+      .map((t, idx) => {
+        const etiquetas = t.rotas
+          .map(num => {
+            const obj = window.BuzuDados.obterLinhaPorId(num, estadoUI.diaSemana);
+            return etiquetaLinhaHtml(num, obj?.cor, `#/linha/${encodeURIComponent(num)}`);
+          })
+          .join('');
+        const qtdLinhas = `${t.rotas.length} ${t.rotas.length === 1 ? 'linha' : 'linhas'}`;
+        return `
+        <li class="cartao cartao-terminal">
+          <div class="cartao-terminal__topo">
+            <span class="cartao-terminal__icone${t.ehTerminal ? '' : ' cartao-terminal__icone--integracao'}" aria-hidden="true">
+              <i class="bi ${t.ehTerminal ? 'bi-building' : 'bi-arrow-left-right'}"></i>
+            </span>
+            <div class="cartao-terminal__cabeca">
+              <a href="#/parada/${encodeURIComponent(t.id)}" class="cartao-terminal__nome">${esc(t.nome)}</a>
+              <div class="cartao-terminal__meta">
+                <span class="selo${t.ehEstrutural ? ' selo--sol' : ''}">${esc(t.tipoRotulo)}</span>
+                ${t.bairro ? `<span>${esc(t.bairro)}</span>` : ''}
+              </div>
+            </div>
+            <span class="contador">${qtdLinhas}</span>
+          </div>
+          ${
+            etiquetas
+              ? `<div class="cartao-terminal__linhas" aria-label="Linhas atendidas em ${esc(t.nome)}">${etiquetas}</div>`
+              : '<p class="cartao-terminal__vazio">Nenhuma linha com traçado ativo neste dia.</p>'
+          }
+          <div class="acoes-cartao">
+            <a href="#/parada/${encodeURIComponent(t.id)}" class="btn-secundario">
+              <i class="bi bi-geo-alt-fill" aria-hidden="true"></i> Ver no mapa
+            </a>
+            <button type="button" class="btn-secundario btn-ir-terminal" data-terminal-idx="${idx}">
+              <i class="bi bi-sign-turn-right" aria-hidden="true"></i> Como chegar aqui
+            </button>
+          </div>
+        </li>`;
+      })
+      .join('');
+
+    listaEl.querySelectorAll('.btn-ir-terminal').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = terminais[Number(btn.getAttribute('data-terminal-idx'))];
+        if (!t) return;
+        estadoUI.destinoViagem = { lat: t.lat, lng: t.lng, rotulo: t.nome };
+        const inputDest = document.getElementById('input-destino-viagem');
+        if (inputDest) inputDest.value = t.nome;
+        window.BuzuMapa.definirPontosViagem(estadoUI.origemViagem, estadoUI.destinoViagem, null);
+        document.getElementById('aba-busca-endereco')?.click();
+        if (estadoUI.origemViagem) {
+          void executarBuscaViagem();
+        } else {
+          window.BuzuMapa.focarParada(t.lat, t.lng, t.id);
+          atualizarFeedbackViagem(
+            'Destino preenchido! Informe de onde você sai ou toque em “Usar minha localização”.',
+            'info'
+          );
+          document.getElementById('input-origem-viagem')?.focus();
+        }
+      });
+    });
+  }
+
+  /**
    * Roteador por Hash (Fluxo de Dois Níveis no Painel Lateral / Bottom Sheet)
    */
   async function processarRotaHash() {
@@ -1885,6 +2111,11 @@
     estadoUI.paradaSelecionadaId = null;
     if (containerDetalhe) containerDetalhe.hidden = true;
     if (containerExploracao) containerExploracao.hidden = false;
+
+    if (caminhoHash === '#/terminais') {
+      if (estadoUI.abaBusca !== 'linha') document.getElementById('aba-busca-linha')?.click();
+      definirSubabaLinhas('terminais');
+    }
 
     await atualizarMapaEListagens();
     renderizarResultadoViagem();
@@ -2082,9 +2313,14 @@
       <div class="bloco" style="--cor-linha:${esc(corLinha)}">
         <div class="barra-detalhe">
           <a href="#/" class="btn-secundario"><i class="bi bi-arrow-left" aria-hidden="true"></i> Voltar</a>
-          <button type="button" id="btn-copiar-link-linha" class="btn-secundario" data-url="${esc(urlCompartilhavel)}">
-            <i class="bi bi-share" aria-hidden="true"></i> <span>Compartilhar</span>
-          </button>
+          <div class="barra-detalhe__acoes">
+            <button type="button" id="btn-baixar-card-linha" class="btn-secundario" title="Baixar imagem da linha para WhatsApp ou Stories">
+              <i class="bi bi-download" aria-hidden="true"></i> <span>Baixar card</span>
+            </button>
+            <button type="button" id="btn-copiar-link-linha" class="btn-secundario" data-url="${esc(urlCompartilhavel)}">
+              <i class="bi bi-share" aria-hidden="true"></i> <span>Compartilhar</span>
+            </button>
+          </div>
         </div>
 
         ${avisoSituacaoRota(linha)}
@@ -2150,6 +2386,32 @@
         if (listaRuas) listaRuas.innerHTML = montarListaRuas(sentido);
         vincularCliquesTabela();
       });
+    });
+
+    const btnBaixarCard = document.getElementById('btn-baixar-card-linha');
+    btnBaixarCard?.addEventListener('click', async () => {
+      if (!window.BuzuCardLinha || btnBaixarCard.disabled) return;
+      const htmlOriginal = btnBaixarCard.innerHTML;
+      btnBaixarCard.disabled = true;
+      btnBaixarCard.innerHTML = '<i class="bi bi-hourglass-split" aria-hidden="true"></i> <span>Gerando…</span>';
+      try {
+        await window.BuzuCardLinha.baixarCardLinha({
+          linha,
+          categoria: categoriaComLetra(linha),
+          regiao: regiaoDaLinha(linha),
+          kmTotal,
+          ruasIda
+        });
+        registrarEvento('card', linha.numero);
+        btnBaixarCard.innerHTML = '<i class="bi bi-check2" aria-hidden="true"></i> <span>Card baixado</span>';
+        setTimeout(() => {
+          btnBaixarCard.innerHTML = htmlOriginal;
+          btnBaixarCard.disabled = false;
+        }, 2400);
+      } catch (_e) {
+        btnBaixarCard.innerHTML = htmlOriginal;
+        btnBaixarCard.disabled = false;
+      }
     });
 
     const btnCopiar = document.getElementById('btn-copiar-link-linha');
