@@ -406,7 +406,7 @@ function criarPainel(opcoes) {
       }
     });
     const chave = infos.map(i => `${i.tamanho}-${i.modificadoEm}`).join('|');
-    if (cacheResumoDados.chave === chave) return cacheResumoDados.valor;
+    if (cacheResumoDados?.chave === chave) return cacheResumoDados.valor;
     const ler = nome => {
       try {
         return JSON.parse(fs.readFileSync(path.join(DADOS_DIR, nome), 'utf8'));
@@ -606,7 +606,7 @@ function criarPainel(opcoes) {
     indice.atualizado_em = new Date().toISOString();
     fs.writeFileSync(temp, JSON.stringify(indice, null, 2), 'utf8');
     fs.renameSync(temp, arq);
-    cacheResumoDados = null;
+    cacheResumoDados = { chave: '', valor: null };
   }
 
   function validarEmpresa(corpo) {
