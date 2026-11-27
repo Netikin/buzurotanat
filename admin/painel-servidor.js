@@ -210,7 +210,7 @@ function diaLocal(data = new Date()) {
 // Painel
 // ---------------------------------------------------------------------------
 function criarPainel(opcoes) {
-  const { RAIZ, DADOS_DIR, BACKUPS_DIR, ARQ_AUDITORIA, somenteLeitura, registrarAuditoria } = opcoes;
+  const { RAIZ, DADOS_DIR, BACKUPS_DIR, ARQ_AUDITORIA, somenteLeitura, registrarAuditoria, criarBackupVersao } = opcoes;
   const PASTA_ADMIN = path.join(RAIZ, 'dados-admin');
   const PASTA_FRONT = path.join(RAIZ, 'painel');
   const armazem = criarArmazem(PASTA_ADMIN);
@@ -592,6 +592,92 @@ function criarPainel(opcoes) {
   function lerNotas() {
     const l = armazem.lerJson('notas.json', []);
     return Array.isArray(l) ? l : [];
+  }
+
+  // ----- empresas operadoras e vínculo com linhas (em dados/linhas.json) -----
+  function lerIndiceLinhas() {
+    const arq = path.join(DADOS_DIR, 'linhas.json');
+    return JSON.parse(fs.readFileSync(arq, 'utf8'));
+  }
+
+  function gravarIndiceLinhas(indice) {
+    const arq = path.join(DADOS_DIR, 'linhas.json');
+    const temp = `${arq}.tmp`;
+    indice.atualizado_em = new Date().toISOString();
+    fs.writeFileSync(temp, JSON.stringify(indice, null, 2), 'utf8');
+    fs.renameSync(temp, arq);
+    cacheResumoDados = null;
+  }
+
+  function validarEmpresa(corpo) {
+    const nome = textoLimpo(corpo.nome, 80);
+    const sigla = textoLimpo(corpo.sigla, 16).toUpperCase();
+    const lote = ['1', '2', '1e2'].includes(String(corpo.lote || '')) ? String(corpo.lote) : '';
+    const corBruta = textoLimpo(corpo.cor, 12);
+    const cor = /^#[0-9a-f]{6}$/i.test(corBruta) ? corBruta.toUpperCase() : '#12355B';
+    const telefone = textoLimpo(corpo.telefone, 40);
+    let site = textoLimpo(corpo.site, 200);
+    if (site && !/^https?:\/\/[^\s"'<>]+$/i.test(site)) {
+      site = '';
+    }
+    const observacao = textoLimpo(corpo.observacao, 300);
+    const linhas = Array.isArray(corpo.linhas)
+      ? [...new Set(corpo.linhas.map(x => textoLimpo(x, 20).toUpperCase()).filter(Boolean))]
+      : [];
+    return { nome, sigla, lote, cor, telefone, site, observacao, linhas };
+  }
+
+  function resumoEmpresasELinhas() {
+    const indice = lerIndiceLinhas();
+    const empresasBase = Array.isArray(indice.empresas) ? indice.empresas : [];
+    const linhasRaw = Array.isArray(indice.linhas) ? indice.linhas : [];
+
+    const porEmpresaId = new Map();
+    const porEmpresaNome = new Map();
+    for (const emp of empresasBase) {
+      if (emp?.id) porEmpresaId.set(String(emp.id), []);
+      if (emp?.nome) porEmpresaNome.set(String(emp.nome).trim().toLowerCase(), String(emp.id));
+    }
+
+    const linhas = linhasRaw
+      .map(l => {
+        const numero = String(l.numero || l.id || '').trim().toUpperCase();
+        let empId = l.empresa_id ? String(l.empresa_id) : null;
+        const empNome = l.empresa ? String(l.empresa).trim() : null;
+        if (!empId && empNome) {
+          empId = porEmpresaNome.get(empNome.toLowerCase()) || null;
+        }
+        if (empId && porEmpresaId.has(empId)) {
+          porEmpresaId.get(empId).push(numero);
+        }
+        return {
+          numero,
+          nome: String(l.nome || ''),
+          lote: String(l.lote || ''),
+          tipo: String(l.tipo || ''),
+          categoria: String(l.categoria_edital || l.tipo || ''),
+          cor: String(l.cor || '#12355B'),
+          empresa: empNome,
+          empresa_id: empId
+        };
+      })
+      .filter(l => l.numero)
+      .sort((a, b) => a.numero.localeCompare(b.numero, 'pt-BR', { numeric: true }));
+
+    const empresas = empresasBase
+      .map(emp => {
+        const nums = (porEmpresaId.get(String(emp.id)) || []).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { numeric: true })
+        );
+        return {
+          ...emp,
+          linhas: nums,
+          totalLinhas: nums.length
+        };
+      })
+      .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+
+    return { empresas, linhas };
   }
 
   // ----- respostas -----
@@ -1017,6 +1103,129 @@ function criarPainel(opcoes) {
       if (p === '/api/painel/notas/excluir' && metodo === 'POST') {
         const corpo = await lerCorpo(req);
         armazem.gravarJson('notas.json', lerNotas().filter(x => x.id !== corpo.id));
+        json(res, 200, { ok: true });
+        return true;
+      }
+
+      if (p === '/api/painel/empresas' && metodo === 'GET') {
+        json(res, 200, { ok: true, ...resumoEmpresasELinhas() });
+        return true;
+      }
+
+      if (p === '/api/painel/empresas' && metodo === 'POST') {
+        const corpo = await lerCorpo(req, 128 * 1024);
+        const dados = validarEmpresa(corpo);
+        if (!dados.nome) {
+          json(res, 400, { ok: false, erro: 'Informe o nome da empresa ou consórcio.' });
+          return true;
+        }
+
+        const indice = lerIndiceLinhas();
+        if (!Array.isArray(indice.empresas)) indice.empresas = [];
+        const agora = new Date().toISOString();
+        const idEdit = textoLimpo(corpo.id, 40);
+        const existente = idEdit ? indice.empresas.find(e => e.id === idEdit) : null;
+
+        // Evita duplicar nome de empresa
+        const conflito = indice.empresas.find(
+          e => e.id !== existente?.id && String(e.nome || '').trim().toLowerCase() === dados.nome.toLowerCase()
+        );
+        if (conflito) {
+          json(res, 400, { ok: false, erro: `Já existe uma empresa cadastrada com o nome "${dados.nome}".` });
+          return true;
+        }
+
+        const nomeAntigo = existente ? String(existente.nome || '').trim().toLowerCase() : '';
+        const { linhas: linhasSelecionadas, ...camposEmpresa } = dados;
+        const setSelecionadas = new Set(linhasSelecionadas);
+
+        if (typeof criarBackupVersao === 'function') {
+          criarBackupVersao(
+            `${existente ? 'Editar' : 'Cadastrar'} empresa "${dados.nome}" (${setSelecionadas.size} linhas) — por ${quem}`
+          );
+        }
+
+        let registro;
+        if (existente) {
+          Object.assign(existente, camposEmpresa, { atualizadoPor: quem, atualizadoEm: agora });
+          registro = existente;
+        } else {
+          registro = {
+            id: `emp-${idAleatorio().slice(0, 10)}`,
+            ...camposEmpresa,
+            criadoPor: quem,
+            criadoEm: agora,
+            atualizadoPor: quem,
+            atualizadoEm: agora
+          };
+          indice.empresas.push(registro);
+        }
+
+        let vinculadas = 0;
+        for (const linha of indice.linhas || []) {
+          const num = String(linha.numero || linha.id || '').trim().toUpperCase();
+          if (!num) continue;
+          const pertenciaAntes =
+            (linha.empresa_id && String(linha.empresa_id) === registro.id) ||
+            (nomeAntigo && String(linha.empresa || '').trim().toLowerCase() === nomeAntigo);
+
+          if (setSelecionadas.has(num)) {
+            linha.empresa_id = registro.id;
+            linha.empresa = registro.nome;
+            vinculadas++;
+          } else if (pertenciaAntes) {
+            linha.empresa = null;
+            delete linha.empresa_id;
+          }
+        }
+
+        gravarIndiceLinhas(indice);
+        registrarAuditoria(
+          existente ? 'EMPRESA_EDITADA' : 'EMPRESA_CRIADA',
+          ip,
+          `${existente ? 'Editou' : 'Cadastrou'} a empresa "${registro.nome}" (${vinculadas} ${vinculadas === 1 ? 'linha' : 'linhas'})`,
+          quem
+        );
+        json(res, 200, { ok: true, empresa: registro, totalLinhas: vinculadas });
+        return true;
+      }
+
+      if (p === '/api/painel/empresas/excluir' && metodo === 'POST') {
+        const corpo = await lerCorpo(req);
+        const idAlvo = textoLimpo(corpo.id, 40);
+        const indice = lerIndiceLinhas();
+        if (!Array.isArray(indice.empresas)) indice.empresas = [];
+        const alvo = indice.empresas.find(e => e.id === idAlvo);
+        if (!alvo) {
+          json(res, 404, { ok: false, erro: 'Empresa não encontrada.' });
+          return true;
+        }
+
+        if (typeof criarBackupVersao === 'function') {
+          criarBackupVersao(`Excluir empresa "${alvo.nome}" — por ${quem}`);
+        }
+
+        const nomeAlvo = String(alvo.nome || '').trim().toLowerCase();
+        indice.empresas = indice.empresas.filter(e => e.id !== idAlvo);
+        let desvinculadas = 0;
+        for (const linha of indice.linhas || []) {
+          const pertence =
+            (linha.empresa_id && String(linha.empresa_id) === idAlvo) ||
+            (nomeAlvo && String(linha.empresa || '').trim().toLowerCase() === nomeAlvo);
+          if (pertence) {
+            linha.empresa = null;
+            delete linha.empresa_id;
+            desvinculadas++;
+          }
+        }
+
+        gravarIndiceLinhas(indice);
+        registrarAuditoria(
+          'EMPRESA_EXCLUIDA',
+          ip,
+          `Excluiu a empresa "${alvo.nome}" (${desvinculadas} ${desvinculadas === 1 ? 'linha desvinculada' : 'linhas desvinculadas'})`,
+          quem
+        );
         json(res, 200, { ok: true });
         return true;
       }

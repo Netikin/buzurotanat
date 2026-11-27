@@ -22,6 +22,7 @@
     paradasProximas: [],
     paradaSelecionadaId: null,
     linhaSelecionadaId: null,
+    empresaSelecionadaChave: null,
     indiceTecladoEndereco: -1,
     indiceTecladoLinha: -1,
     abaBusca: 'endereco',
@@ -276,6 +277,13 @@
       return;
     }
 
+    if (reprocessarRota && estadoUI.empresaSelecionadaChave) {
+      window.BuzuMapa.solicitarEnquadramentoNaProximaRenderizacao();
+      await atualizarMapaEListagens();
+      renderizarVisaoDetalheEmpresa(estadoUI.empresaSelecionadaChave);
+      return;
+    }
+
     if (modoViagem) {
       await executarBuscaViagem({ silencioso: true });
       return;
@@ -419,7 +427,7 @@
       if (painelLinha) painelLinha.hidden = !ehLinha;
       if (painelEndereco) painelEndereco.hidden = ehLinha;
 
-      if (!ehLinha && window.location.hash.startsWith('#/linha/')) {
+      if (!ehLinha && /^#\/(linha|empresa)\//.test(window.location.hash || '')) {
         window.location.hash = '#/';
       }
 
@@ -447,8 +455,8 @@
     abaLinha?.addEventListener('click', () => ativar('linha'));
     abaEndereco?.addEventListener('click', () => ativar('endereco'));
 
-    // Aba inicial: "Como chegar"; um link direto para uma linha ou terminais abre em "Linhas"
-    const abaInicial = /^#\/(linha(s|\/)|terminais)/.test(window.location.hash || '') ? 'linha' : 'endereco';
+    // Aba inicial: "Como chegar"; um link direto para uma linha, empresa ou terminais abre em "Linhas"
+    const abaInicial = /^#\/(linha(s|\/)|terminais|empresa\/)/.test(window.location.hash || '') ? 'linha' : 'endereco';
     estadoUI.abaBusca = abaInicial;
     ativar(abaInicial, { inicial: true });
   }
@@ -1547,12 +1555,14 @@
       estadoUI.viagemAtiva &&
       estadoUI.abaBusca === 'endereco' &&
       !estadoUI.linhaSelecionadaId &&
-      !estadoUI.paradaSelecionadaId
+      !estadoUI.paradaSelecionadaId &&
+      !estadoUI.empresaSelecionadaChave
     );
     const linhaSelecionadaAtiva = !!estadoUI.linhaSelecionadaId;
+    const empresaSelecionadaAtiva = !!estadoUI.empresaSelecionadaChave;
 
     const lotesParaCarregar =
-      modoViagem || linhaSelecionadaAtiva
+      modoViagem || linhaSelecionadaAtiva || empresaSelecionadaAtiva
         ? ['1', '2']
         : estadoUI.filtroLote === 'todos'
         ? ['1', '2']
@@ -1597,6 +1607,17 @@
         linhasFiltradas = [linhaSelecionada];
         numerosPermitidos = new Set([numeroSelecionado]);
       }
+    } else if (empresaSelecionadaAtiva) {
+      const empObj = obterEmpresaPorChave(estadoUI.empresaSelecionadaChave);
+      const linhasEmp = empObj ? obterLinhasDaEmpresa(empObj) : [];
+      const setEmp = new Set(linhasEmp.map(l => String(l.numero).toUpperCase()));
+      linhasFiltradas = window.BuzuDados.filtrarLinhas({
+        diaSemana: estadoUI.diaSemana,
+        lote: 'todos',
+        tipo: 'todos',
+        termo: ''
+      }).filter(l => setEmp.has(String(l.numero).toUpperCase()));
+      numerosPermitidos = new Set(linhasFiltradas.map(l => String(l.numero).toUpperCase()));
     }
 
     const featuresRotas = [];
@@ -2054,6 +2075,79 @@
     });
   }
 
+  // ---------- Empresas operadoras (cadastro em /use-admin → dados/linhas.json) ----------
+  const ROTULO_LOTE_EMPRESA = {
+    '1': 'Zona Norte (Lote 1)',
+    '2': 'Sul, Leste e Oeste (Lote 2)',
+    '1e2': 'Lotes 1 e 2'
+  };
+
+  function obterEmpresasCadastradas() {
+    const lista = window.BuzuDados.obterEstado()?.indice?.empresas;
+    return Array.isArray(lista) ? lista : [];
+  }
+
+  function chaveDaEmpresa(emp) {
+    return emp?.id || emp?.nome || '';
+  }
+
+  function obterEmpresaDaLinha(linha) {
+    if (!linha) return null;
+    const empresas = obterEmpresasCadastradas();
+    const empId = linha.empresa_id ? String(linha.empresa_id) : '';
+    const empNome = linha.empresa ? String(linha.empresa).trim() : '';
+    if (empId) {
+      const achada = empresas.find(e => String(e.id) === empId);
+      if (achada) return achada;
+    }
+    if (empNome) {
+      const norm = window.BuzuUtils.normalizarTexto(empNome);
+      const achada = empresas.find(e => window.BuzuUtils.normalizarTexto(e.nome) === norm);
+      if (achada) return achada;
+      return { id: null, nome: empNome, sigla: '', lote: '', cor: '#12355B', telefone: '', site: '', observacao: '' };
+    }
+    return null;
+  }
+
+  function obterEmpresaPorChave(chave) {
+    const limpa = String(chave || '').trim();
+    if (!limpa) return null;
+    const norm = window.BuzuUtils.normalizarTexto(limpa);
+    const empresas = obterEmpresasCadastradas();
+    const porId = empresas.find(e => String(e.id) === limpa);
+    if (porId) return porId;
+    const porNome = empresas.find(e => window.BuzuUtils.normalizarTexto(e.nome) === norm);
+    if (porNome) return porNome;
+    const todas = window.BuzuDados.obterEstado()?.indice?.linhas || [];
+    const linhaComNome = todas.find(l => l.empresa && window.BuzuUtils.normalizarTexto(l.empresa) === norm);
+    if (linhaComNome) {
+      return {
+        id: null,
+        nome: String(linhaComNome.empresa).trim(),
+        sigla: '',
+        lote: '',
+        cor: '#12355B',
+        telefone: '',
+        site: '',
+        observacao: ''
+      };
+    }
+    return null;
+  }
+
+  function obterLinhasDaEmpresa(empresa) {
+    if (!empresa) return [];
+    const todas = window.BuzuDados.obterEstado()?.indice?.linhas || [];
+    const normNome = window.BuzuUtils.normalizarTexto(empresa.nome || '');
+    return todas
+      .filter(l => {
+        if (empresa.id && l.empresa_id && String(l.empresa_id) === String(empresa.id)) return true;
+        if (normNome && l.empresa && window.BuzuUtils.normalizarTexto(l.empresa) === normNome) return true;
+        return false;
+      })
+      .sort((a, b) => String(a.numero).localeCompare(String(b.numero), 'pt-BR', { numeric: true }));
+  }
+
   /**
    * Roteador por Hash (Fluxo de Dois Níveis no Painel Lateral / Bottom Sheet)
    */
@@ -2066,7 +2160,7 @@
     const [caminhoHash, queryString] = hash.split('?');
     document
       .getElementById('layout-principal')
-      ?.setAttribute('data-vista', /^#\/(linha|parada)\//.test(caminhoHash) ? 'detalhe' : 'inicio');
+      ?.setAttribute('data-vista', /^#\/(linha|parada|empresa)\//.test(caminhoHash) ? 'detalhe' : 'inicio');
     document.getElementById('painel-controle')?.querySelector('.painel__rolagem')?.scrollTo(0, 0);
     if (queryString) {
       const params = new URLSearchParams(queryString);
@@ -2080,6 +2174,7 @@
       const idLinha = decodeURIComponent(caminhoHash.replace('#/linha/', '').trim());
       estadoUI.linhaSelecionadaId = idLinha;
       estadoUI.paradaSelecionadaId = null;
+      estadoUI.empresaSelecionadaChave = null;
 
       if (containerExploracao) containerExploracao.hidden = true;
       if (containerDetalhe) containerDetalhe.hidden = false;
@@ -2094,10 +2189,26 @@
     const pillMapa = document.getElementById('pill-linha-mapa');
     if (pillMapa) pillMapa.hidden = true;
 
+    if (caminhoHash.startsWith('#/empresa/')) {
+      const chaveEmp = decodeURIComponent(caminhoHash.replace('#/empresa/', '').trim());
+      estadoUI.empresaSelecionadaChave = chaveEmp;
+      estadoUI.linhaSelecionadaId = null;
+      estadoUI.paradaSelecionadaId = null;
+
+      if (containerExploracao) containerExploracao.hidden = true;
+      if (containerDetalhe) containerDetalhe.hidden = false;
+
+      window.BuzuMapa.solicitarEnquadramentoNaProximaRenderizacao();
+      await atualizarMapaEListagens();
+      renderizarVisaoDetalheEmpresa(chaveEmp);
+      return;
+    }
+
     if (caminhoHash.startsWith('#/parada/')) {
       const idParada = decodeURIComponent(caminhoHash.replace('#/parada/', '').trim());
       estadoUI.paradaSelecionadaId = idParada;
       estadoUI.linhaSelecionadaId = null;
+      estadoUI.empresaSelecionadaChave = null;
 
       if (containerExploracao) containerExploracao.hidden = true;
       if (containerDetalhe) containerDetalhe.hidden = false;
@@ -2109,6 +2220,7 @@
 
     estadoUI.linhaSelecionadaId = null;
     estadoUI.paradaSelecionadaId = null;
+    estadoUI.empresaSelecionadaChave = null;
     if (containerDetalhe) containerDetalhe.hidden = true;
     if (containerExploracao) containerExploracao.hidden = false;
 
@@ -2241,8 +2353,69 @@
 
     const esc = window.BuzuUtils.escaparHtml;
     const corLinha = linha.cor || '#12355B';
-    const empresaLinha = linha.empresa ? String(linha.empresa).trim() : '';
+    const empresaObj = obterEmpresaDaLinha(linha);
+    const empresaLinha = empresaObj ? empresaObj.nome : '';
+    const empresaChave = empresaObj ? chaveDaEmpresa(empresaObj) : '';
+    const linhasEmpresa = empresaObj ? obterLinhasDaEmpresa(empresaObj) : [];
     const vd = op?.viagens_dia || null;
+
+    const blocoEmpresaHtml = empresaObj
+      ? (() => {
+          const loteEmp = empresaObj.lote ? ROTULO_LOTE_EMPRESA[empresaObj.lote] || `Lote ${empresaObj.lote}` : '';
+          const contatos = [
+            empresaObj.telefone
+              ? `<span><i class="bi bi-telephone" aria-hidden="true"></i> ${esc(empresaObj.telefone)}</span>`
+              : '',
+            empresaObj.site && /^https?:\/\//i.test(empresaObj.site)
+              ? `<a href="${esc(empresaObj.site)}" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Site oficial</a>`
+              : ''
+          ]
+            .filter(Boolean)
+            .join('');
+          const etiquetasEmp = linhasEmpresa
+            .map(le => {
+              const ehAtual = String(le.numero).toUpperCase() === String(linha.numero).toUpperCase();
+              const corE = le.cor || '#12355B';
+              const estilo = `--cor-linha:${esc(corE)};--cor-texto-linha:${corTextoSobre(corE)}`;
+              if (ehAtual) {
+                return `<span class="etiqueta-linha etiqueta-linha--atual" style="${estilo}" aria-current="page" title="Linha que você está vendo">${esc(le.numero)}</span>`;
+              }
+              return `<a href="#/linha/${encodeURIComponent(le.numero)}" class="etiqueta-linha" style="${estilo}" title="${esc(`${le.numero} — ${le.nome}`)}">${esc(le.numero)}</a>`;
+            })
+            .join('');
+          return `
+        <section class="bloco" aria-labelledby="titulo-empresa-linha">
+          <div class="cartao cartao-empresa">
+            <div class="cartao-empresa__topo">
+              <span class="cartao-empresa__icone" style="--cor-emp:${esc(empresaObj.cor || '#12355B')}" aria-hidden="true">
+                <i class="bi bi-building"></i>
+              </span>
+              <div class="cartao-empresa__cabeca">
+                <h3 class="cartao-empresa__nome" id="titulo-empresa-linha">
+                  <a href="#/empresa/${encodeURIComponent(empresaChave)}">${esc(empresaObj.nome)}</a>
+                  ${empresaObj.sigla ? `<span class="selo">${esc(empresaObj.sigla)}</span>` : ''}
+                </h3>
+                <span class="cartao-empresa__sub">
+                  Opera ${linhasEmpresa.length} ${linhasEmpresa.length === 1 ? 'linha' : 'linhas'} na nova rede${loteEmp ? ` • ${esc(loteEmp)}` : ''}
+                </span>
+              </div>
+            </div>
+            ${empresaObj.observacao ? `<p class="cartao-empresa__obs">${esc(empresaObj.observacao)}</p>` : ''}
+            ${contatos ? `<div class="cartao-empresa__contatos">${contatos}</div>` : ''}
+            ${
+              etiquetasEmp
+                ? `<div class="cartao-empresa__linhas" aria-label="Linhas operadas por ${esc(empresaObj.nome)}">${etiquetasEmp}</div>`
+                : ''
+            }
+            <div class="acoes-cartao">
+              <a href="#/empresa/${encodeURIComponent(empresaChave)}" class="btn-secundario">
+                <i class="bi bi-map" aria-hidden="true"></i> Ver todas as linhas no mapa
+              </a>
+            </div>
+          </div>
+        </section>`;
+        })()
+      : '';
 
     // Funcionamento: dias úteis, sábado e domingo (une dias úteis e sábado quando os números são iguais)
     const linhasFunc = [];
@@ -2334,9 +2507,13 @@
             kmTotal > 0 ? `${kmTotalFormatado} km <small>(ida e volta)</small>` : '—'
           }</span></div>
           <div class="ficha__item"><span class="ficha__rotulo">Empresa</span><span class="ficha__valor">${
-            empresaLinha ? esc(empresaLinha) : 'Ainda não definida'
+            empresaLinha
+              ? `<a href="#/empresa/${encodeURIComponent(empresaChave)}" class="ficha__link">${esc(empresaLinha)}</a>`
+              : 'Ainda não definida'
           }</span></div>
         </div>
+
+        ${blocoEmpresaHtml}
 
         <section class="bloco" aria-labelledby="titulo-funcionamento">
           <h3 class="bloco__titulo" id="titulo-funcionamento">Funcionamento</h3>
@@ -2431,6 +2608,124 @@
         btnCopiar.innerHTML = '<i class="bi bi-check2" aria-hidden="true"></i> <span>Link copiado</span>';
       } catch (_e) {
         window.prompt('Copie o link desta linha:', url);
+      }
+    });
+  }
+
+  /**
+   * Visão dedicada de uma Empresa Operadora (#/empresa/<id-ou-nome>)
+   */
+  function renderizarVisaoDetalheEmpresa(chave) {
+    const container = document.getElementById('visao-detalhe');
+    if (!container) return;
+    const esc = window.BuzuUtils.escaparHtml;
+    const empresa = obterEmpresaPorChave(chave);
+
+    if (!empresa) {
+      container.innerHTML = `
+        <div class="bloco">
+          <div class="barra-detalhe">
+            <a href="#/" class="btn-secundario"><i class="bi bi-arrow-left" aria-hidden="true"></i> Voltar</a>
+          </div>
+          <div class="alerta-erro">Empresa "${esc(chave)}" não encontrada.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const linhasEmp = obterLinhasDaEmpresa(empresa);
+    const loteEmp = empresa.lote ? ROTULO_LOTE_EMPRESA[empresa.lote] || `Lote ${empresa.lote}` : '';
+    const urlCompartilhavel = `${window.location.origin}${window.location.pathname}#/empresa/${encodeURIComponent(
+      chaveDaEmpresa(empresa)
+    )}`;
+    const contatos = [
+      empresa.telefone ? `<span><i class="bi bi-telephone" aria-hidden="true"></i> ${esc(empresa.telefone)}</span>` : '',
+      empresa.site && /^https?:\/\//i.test(empresa.site)
+        ? `<a href="${esc(empresa.site)}" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Site oficial</a>`
+        : ''
+    ]
+      .filter(Boolean)
+      .join('');
+
+    const cartoesLinhas = linhasEmp.length
+      ? linhasEmp
+          .map(l => {
+            const dias = l.dias_disponiveis || ['dias_uteis_sabados'];
+            const operaDia =
+              estadoUI.diaSemana === 'todos' || dias.includes(estadoUI.diaSemana) || dias.includes('todos');
+            return `
+          <li>
+            <a href="#/linha/${encodeURIComponent(l.numero)}" class="cartao cartao-linha">
+              ${placaLinhaHtml(l.numero, l.cor)}
+              <span class="cartao-linha__texto">
+                <span class="cartao-linha__nome">${esc(l.nome)}</span>
+                <span class="cartao-linha__meta">
+                  <span>${esc(categoriaComLetra(l))}</span>
+                  <span>${esc(regiaoDaLinha(l, true))}</span>
+                  ${!operaDia ? '<span class="selo selo--alerta">Não opera neste dia</span>' : ''}
+                  ${badgeSituacaoRota(l)}
+                </span>
+              </span>
+              <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+          </li>`;
+          })
+          .join('')
+      : '<li class="cartao">Nenhuma linha vinculada a esta empresa no momento.</li>';
+
+    container.innerHTML = `
+      <div class="bloco">
+        <div class="barra-detalhe">
+          <a href="#/" class="btn-secundario"><i class="bi bi-arrow-left" aria-hidden="true"></i> Voltar</a>
+          <button type="button" id="btn-copiar-link-empresa" class="btn-secundario" data-url="${esc(urlCompartilhavel)}">
+            <i class="bi bi-share" aria-hidden="true"></i> <span>Compartilhar</span>
+          </button>
+        </div>
+
+        <div class="cartao cartao-empresa">
+          <div class="cartao-empresa__topo">
+            <span class="cartao-empresa__icone" style="--cor-emp:${esc(empresa.cor || '#12355B')}" aria-hidden="true">
+              <i class="bi bi-building"></i>
+            </span>
+            <div class="cartao-empresa__cabeca">
+              <h2 class="cartao-empresa__nome">
+                <span>${esc(empresa.nome)}</span>
+                ${empresa.sigla ? `<span class="selo">${esc(empresa.sigla)}</span>` : ''}
+              </h2>
+              <span class="cartao-empresa__sub">
+                ${linhasEmp.length} ${linhasEmp.length === 1 ? 'linha operada' : 'linhas operadas'}${loteEmp ? ` • ${esc(loteEmp)}` : ''}
+              </span>
+            </div>
+          </div>
+          ${empresa.observacao ? `<p class="cartao-empresa__obs">${esc(empresa.observacao)}</p>` : ''}
+          ${contatos ? `<div class="cartao-empresa__contatos">${contatos}</div>` : ''}
+        </div>
+
+        <section class="bloco" aria-labelledby="titulo-linhas-da-empresa">
+          <div class="bloco__topo">
+            <h3 class="bloco__titulo" id="titulo-linhas-da-empresa">Linhas operadas por ${esc(empresa.nome)}</h3>
+            <span class="contador">${linhasEmp.length} ${linhasEmp.length === 1 ? 'linha' : 'linhas'}</span>
+          </div>
+          <ul class="lista-cartoes">${cartoesLinhas}</ul>
+        </section>
+      </div>
+    `;
+
+    const btnCopiar = document.getElementById('btn-copiar-link-empresa');
+    btnCopiar?.addEventListener('click', async () => {
+      const url = btnCopiar.getAttribute('data-url') || window.location.href;
+      registrarEvento('compartilhar');
+      if (navigator.share && window.matchMedia?.('(pointer: coarse)').matches) {
+        try {
+          await navigator.share({ title: `${empresa.nome} — BuzuRota`, text: `Linhas operadas por ${empresa.nome} em Natal`, url });
+          return;
+        } catch (_e) {}
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        btnCopiar.innerHTML = '<i class="bi bi-check2" aria-hidden="true"></i> <span>Link copiado</span>';
+      } catch (_e) {
+        window.prompt('Copie o link desta empresa:', url);
       }
     });
   }

@@ -502,3 +502,70 @@ tbody tr:hover { background: var(--superficie-2); }
   align-items: center;
   gap: 6px;
 }
+
+/* ---------- Empresas operadoras ---------- */
+.emp-cor-campo { display: flex; gap: 8px; align-items: center; }
+.emp-cor-campo input[type="color"] { width: 52px; padding: 3px; cursor: pointer; flex: none; }
+.emp-linhas-box {
+  margin-top: 10px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: var(--superficie-2);
+  padding: 10px;
+}
+.emp-linhas-topo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.emp-linhas-topo input[type="search"] { flex: 1 1 180px; min-height: 34px; padding: 5px 10px; font-size: 0.86rem; }
+.emp-linhas-topo select { width: auto; min-width: 135px; min-height: 34px; padding: 5px 10px; font-size: 0.86rem; }
+.emp-linhas-atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.emp-linhas-atalhos .etiqueta { margin-left: auto; }
+.emp-linhas-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.emp-linha-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  padding: 7px 8px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.8rem;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+.emp-linha-item:hover { border-color: var(--destaque); }
+.emp-linha-item.selecionada { border-color: var(--destaque); background: var(--destaque-suave); }
+.emp-linha-item input { margin-top: 1px; flex: none; }
+.emp-linha-item__info { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.emp-linha-item__num { font-weight: 800; color: var(--texto); display: flex; align-items: center; gap: 5px; }
+.emp-linha-item__nome { color: var(--texto-sec); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.emp-linha-item__outra { color: var(--alerta); font-size: 0.72rem; font-weight: 700; }
+.emp-ponto-cor {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex: none;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+.emp-card-titulo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.emp-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }

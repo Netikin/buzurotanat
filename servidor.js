@@ -121,7 +121,8 @@ const painel = criarPainel({
   BACKUPS_DIR,
   ARQ_AUDITORIA,
   somenteLeitura: MODO_SOMENTE_LEITURA,
-  registrarAuditoria
+  registrarAuditoria,
+  criarBackupVersao
 });
 
 function sessaoEstaValida(req) {

@@ -800,6 +800,52 @@ select.campo__entrada {
 .ficha__rotulo { font-size: 12px; font-weight: 800; color: var(--sub); }
 .ficha__valor { font-size: 15px; font-weight: 900; line-height: 1.3; overflow-wrap: anywhere; }
 .ficha__valor--grande { font-size: 22px; }
+.ficha__link { color: var(--link); text-decoration: none; }
+.ficha__link:hover { text-decoration: underline; }
+
+/* Cartão de Empresa Operadora */
+.cartao-empresa { display: flex; flex-direction: column; gap: 10px; }
+.cartao-empresa__topo { display: flex; align-items: flex-start; gap: 10px; }
+.cartao-empresa__icone {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cor-emp, var(--marca));
+  color: #fff;
+  font-size: 18px;
+}
+.cartao-empresa__cabeca { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.cartao-empresa__nome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 15.5px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+.cartao-empresa__nome a { color: var(--tinta); text-decoration: none; }
+.cartao-empresa__nome a:hover { color: var(--link); text-decoration: underline; }
+.cartao-empresa__sub { font-size: 12.5px; color: var(--sub); font-weight: 700; }
+.cartao-empresa__obs { font-size: 13.5px; line-height: 1.45; color: var(--tinta); }
+.cartao-empresa__contatos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--sub);
+}
+.cartao-empresa__contatos span,
+.cartao-empresa__contatos a { display: inline-flex; align-items: center; gap: 5px; }
+.cartao-empresa__linhas { display: flex; flex-wrap: wrap; gap: 6px; }
+.etiqueta-linha--atual {
+  box-shadow: 0 0 0 2.5px var(--cartao), 0 0 0 4.5px var(--sol);
+}
 
 .tabela-func {
   width: 100%;

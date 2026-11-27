@@ -169,8 +169,8 @@
     $('#btn-menu').setAttribute('aria-expanded', String(aberto));
   });
 
-  const ABAS = { visao: abaVisao, interacoes: abaInteracoes, mudancas: abaMudancas, avisos: abaAvisos, log: abaLog, acessos: abaAcessos, notas: abaNotas, perfil: abaPerfil };
-  const TITULOS = { visao: 'Visão geral', interacoes: 'Interações', mudancas: 'Mudanças nos dados', avisos: 'Avisos do site', log: 'Log de alterações', acessos: 'Acessos e segurança', notas: 'Notas da equipe', perfil: 'Meu perfil' };
+  const ABAS = { visao: abaVisao, interacoes: abaInteracoes, empresas: abaEmpresas, mudancas: abaMudancas, avisos: abaAvisos, log: abaLog, acessos: abaAcessos, notas: abaNotas, perfil: abaPerfil };
+  const TITULOS = { visao: 'Visão geral', interacoes: 'Interações', empresas: 'Empresas operadoras', mudancas: 'Mudanças nos dados', avisos: 'Avisos do site', log: 'Log de alterações', acessos: 'Acessos e segurança', notas: 'Notas da equipe', perfil: 'Meu perfil' };
 
   window.addEventListener('hashchange', () => {
     if (usuarioAtual) abrirAba(location.hash.slice(1));
@@ -200,10 +200,14 @@
     return `<div class="cabecalho-aba"><div><h1>${esc(titulo)}</h1>${sub ? `<p>${esc(sub)}</p>` : ''}</div>${acoes}</div>`;
   }
 
-  /** Larguras dos gráficos: CSP não permite style="" no HTML, então aplicamos via JS */
+  /** Larguras e cores dinâmicas: CSP não permite style="" no HTML, então aplicamos via JS */
   function aplicarLarguras(raiz = alvo) {
     raiz.querySelectorAll('[data-largura]').forEach(el => {
       el.style.width = `${Math.max(0, Math.min(100, Number(el.dataset.largura)))}%`;
+    });
+    raiz.querySelectorAll('[data-cor]').forEach(el => {
+      const c = String(el.dataset.cor || '');
+      if (/^#[0-9a-f]{6}$/i.test(c)) el.style.backgroundColor = c;
     });
   }
 
@@ -256,6 +260,9 @@
     AVISO_CRIADO: 'Criou aviso',
     AVISO_EDITADO: 'Editou aviso',
     AVISO_EXCLUIDO: 'Excluiu aviso',
+    EMPRESA_CRIADA: 'Cadastrou empresa',
+    EMPRESA_EDITADA: 'Editou empresa',
+    EMPRESA_EXCLUIDA: 'Excluiu empresa',
     ENCERRAR_SESSAO: 'Encerrou sessão',
     LOGIN_ADMIN: 'Entrou (chave antiga)'
   };
@@ -445,6 +452,262 @@
         abrirAba('interacoes');
       })
     );
+  }
+
+  const LOTES_EMPRESA = {
+    '': 'Não definido',
+    '1': 'Lote 1 (Zona Norte)',
+    '2': 'Lote 2 (Sul / Leste / Oeste)',
+    '1e2': 'Lotes 1 e 2'
+  };
+
+  async function abaEmpresas(editarId = null) {
+    const r = await api('/api/painel/empresas');
+    const empresas = r.empresas || [];
+    const todasLinhas = r.linhas || [];
+    const emEdicao = editarId ? empresas.find(e => e.id === editarId) || null : null;
+    const v = emEdicao || { nome: '', sigla: '', lote: '', cor: '#12355B', telefone: '', site: '', observacao: '', linhas: [] };
+    const selecionadas = new Set(v.linhas || []);
+    const comEmpresa = todasLinhas.filter(l => Boolean(l.empresa)).length;
+    const semEmpresa = todasLinhas.length - comEmpresa;
+
+    alvo.innerHTML = `
+      ${cabecalho('Empresas operadoras', 'Cadastre as empresas ou consórcios e vincule as linhas que cada uma opera. A alteração vai direto para o site (com backup automático).')}
+      <div class="grade grade--3">
+        ${indicador('bi-building', 'Empresas cadastradas', fmtNum(empresas.length))}
+        ${indicador('bi-check-circle', 'Linhas com empresa', fmtNum(comEmpresa), `de ${fmtNum(todasLinhas.length)} linhas`)}
+        ${indicador('bi-question-circle', 'Linhas sem empresa', fmtNum(semEmpresa))}
+      </div>
+      <div class="grade grade--2 mt">
+        <section class="cartao">
+          <h2><i class="bi bi-${emEdicao ? 'pencil' : 'plus-circle'}" aria-hidden="true"></i>${emEdicao ? `Editar: ${esc(emEdicao.nome)}` : 'Nova empresa'}</h2>
+          <form id="form-empresa" class="formulario-linha" novalidate>
+            <div class="inteira">
+              <label for="emp-nome">Nome da empresa ou consórcio *</label>
+              <input id="emp-nome" maxlength="80" value="${esc(v.nome)}" placeholder="Ex.: Consórcio Potengi Norte" required>
+            </div>
+            <div>
+              <label for="emp-sigla">Sigla (opcional)</label>
+              <input id="emp-sigla" maxlength="16" value="${esc(v.sigla)}" placeholder="Ex.: CPN">
+            </div>
+            <div>
+              <label for="emp-lote">Lote</label>
+              <select id="emp-lote">
+                ${Object.entries(LOTES_EMPRESA)
+                  .map(([k, rot]) => `<option value="${k}"${String(v.lote || '') === k ? ' selected' : ''}>${esc(rot)}</option>`)
+                  .join('')}
+              </select>
+            </div>
+            <div>
+              <label for="emp-cor">Cor de destaque</label>
+              <div class="emp-cor-campo">
+                <input id="emp-cor" type="color" value="${esc(/^#[0-9a-f]{6}$/i.test(v.cor || '') ? v.cor : '#12355B')}">
+                <input id="emp-cor-hex" maxlength="7" value="${esc(/^#[0-9a-f]{6}$/i.test(v.cor || '') ? v.cor : '#12355B')}" aria-label="Cor em hexadecimal">
+              </div>
+            </div>
+            <div>
+              <label for="emp-tel">Telefone / SAC (opcional)</label>
+              <input id="emp-tel" maxlength="40" value="${esc(v.telefone)}" placeholder="Ex.: (84) 3200-0000">
+            </div>
+            <div class="inteira">
+              <label for="emp-site">Site oficial (opcional)</label>
+              <input id="emp-site" maxlength="200" value="${esc(v.site)}" placeholder="https://...">
+            </div>
+            <div class="inteira">
+              <label for="emp-obs">Observação (opcional)</label>
+              <textarea id="emp-obs" maxlength="300" placeholder="Informações úteis exibidas no site sobre a empresa">${esc(v.observacao)}</textarea>
+            </div>
+
+            <div class="inteira">
+              <label>Linhas operadas por esta empresa</label>
+              <div class="emp-linhas-box">
+                <div class="emp-linhas-topo">
+                  <input id="emp-busca-linha" type="search" placeholder="Filtrar linha por número ou nome…" aria-label="Filtrar linhas">
+                  <select id="emp-filtro-linha" aria-label="Filtrar por situação">
+                    <option value="todas">Todas (${fmtNum(todasLinhas.length)})</option>
+                    <option value="1">Lote 1 (Norte)</option>
+                    <option value="2">Lote 2 (Sul/Leste/Oeste)</option>
+                    <option value="sem">Só sem empresa</option>
+                    <option value="sel">Só selecionadas</option>
+                  </select>
+                </div>
+                <div class="emp-linhas-atalhos">
+                  <button type="button" class="btn btn--peq" data-marcar-lote="1">Marcar Lote 1</button>
+                  <button type="button" class="btn btn--peq" data-marcar-lote="2">Marcar Lote 2</button>
+                  <button type="button" class="btn btn--peq" id="emp-desmarcar-todas">Desmarcar todas</button>
+                  <span id="emp-qtd-sel" class="etiqueta etiqueta--info"></span>
+                </div>
+                <div id="emp-linhas-grade" class="emp-linhas-grade"></div>
+              </div>
+            </div>
+
+            <div class="inteira acoes-form">
+              <button type="submit" id="emp-salvar" class="btn btn--primario"><i class="bi bi-check2" aria-hidden="true"></i> ${emEdicao ? 'Salvar alterações' : 'Cadastrar e vincular linhas'}</button>
+              ${emEdicao ? '<button type="button" id="emp-cancelar" class="btn">Cancelar</button>' : ''}
+            </div>
+          </form>
+        </section>
+
+        <section class="cartao">
+          <h2><i class="bi bi-list-ul" aria-hidden="true"></i>Empresas cadastradas (${fmtNum(empresas.length)})</h2>
+          ${
+            empresas.length
+              ? empresas
+                  .map(emp => {
+                    const loteTxt = emp.lote ? LOTES_EMPRESA[emp.lote] || `Lote ${emp.lote}` : '';
+                    const chips = (emp.linhas || [])
+                      .map(num => `<a class="saude-chip" href="editor?linha=${encodeURIComponent(num)}" title="Abrir linha ${esc(num)} no editor">${esc(num)}</a>`)
+                      .join('');
+                    return `<div class="item-lista">
+                      <div class="item-lista__corpo">
+                        <div class="item-lista__titulo emp-card-titulo">
+                          <span class="emp-ponto-cor" data-cor="${esc(emp.cor || '#12355B')}" aria-hidden="true"></span>
+                          <span>${esc(emp.nome)}</span>
+                          ${emp.sigla ? `<span class="etiqueta">${esc(emp.sigla)}</span>` : ''}
+                          ${loteTxt ? `<span class="etiqueta etiqueta--info">${esc(loteTxt)}</span>` : ''}
+                          <span class="etiqueta etiqueta--ok">${fmtNum(emp.totalLinhas)} ${emp.totalLinhas === 1 ? 'linha' : 'linhas'}</span>
+                        </div>
+                        ${emp.observacao ? `<div>${esc(emp.observacao)}</div>` : ''}
+                        ${
+                          emp.telefone || emp.site
+                            ? `<div class="item-lista__meta">${[emp.telefone ? `Tel.: ${esc(emp.telefone)}` : '', emp.site ? `<a href="${esc(emp.site)}" target="_blank" rel="noopener noreferrer">${esc(emp.site)}</a>` : ''].filter(Boolean).join(' • ')}</div>`
+                            : ''
+                        }
+                        ${chips ? `<div class="emp-chips">${chips}</div>` : '<div class="item-lista__meta">Nenhuma linha vinculada ainda.</div>'}
+                        <div class="item-lista__meta">Atualizada por ${esc(emp.atualizadoPor || emp.criadoPor || 'admin')} em ${fmtData(emp.atualizadoEm || emp.criadoEm)}</div>
+                      </div>
+                      <div class="item-lista__acoes">
+                        <button type="button" class="btn btn--peq" data-editar-emp="${esc(emp.id)}"><i class="bi bi-pencil" aria-hidden="true"></i> Editar</button>
+                        <button type="button" class="btn btn--peq btn--perigo" data-excluir-emp="${esc(emp.id)}" data-nome-emp="${esc(emp.nome)}"><i class="bi bi-trash" aria-hidden="true"></i> Excluir</button>
+                      </div>
+                    </div>`;
+                  })
+                  .join('')
+              : '<p class="vazio">Nenhuma empresa cadastrada ainda. Cadastre ao lado e marque as linhas operadas por ela.</p>'
+          }
+        </section>
+      </div>`;
+
+    const corPicker = $('#emp-cor');
+    const corHex = $('#emp-cor-hex');
+    corPicker.addEventListener('input', () => (corHex.value = corPicker.value.toUpperCase()));
+    corHex.addEventListener('input', () => {
+      if (/^#[0-9a-f]{6}$/i.test(corHex.value)) corPicker.value = corHex.value;
+    });
+
+    const atualizarContador = () => {
+      const n = selecionadas.size;
+      $('#emp-qtd-sel').textContent = `${fmtNum(n)} ${n === 1 ? 'linha selecionada' : 'linhas selecionadas'}`;
+    };
+
+    const renderGradeLinhas = () => {
+      const busca = $('#emp-busca-linha').value.trim().toLowerCase();
+      const filtro = $('#emp-filtro-linha').value;
+      const visiveis = todasLinhas.filter(l => {
+        if (filtro === '1' && l.lote !== '1') return false;
+        if (filtro === '2' && l.lote !== '2') return false;
+        if (filtro === 'sem' && l.empresa) return false;
+        if (filtro === 'sel' && !selecionadas.has(l.numero)) return false;
+        if (busca && !`${l.numero} ${l.nome}`.toLowerCase().includes(busca)) return false;
+        return true;
+      });
+      const grade = $('#emp-linhas-grade');
+      if (!visiveis.length) {
+        grade.innerHTML = '<p class="vazio">Nenhuma linha com esse filtro.</p>';
+        atualizarContador();
+        return;
+      }
+      grade.innerHTML = visiveis
+        .map(l => {
+          const marcada = selecionadas.has(l.numero);
+          const outra = l.empresa && (!emEdicao || l.empresa_id !== emEdicao.id) ? l.empresa : '';
+          return `<label class="emp-linha-item${marcada ? ' selecionada' : ''}" title="${esc(`${l.numero} — ${l.nome}`)}">
+            <input type="checkbox" data-linha-emp="${esc(l.numero)}"${marcada ? ' checked' : ''}>
+            <span class="emp-linha-item__info">
+              <span class="emp-linha-item__num"><span class="emp-ponto-cor" data-cor="${esc(l.cor)}"></span>${esc(l.numero)}</span>
+              <span class="emp-linha-item__nome">${esc(l.nome)}</span>
+              ${outra ? `<span class="emp-linha-item__outra">Atual: ${esc(outra)}</span>` : ''}
+            </span>
+          </label>`;
+        })
+        .join('');
+      aplicarLarguras(grade);
+      grade.querySelectorAll('[data-linha-emp]').forEach(chk => {
+        chk.addEventListener('change', () => {
+          const num = chk.dataset.linhaEmp;
+          if (chk.checked) selecionadas.add(num);
+          else selecionadas.delete(num);
+          chk.closest('.emp-linha-item')?.classList.toggle('selecionada', chk.checked);
+          atualizarContador();
+        });
+      });
+      atualizarContador();
+    };
+
+    $('#emp-busca-linha').addEventListener('input', renderGradeLinhas);
+    $('#emp-filtro-linha').addEventListener('change', renderGradeLinhas);
+    alvo.querySelectorAll('[data-marcar-lote]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const loteAlvo = btn.dataset.marcarLote;
+        todasLinhas.filter(l => l.lote === loteAlvo).forEach(l => selecionadas.add(l.numero));
+        renderGradeLinhas();
+      });
+    });
+    $('#emp-desmarcar-todas').addEventListener('click', () => {
+      selecionadas.clear();
+      renderGradeLinhas();
+    });
+
+    $('#form-empresa').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nome = $('#emp-nome').value.trim();
+      if (!nome) {
+        toast('Informe o nome da empresa ou consórcio.', true);
+        $('#emp-nome').focus();
+        return;
+      }
+      const btn = $('#emp-salvar');
+      btn.disabled = true;
+      try {
+        const res = await api('/api/painel/empresas', {
+          metodo: 'POST',
+          corpo: {
+            id: emEdicao?.id,
+            nome,
+            sigla: $('#emp-sigla').value.trim(),
+            lote: $('#emp-lote').value,
+            cor: /^#[0-9a-f]{6}$/i.test(corHex.value) ? corHex.value : corPicker.value,
+            telefone: $('#emp-tel').value.trim(),
+            site: $('#emp-site').value.trim(),
+            observacao: $('#emp-obs').value.trim(),
+            linhas: [...selecionadas]
+          }
+        });
+        toast(`${emEdicao ? 'Empresa atualizada' : 'Empresa cadastrada'} com ${fmtNum(res.totalLinhas)} ${res.totalLinhas === 1 ? 'linha' : 'linhas'} vinculadas.`);
+        abaEmpresas();
+      } catch (err) {
+        toast(err.message, true);
+        btn.disabled = false;
+      }
+    });
+
+    $('#emp-cancelar')?.addEventListener('click', () => abaEmpresas());
+    alvo.querySelectorAll('[data-editar-emp]').forEach(b => b.addEventListener('click', () => abaEmpresas(b.dataset.editarEmp)));
+    alvo.querySelectorAll('[data-excluir-emp]').forEach(b =>
+      b.addEventListener('click', async () => {
+        if (!confirm(`Excluir a empresa "${b.dataset.nomeEmp}"?\n\nAs linhas vinculadas ficarão sem empresa (um backup automático é salvo antes).`)) return;
+        try {
+          await api('/api/painel/empresas/excluir', { metodo: 'POST', corpo: { id: b.dataset.excluirEmp } });
+          toast('Empresa excluída.');
+          abaEmpresas();
+        } catch (err) {
+          toast(err.message, true);
+        }
+      })
+    );
+
+    aplicarLarguras();
+    renderGradeLinhas();
   }
 
   async function abaMudancas() {

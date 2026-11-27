@@ -411,7 +411,9 @@ window.BuzuCardLinha = (function () {
     ctx.textAlign = 'right';
     ctx.font = '800 21px "Nunito", system-ui, sans-serif';
     ctx.fillStyle = '#A9BCD6';
-    ctx.fillText('Edital CP 11.001/2026 (STTU)', LARGURA - padX, yRodape + 40);
+    const empCard = linha.empresa ? `Operação: ${String(linha.empresa).trim()}` : 'Edital CP 11.001/2026 (STTU)';
+    const empLinhas = quebrarLinhas(ctx, empCard, 460, 1);
+    ctx.fillText(empLinhas[0] || 'Edital CP 11.001/2026 (STTU)', LARGURA - padX, yRodape + 40);
     ctx.font = '700 20px "Nunito", system-ui, sans-serif';
     ctx.fillText('Portal independente • BuzuRota Natal', LARGURA - padX, yRodape + 76);
   }
