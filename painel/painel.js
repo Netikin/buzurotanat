@@ -388,6 +388,13 @@
             <dt>Memória</dt><dd>${fmtNum(r.servidor.memoriaMb)} MB</dd>
             <dt>Sessões abertas</dt><dd>${fmtNum(r.servidor.sessoesAtivas)}</dd>
             <dt>Contas de admin</dt><dd>${fmtNum(r.servidor.contas)}</dd>
+            <dt>Banco de dados</dt><dd>${
+              r.servidor.banco?.ativo
+                ? '<span class="etiqueta etiqueta--ok">PostgreSQL ativo</span>'
+                : r.servidor.banco?.configurado
+                ? '<span class="etiqueta etiqueta--perigo">Erro na conexão</span>'
+                : '<span class="etiqueta">Arquivos locais</span>'
+            }</dd>
             <dt>Node.js</dt><dd>${esc(r.servidor.node)}</dd>
           </dl>
         </section>

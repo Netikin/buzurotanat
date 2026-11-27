@@ -18,6 +18,8 @@ const os = require('os');
 const crypto = require('crypto');
 const zlib = require('zlib');
 const { execFile } = require('child_process');
+const { criarBanco } = require('./admin/banco.js');
+let banco = null;
 
 const PORTA_INICIAL = Number(process.env.PORT) || 8080;
 const RAIZ = path.resolve(__dirname);
@@ -44,6 +46,9 @@ function registrarAuditoria(acao, ip, detalhes = '', usuario = '') {
       detalhes: String(detalhes || '').slice(0, 400)
     });
     fs.appendFileSync(ARQ_AUDITORIA, linha + '\n', 'utf8');
+    if (banco?.estaAtivo()) {
+      banco.anexarLinhaDocumento('dados/auditoria-admin.jsonl', linha).catch(() => {});
+    }
   } catch (_e) {
     // Não interrompe o fluxo caso o log falhe
   }
@@ -62,20 +67,32 @@ function criarBackupVersao(motivo = 'Publicação Admin') {
   if (!fs.existsSync(pastaDestino)) fs.mkdirSync(pastaDestino, { recursive: true });
 
   let copiados = 0;
+  const arquivosBackup = {};
   for (const nomeArq of ARQUIVOS_VERSIONADOS) {
     const origem = path.join(DADOS_DIR, nomeArq);
     if (fs.existsSync(origem)) {
       fs.copyFileSync(origem, path.join(pastaDestino, nomeArq));
+      if (banco?.estaAtivo()) {
+        try {
+          arquivosBackup[nomeArq] = fs.readFileSync(origem, 'utf8');
+        } catch (_e) {}
+      }
       copiados++;
     }
   }
   if (copiados === 0) return null;
 
+  const metaBackup = { versao: idVersao, dataHora: agora.toISOString(), motivo, arquivos: copiados };
   fs.writeFileSync(
     path.join(pastaDestino, 'meta.json'),
-    JSON.stringify({ versao: idVersao, dataHora: agora.toISOString(), motivo, arquivos: copiados }, null, 2),
+    JSON.stringify(metaBackup, null, 2),
     'utf8'
   );
+  if (banco?.estaAtivo()) {
+    banco.salvarBackup(idVersao, metaBackup, arquivosBackup).catch(err => {
+      console.error('[Banco] Erro ao salvar backup no PostgreSQL:', err.message);
+    });
+  }
 
   // Mantém no máximo os 20 backups mais recentes
   const todas = fs
@@ -110,6 +127,7 @@ function carregarEnvLocal() {
   }
 }
 carregarEnvLocal();
+banco = criarBanco();
 
 // Área administrativa: contas por pessoa (senha com hash + verificação em duas etapas),
 // endereço oculto e dados do painel. Detalhes em admin/painel-servidor.js.
@@ -122,7 +140,8 @@ const painel = criarPainel({
   ARQ_AUDITORIA,
   somenteLeitura: MODO_SOMENTE_LEITURA,
   registrarAuditoria,
-  criarBackupVersao
+  criarBackupVersao,
+  banco
 });
 
 function sessaoEstaValida(req) {
@@ -431,13 +450,23 @@ const servidor = http.createServer(async (req, res) => {
         return;
       }
       criarBackupVersao(`Antes de restaurar ${versao} (${usuarioDaSessao(req)})`);
+      const quemRest = usuarioDaSessao(req);
       for (const nomeArq of ARQUIVOS_VERSIONADOS) {
         const src = path.join(pastaOrigem, nomeArq);
         if (fs.existsSync(src)) {
           fs.copyFileSync(src, path.join(DADOS_DIR, nomeArq));
+          if (banco?.estaAtivo()) {
+            const texto = fs.readFileSync(src, 'utf8');
+            await banco.salvarDocumento(`dados/${nomeArq}`, texto, quemRest);
+            if (nomeArq === 'linhas.json') {
+              try {
+                await banco.sincronizarTabelaEmpresasDoIndice(JSON.parse(texto));
+              } catch (_e) {}
+            }
+          }
         }
       }
-      registrarAuditoria('RESTAURAR_VERSAO', ipCliente, `Restaurado backup ${versao}`, usuarioDaSessao(req));
+      registrarAuditoria('RESTAURAR_VERSAO', ipCliente, `Restaurado backup ${versao}`, quemRest);
       responderJson(res, 200, { ok: true, mensagem: `Versão ${versao} restaurada com sucesso!` });
     } catch (err) {
       responderJson(res, 500, { ok: false, erro: err.message });
@@ -487,32 +516,42 @@ const servidor = http.createServer(async (req, res) => {
         `${pacote.resumoAuditoria || 'Publicação Admin'} — por ${usuarioDaSessao(req) || 'admin'}`
       );
 
-      fs.writeFileSync(path.join(DADOS_DIR, 'linhas.json'), JSON.stringify(pacote.indice, null, 2), 'utf8');
-      fs.writeFileSync(path.join(DADOS_DIR, 'paradas.json'), JSON.stringify(pacote.paradas, null, 2), 'utf8');
+      const quemPub = usuarioDaSessao(req) || 'admin';
+      const jsonLinhas = JSON.stringify(pacote.indice, null, 2);
+      const jsonParadas = JSON.stringify(pacote.paradas, null, 2);
+      fs.writeFileSync(path.join(DADOS_DIR, 'linhas.json'), jsonLinhas, 'utf8');
+      fs.writeFileSync(path.join(DADOS_DIR, 'paradas.json'), jsonParadas, 'utf8');
+
+      const gravacoesBanco = [];
+      if (banco?.estaAtivo()) {
+        gravacoesBanco.push(
+          banco.salvarDocumento('dados/linhas.json', jsonLinhas, quemPub),
+          banco.salvarDocumento('dados/paradas.json', jsonParadas, quemPub),
+          banco.sincronizarTabelaEmpresasDoIndice(pacote.indice)
+        );
+      }
 
       if (Array.isArray(pacote.linhaParadas)) {
-        fs.writeFileSync(
-          path.join(DADOS_DIR, 'linha_paradas.json'),
-          JSON.stringify(pacote.linhaParadas, null, 2),
-          'utf8'
-        );
+        const jsonLP = JSON.stringify(pacote.linhaParadas, null, 2);
+        fs.writeFileSync(path.join(DADOS_DIR, 'linha_paradas.json'), jsonLP, 'utf8');
+        if (banco?.estaAtivo()) gravacoesBanco.push(banco.salvarDocumento('dados/linha_paradas.json', jsonLP, quemPub));
       }
 
       if (pacote.lotesGeoJson) {
         if (pacote.lotesGeoJson['1']) {
-          fs.writeFileSync(
-            path.join(DADOS_DIR, 'lote-1.geojson'),
-            JSON.stringify(pacote.lotesGeoJson['1'], null, 2),
-            'utf8'
-          );
+          const jsonL1 = JSON.stringify(pacote.lotesGeoJson['1'], null, 2);
+          fs.writeFileSync(path.join(DADOS_DIR, 'lote-1.geojson'), jsonL1, 'utf8');
+          if (banco?.estaAtivo()) gravacoesBanco.push(banco.salvarDocumento('dados/lote-1.geojson', jsonL1, quemPub));
         }
         if (pacote.lotesGeoJson['2']) {
-          fs.writeFileSync(
-            path.join(DADOS_DIR, 'lote-2.geojson'),
-            JSON.stringify(pacote.lotesGeoJson['2'], null, 2),
-            'utf8'
-          );
+          const jsonL2 = JSON.stringify(pacote.lotesGeoJson['2'], null, 2);
+          fs.writeFileSync(path.join(DADOS_DIR, 'lote-2.geojson'), jsonL2, 'utf8');
+          if (banco?.estaAtivo()) gravacoesBanco.push(banco.salvarDocumento('dados/lote-2.geojson', jsonL2, quemPub));
         }
+      }
+
+      if (gravacoesBanco.length > 0) {
+        await Promise.all(gravacoesBanco);
       }
 
       const totalLinhas = (pacote.indice.linhas || []).length;
@@ -736,18 +775,32 @@ function escolherCodificacao(aceita, ext, tamanho) {
   return null;
 }
 
+const compressoesEmAndamento = new Map(); // chaveCache|versao -> [callbacks]
+
 function obterComprimido(caminho, stats, codificacao, cb) {
   const chaveCache = `${caminho}|${codificacao}`;
   const versao = `${stats.size}-${stats.mtimeMs}`;
   const salvo = cacheComprimidos.get(chaveCache);
   if (salvo && salvo.versao === versao) return cb(null, salvo.corpo);
+
+  // Evita pico de RAM quando várias pessoas pedem o mesmo arquivo grande ao mesmo tempo após reiniciar
+  const chaveFila = `${chaveCache}|${versao}`;
+  const fila = compressoesEmAndamento.get(chaveFila);
+  if (fila) {
+    fila.push(cb);
+    return;
+  }
+  const ouvintes = [cb];
+  compressoesEmAndamento.set(chaveFila, ouvintes);
+
+  const finalizar = (err, corpo) => {
+    compressoesEmAndamento.delete(chaveFila);
+    if (!err && corpo) cacheComprimidos.set(chaveCache, { versao, corpo });
+    for (const fn of ouvintes) fn(err, corpo);
+  };
+
   fs.readFile(caminho, (err, bruto) => {
-    if (err) return cb(err);
-    const pronto = (errZip, corpo) => {
-      if (errZip) return cb(errZip);
-      cacheComprimidos.set(chaveCache, { versao, corpo });
-      cb(null, corpo);
-    };
+    if (err) return finalizar(err);
     if (codificacao === 'br') {
       zlib.brotliCompress(
         bruto,
@@ -757,10 +810,10 @@ function obterComprimido(caminho, stats, codificacao, cb) {
             [zlib.constants.BROTLI_PARAM_SIZE_HINT]: bruto.length
           }
         },
-        pronto
+        finalizar
       );
     } else {
-      zlib.gzip(bruto, { level: 6 }, pronto);
+      zlib.gzip(bruto, { level: 6 }, finalizar);
     }
   });
 }
@@ -803,8 +856,25 @@ function iniciarServidor(porta) {
         console.log(` -> Admin:  ${contas} conta(s) com senha + verificação em duas etapas`);
       }
     }
+    const stBanco = banco.status();
+    if (stBanco.ativo) {
+      console.log(' -> Banco:  PostgreSQL conectado (dados persistentes)');
+    } else if (stBanco.configurado) {
+      console.log(` -> Banco:  FALHA ao conectar (${stBanco.ultimoErro}) — usando arquivos locais`);
+    } else {
+      console.log(' -> Banco:  arquivos locais (defina DATABASE_URL para persistência em PostgreSQL)');
+    }
     console.log('===================================================================');
   });
 }
 
-iniciarServidor(PORTA_INICIAL);
+(async () => {
+  await banco.inicializar({
+    DADOS_DIR,
+    PASTA_ADMIN: path.join(RAIZ, 'dados-admin'),
+    BACKUPS_DIR,
+    ARQ_AUDITORIA
+  });
+  painel.recarregarEstado();
+  iniciarServidor(PORTA_INICIAL);
+})();

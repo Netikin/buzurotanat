@@ -125,7 +125,7 @@ function lerUsuarios(texto) {
 // ---------------------------------------------------------------------------
 // Persistência simples em JSON / JSONL dentro de dados-admin/
 // ---------------------------------------------------------------------------
-function criarArmazem(pasta) {
+function criarArmazem(pasta, banco = null) {
   if (!fs.existsSync(pasta)) fs.mkdirSync(pasta, { recursive: true });
   const arq = nome => path.join(pasta, nome);
   return {
@@ -139,11 +139,21 @@ function criarArmazem(pasta) {
     gravarJson(nome, valor) {
       const destino = arq(nome);
       const temp = `${destino}.tmp`;
-      fs.writeFileSync(temp, JSON.stringify(valor, null, 1), 'utf8');
+      const texto = JSON.stringify(valor, null, 1);
+      fs.writeFileSync(temp, texto, 'utf8');
       fs.renameSync(temp, destino);
+      if (banco?.estaAtivo()) {
+        banco.salvarDocumento(`admin/${nome}`, texto).catch(err => {
+          console.error(`[Banco] Erro ao gravar admin/${nome}:`, err.message);
+        });
+      }
     },
     anexarLinha(nome, obj) {
-      fs.appendFileSync(arq(nome), JSON.stringify(obj) + '\n', 'utf8');
+      const linha = JSON.stringify(obj);
+      fs.appendFileSync(arq(nome), linha + '\n', 'utf8');
+      if (banco?.estaAtivo()) {
+        banco.anexarLinhaDocumento(`admin/${nome}`, linha, 1000).catch(() => {});
+      }
     },
     lerLinhas(nome, limite) {
       try {
@@ -210,10 +220,10 @@ function diaLocal(data = new Date()) {
 // Painel
 // ---------------------------------------------------------------------------
 function criarPainel(opcoes) {
-  const { RAIZ, DADOS_DIR, BACKUPS_DIR, ARQ_AUDITORIA, somenteLeitura, registrarAuditoria, criarBackupVersao } = opcoes;
+  const { RAIZ, DADOS_DIR, BACKUPS_DIR, ARQ_AUDITORIA, somenteLeitura, registrarAuditoria, criarBackupVersao, banco = null } = opcoes;
   const PASTA_ADMIN = path.join(RAIZ, 'dados-admin');
   const PASTA_FRONT = path.join(RAIZ, 'painel');
-  const armazem = criarArmazem(PASTA_ADMIN);
+  const armazem = criarArmazem(PASTA_ADMIN, banco);
 
   const usuarios = lerUsuarios(process.env.BUZU_ADMIN_USUARIOS);
   // Endereço padrão do painel: /use-admin (pode ser trocado por BUZU_PAINEL_CAMINHO no servidor)
@@ -366,9 +376,24 @@ function criarPainel(opcoes) {
   }
   const timerEstat = setInterval(gravarEstatisticas, 30000);
   timerEstat.unref?.();
+  function recarregarEstado() {
+    const carregado = armazem.lerJson('estatisticas.json', { dias: {} });
+    estatisticas = carregado && typeof carregado.dias === 'object' ? carregado : { dias: {} };
+    estatisticasSujas = false;
+    cacheResumoDados = { chave: '', valor: null };
+  }
+
   for (const sinal of ['SIGINT', 'SIGTERM']) {
-    process.once(sinal, () => {
-      gravarEstatisticas();
+    process.once(sinal, async () => {
+      if (estatisticasSujas) {
+        try {
+          const texto = JSON.stringify(estatisticas, null, 1);
+          armazem.gravarJson('estatisticas.json', estatisticas);
+          if (banco?.estaAtivo()) await banco.salvarDocumento('admin/estatisticas.json', texto);
+          estatisticasSujas = false;
+        } catch (_e) {}
+      }
+      if (banco) await banco.encerrar();
       process.exit(0);
     });
   }
@@ -968,7 +993,8 @@ function criarPainel(opcoes) {
             node: process.version,
             memoriaMb: Math.round(mem.rss / 1048576),
             sessoesAtivas: [...sessoes.values()].filter(s => Date.now() <= s.expiraEm).length,
-            contas: usuarios.size
+            contas: usuarios.size,
+            banco: banco ? banco.status() : { configurado: false, ativo: false, ultimoErro: '' }
           }
         });
         return true;
@@ -1180,6 +1206,10 @@ function criarPainel(opcoes) {
         }
 
         gravarIndiceLinhas(indice);
+        if (banco?.estaAtivo()) {
+          await banco.salvarEmpresa(registro, [...setSelecionadas]);
+          await banco.salvarDocumento('dados/linhas.json', JSON.stringify(indice, null, 2), quem);
+        }
         registrarAuditoria(
           existente ? 'EMPRESA_EDITADA' : 'EMPRESA_CRIADA',
           ip,
@@ -1220,6 +1250,10 @@ function criarPainel(opcoes) {
         }
 
         gravarIndiceLinhas(indice);
+        if (banco?.estaAtivo()) {
+          await banco.excluirEmpresa(idAlvo);
+          await banco.salvarDocumento('dados/linhas.json', JSON.stringify(indice, null, 2), quem);
+        }
         registrarAuditoria(
           'EMPRESA_EXCLUIDA',
           ip,
@@ -1242,6 +1276,7 @@ function criarPainel(opcoes) {
     tratar,
     obterSessao,
     origemConfiavel,
+    recarregarEstado,
     nomeUsuario: s => (s && usuarios.get(s.usuario)?.nome) || '',
     info: { caminho: prefixo, caminhoFoiGerado, contas: usuarios.size }
   };
