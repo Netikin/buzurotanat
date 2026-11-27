@@ -33,7 +33,7 @@
   function aplicar(tema) {
     raiz.setAttribute('data-tema', tema);
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', tema === 'escuro' ? '#0f1626' : '#162652');
+    if (meta) meta.setAttribute('content', tema === 'escuro' ? '#0A1626' : '#12355B');
     const btn = document.getElementById('btn-tema');
     if (btn) {
       const escuro = tema === 'escuro';

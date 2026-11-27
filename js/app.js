@@ -22,7 +22,6 @@
     paradasProximas: [],
     paradaSelecionadaId: null,
     linhaSelecionadaId: null,
-    adminDesbloqueado: false,
     indiceTecladoEndereco: -1,
     indiceTecladoLinha: -1,
     abaBusca: 'endereco',
@@ -31,17 +30,7 @@
     viagemAtiva: null,
     indiceTrajetoEscolhido: 0,
     linhasViagem: [],
-    etapasViagem: [],
-    modoEditorParadas: false,
-    criarParadaCliqueAtivo: false,
-    mostrarVirtuaisNoMapa: false,
-    modoEditorRota: false,
-    editorRotaLinha: null,
-    editorRotaDia: 'dias_uteis_sabados',
-    estenderRotaCliqueAtivo: false,
-    modoDesenhadorRota: false,
-    desenhadorLinha: null,
-    desenhadorDia: 'dias_uteis_sabados'
+    etapasViagem: []
   };
 
   document.addEventListener('DOMContentLoaded', async () => {
@@ -197,28 +186,6 @@
       if (btnContraste) btnContraste.setAttribute('aria-pressed', 'true');
     }
 
-    // Relógio e data ao vivo no cabeçalho (padrão RUMO Grande Recife)
-    const elData = document.getElementById('rumo-data-atual');
-    const elHora = document.getElementById('rumo-hora-atual');
-    function atualizarRelogioRumo() {
-      const agora = new Date();
-      if (elData) {
-        elData.textContent = agora.toLocaleDateString('pt-BR', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
-      }
-      if (elHora) {
-        elHora.textContent = agora.toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-      }
-    }
-    atualizarRelogioRumo();
-    setInterval(atualizarRelogioRumo, 30000);
-
     btnContraste?.addEventListener('click', () => {
       const ativo = document.body.classList.toggle('alto-contraste');
       btnContraste.setAttribute('aria-pressed', String(ativo));
@@ -293,18 +260,6 @@
       !estadoUI.linhaSelecionadaId &&
       !estadoUI.paradaSelecionadaId
     );
-
-    if (reprocessarRota && estadoUI.modoEditorRota && estadoUI.editorRotaLinha && typeof estadoUI.reabrirEditorRotaNoDia === 'function') {
-      const diaEdit = novoDia === 'todos' ? 'dias_uteis_sabados' : novoDia;
-      await estadoUI.reabrirEditorRotaNoDia(estadoUI.editorRotaLinha, diaEdit);
-      return;
-    }
-
-    if (reprocessarRota && estadoUI.modoDesenhadorRota && estadoUI.desenhadorLinha && typeof estadoUI.reabrirDesenhadorNoDia === 'function') {
-      const diaEdit = novoDia === 'todos' ? 'dias_uteis_sabados' : novoDia;
-      await estadoUI.reabrirDesenhadorNoDia(estadoUI.desenhadorLinha, diaEdit);
-      return;
-    }
 
     if (reprocessarRota && estadoUI.linhaSelecionadaId) {
       window.BuzuMapa.solicitarEnquadramentoNaProximaRenderizacao();
@@ -500,12 +455,15 @@
     let sugestoes = [];
     let indice = -1;
     let timer = null;
+    let seqBusca = 0;
 
     if (!input || !lista) {
       return { fechar: () => {}, limpar: () => {} };
     }
 
     function fechar() {
+      seqBusca++;
+      clearTimeout(timer);
       lista.hidden = true;
       lista.innerHTML = '';
       indice = -1;
@@ -567,13 +525,14 @@
         return;
       }
       timer = setTimeout(async () => {
+        const minhaSeq = ++seqBusca;
         const locais = window.BuzuDados.buscarSugestoesEnderecoLocal(valor);
         sugestoes = locais;
         indice = -1;
         renderizar();
 
         const completas = await window.BuzuDados.buscarSugestoesEndereco(valor);
-        if (input.value.trim() !== valor) return;
+        if (minhaSeq !== seqBusca || input.value.trim() !== valor) return;
         sugestoes = completas;
         indice = -1;
         renderizar();
@@ -617,7 +576,9 @@
    * Ponto escolhido no mapa (tocando ou arrastando o pino A/B): vira a saída ou o destino,
    * com o nome da rua quando o mapa aberto conhece, e as rotas são recalculadas.
    */
+  const seqPontoMapa = { origem: 0, destino: 0 };
   async function definirPontoViagemPeloMapa(tipo, lat, lng) {
+    const minhaSeq = ++seqPontoMapa[tipo];
     const input = document.getElementById(tipo === 'origem' ? 'input-origem-viagem' : 'input-destino-viagem');
     const ponto = { lat, lng, rotulo: 'Ponto marcado no mapa' };
     if (tipo === 'origem') estadoUI.origemViagem = ponto;
@@ -626,6 +587,8 @@
     window.BuzuMapa.definirPontosViagem(estadoUI.origemViagem, estadoUI.destinoViagem, null);
 
     const rotulo = await window.BuzuDados.descreverPontoNoMapa(lat, lng);
+    const pontoAtual = tipo === 'origem' ? estadoUI.origemViagem : estadoUI.destinoViagem;
+    if (minhaSeq !== seqPontoMapa[tipo] || pontoAtual !== ponto) return;
     ponto.rotulo = rotulo;
     if (input) input.value = rotulo;
 
@@ -1612,8 +1575,8 @@
     }
 
     const paradasDia = window.BuzuDados.obterParadasPorDia(estadoUI.diaSemana, {
-      incluirInativas: estadoUI.modoEditorParadas,
-      incluirVirtuaisNoMapa: estadoUI.mostrarVirtuaisNoMapa || linhaSelecionadaAtiva
+      incluirInativas: false,
+      incluirVirtuaisNoMapa: linhaSelecionadaAtiva
     });
     let paradasVisiveis = modoViagem
       ? []
@@ -2240,64 +2203,6 @@
         ? 'Atende o sentido VOLTA'
         : 'Atende os dois sentidos (IDA e VOLTA)';
 
-    const vinculosPivot = window.BuzuDados.obterVinculosLinhaParadas(props.id);
-
-    const blocoEditorAdmin =
-      estadoUI.adminDesbloqueado || estadoUI.modoEditorParadas
-        ? `
-          <div class="bloco-secao bloco-secao-destaque" style="margin-top:12px;">
-            <h3 class="titulo-secao" style="margin-top:0;">
-              <span>🛠️ Revisão Manual da Parada (Raio 40m)</span>
-              <span class="badge-tipo">${window.BuzuUtils.escaparHtml(props.origem || 'manual')}</span>
-            </h3>
-            <div class="campo-grupo">
-              <label for="edit-parada-nome" class="campo-label">Nome da parada:</label>
-              <input type="text" id="edit-parada-nome" class="campo-input" value="${window.BuzuUtils.escaparHtml(
-                props.nome
-              )}">
-            </div>
-            <div class="grade-filtros">
-              <div>
-                <label for="edit-parada-sentido" class="campo-label">Sentido Atendido:</label>
-                <select id="edit-parada-sentido" class="campo-select">
-                  <option value="IDA" ${sUpper === 'IDA' ? 'selected' : ''}>IDA (mão de ida)</option>
-                  <option value="VOLTA" ${sUpper === 'VOLTA' ? 'selected' : ''}>VOLTA (mão oposta)</option>
-                  <option value="AMBOS" ${sUpper === 'AMBOS' ? 'selected' : ''}>AMBOS os sentidos</option>
-                  <option value="AUTO">Auto-detectar pelo vetor da via</option>
-                </select>
-              </div>
-              <div>
-                <label for="edit-parada-origem" class="campo-label">Origem do Ponto:</label>
-                <select id="edit-parada-origem" class="campo-select">
-                  <option value="manual" ${props.origem === 'manual' ? 'selected' : ''}>Manual (Revisado)</option>
-                  <option value="osm" ${props.origem === 'osm' ? 'selected' : ''}>OpenStreetMap (OSM)</option>
-                  <option value="virtual" ${props.origem === 'virtual' ? 'selected' : ''}>Virtual (~200m)</option>
-                </select>
-              </div>
-            </div>
-            <label class="rumo-check" style="margin-top:10px;">
-              <input type="checkbox" id="edit-parada-ativo" ${props.ativo !== false ? 'checked' : ''}>
-              <span>Parada ativa no grafo de roteamento (Dijkstra)</span>
-            </label>
-            <div class="acoes-cartao" style="margin-top:12px;">
-              <button type="button" id="btn-salvar-edicao-parada" class="btn-primario">
-                <i class="bi bi-check2" aria-hidden="true"></i>
-                Salvar e Recalcular Grafo (40m)
-              </button>
-              <button type="button" id="btn-excluir-parada" class="btn-secundario" style="color:#b91c1c;border-color:#f3b4b4;">
-                <i class="bi bi-x-lg" aria-hidden="true"></i>
-                Excluir Parada
-              </button>
-            </div>
-            <p style="margin:8px 0 0;font-size:0.76rem;color:var(--rumo-muted);">
-              Coordenadas: <code>${lat.toFixed(6)}, ${lng.toFixed(6)}</code> • Vínculos em <code>linha_paradas</code>: <strong>${
-          vinculosPivot.length
-        }</strong>
-            </p>
-          </div>
-        `
-        : '';
-
     container.innerHTML = `
       <div class="bloco-secao">
         <a href="#/" class="btn-secundario" style="margin-bottom:12px;">
@@ -2324,8 +2229,6 @@
             <strong>${props.ativo !== false ? 'Ativa (' + (props.origem || 'manual').toUpperCase() + ')' : 'Inativa'}</strong>
           </div>
         </div>
-
-        ${blocoEditorAdmin}
 
         <h3 class="titulo-secao" style="margin-top:16px;">
           <span>Linhas propostas que atendem este ponto</span>
@@ -2379,36 +2282,6 @@
         }
       </div>
     `;
-
-    // Eventos do formulário de Revisão Manual da Parada
-    document.getElementById('btn-salvar-edicao-parada')?.addEventListener('click', async () => {
-      const novoNome = document.getElementById('edit-parada-nome')?.value.trim() || props.nome;
-      const novoSentido = document.getElementById('edit-parada-sentido')?.value || 'AMBOS';
-      const novaOrigem = document.getElementById('edit-parada-origem')?.value || 'manual';
-      const novoAtivo = document.getElementById('edit-parada-ativo')?.checked !== false;
-
-      await window.BuzuDados.criarOuEditarParadaNoMapa({
-        id: props.id,
-        nome: novoNome,
-        lat,
-        lng,
-        tipo: props.tipo,
-        origem: novaOrigem,
-        ativo: novoAtivo,
-        sentidos_atendidos: novoSentido
-      });
-      await atualizarMapaEListagens();
-      renderizarVisaoDetalheParada(props.id);
-    });
-
-    document.getElementById('btn-excluir-parada')?.addEventListener('click', async () => {
-      const ok = window.confirm(
-        `Tem certeza que deseja excluir a parada "${props.nome}"? Ela será removida do rascunho local e do roteador.`
-      );
-      if (!ok) return;
-      await window.BuzuDados.excluirParadaNoMapa(props.id);
-      window.location.hash = '#/';
-    });
   }
 
 })();
