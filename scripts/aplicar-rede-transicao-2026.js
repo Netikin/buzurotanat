@@ -123,6 +123,8 @@ const REDE_TRANSICAO = [
 
 // Indicadores por linha da Tabela 17 do edital (lote, intervalos, frota, veículo, extensão...)
 const TABELA17 = lerJson(path.join(__dirname, 'dados-edital-2026', 'tabela17-indicadores-por-linha.json'));
+// km rodados no sábado e no domingo (mesma Tabela 17), para calcular as viagens por dia
+const TABELA17_KM_SAB_DOM = lerJson(path.join(__dirname, 'dados-edital-2026', 'tabela17-km-sabado-domingo.json'));
 
 // Linhas cujo traçado de 2021 (o que está no mapa) não corresponde mais ao itinerário do edital 2026
 const ROTA_ALTERADA = {
@@ -607,6 +609,12 @@ for (const linha of indice.linhas) {
       viagens_mes: t.viagens_mes,
       fonte: 'Edital CP 11.001/2026 — Anexo I.3, Tabela 17'
     };
+    // Viagens no dia (ida e volta) = km rodados no dia ÷ extensão de ida e volta
+    const kmSD = TABELA17_KM_SAB_DOM[linha.numero];
+    if (kmSD && t.extensao_ida_volta_km) {
+      const v = km => Math.round(km / t.extensao_ida_volta_km);
+      linha.operacao.viagens_dia = { du: v(t.km_du), sab: v(kmSD.km_sab), dom: v(kmSD.km_dom) };
+    }
     linha.frequencia_pico = `${textoIntervalo(t.intervalo_du)} (pico, dias úteis)`;
     linha.frequencia_entre_pico = `Sábado: ${textoIntervalo(t.intervalo_sab)} • Domingo: ${textoIntervalo(t.intervalo_dom)}`;
   }

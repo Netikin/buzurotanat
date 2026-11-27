@@ -132,8 +132,11 @@ function usuarioDaSessao(req) {
   return painel.obterSessao(req)?.usuario || '';
 }
 
-// Monitora automaticamente a pasta ./rotas/ para converter novos arquivos .kmz/.kml assim que forem colados!
-if (fs.existsSync(ROTAS_DIR)) {
+// Conversão automática de ./rotas/*.kmz → dados/ — DESLIGADA por padrão.
+// No Windows o fs.watch dispara até quando um arquivo é só lido (antivírus, git), e a conversão
+// sobrescrevia os dados reais (paradas.json chegou a ficar com 18 paradas). Para usar de propósito,
+// inicie o servidor com BUZU_AUTO_KMZ=1 (ou rode node scripts/converter-kmz.js manualmente).
+if (process.env.BUZU_AUTO_KMZ === '1' && fs.existsSync(ROTAS_DIR)) {
   let timerConversao = null;
   fs.watch(ROTAS_DIR, (_evento, nomeArquivo) => {
     if (nomeArquivo && /\.(kmz|kml)$/i.test(nomeArquivo)) {
